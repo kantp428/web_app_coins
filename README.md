@@ -1,6 +1,6 @@
 # THAI Please
 
-Monorepo สำหรับเว็บแอปตาม [PLAN.md](PLAN.md) และ [Core Idea](CoreIdea.md) ใช้ pnpm workspace, Next.js, NestJS, Prisma และ PostgreSQL
+Monorepo สำหรับเว็บแอปตาม [Flag board](PLAN/PLAN.md) และ [Core Idea](CoreIdea.md) ใช้ pnpm workspace, Next.js, NestJS, Prisma และ PostgreSQL
 
 ## โครงสร้าง
 
@@ -62,4 +62,4 @@ pnpm lint
 pnpm test
 ```
 
-ตอนนี้ขั้นตอนข้างต้นรัน Next.js และ NestJS scaffold ได้ แต่ยังไม่มี Prisma schema, migration, seed หรือ API ตาม `PLAN.md` จึงยังไม่มีขั้นตอนตั้งฐานข้อมูลที่รันได้จริง เมื่อส่วน F00 เสร็จ ให้เพิ่มขั้นตอน PostgreSQL และ migrate/seed ที่นี่
+ปัจจุบันมี mobile wallet UI จำลอง, NestJS scaffold และ Neon/Prisma baseline `0_init` แล้ว. Seed, PrismaService และ business APIs ยังเป็นงานที่เหลือใน [Integration plan](PLAN/INTEGRATION.md). วิธี Pull/Push/Baseline/Migrate ดู [Prisma guide](apps/api/PRISMA_GUIDE.md).

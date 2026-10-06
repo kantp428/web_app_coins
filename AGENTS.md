@@ -1,6 +1,6 @@
 # Project guidance
 
-Read `PLAN.md` for the assigned Daily Flag, Feature ID, dependencies, acceptance criteria, and file ownership. `CoreIdea.md` gives product context. Record unresolved rules in `docs/decisions.md` before implementing them.
+Read `PLAN/PLAN.md` for the assigned Daily Flag, Feature ID, dependencies, acceptance criteria, and file ownership. Detailed role plans are `PLAN/APP_DEV_A.md`, `PLAN/APP_DEV_B.md`, `PLAN/AI_DEV.md`, and `PLAN/INTEGRATION.md`; shared requirements and acceptance rules live in `PLAN/INTEGRATION.md`. `CoreIdea.md` gives product context. Record unresolved rules in `docs/decisions.md` before implementing them.
 
 Use the relevant project skill in `.agent/skills/` when working in that area:
 
@@ -8,7 +8,7 @@ Use the relevant project skill in `.agent/skills/` when working in that area:
 - `nest-api/SKILL.md` for NestJS endpoints, auth, and recommendations.
 - `prisma-data/SKILL.md` for schema, migrations, seed, and money/Coins rules.
 
-Keep the API contract in `docs/api-contract.md` aligned across web, API, and Postman. Backend/API changes require the matching `apps/api/postman/THAI-Please.postman_collection.json` change under `PLAN.md`.
+Keep the API contract in `docs/api-contract.md` aligned across web, API, and Postman. Backend/API changes require the matching `apps/api/postman/THAI-Please.postman_collection.json` change under `PLAN/PLAN.md`.
 
 ## Automatic code formatting
 

@@ -5,7 +5,7 @@ description: Build or update the THAI Please Next.js customer, seller, or govern
 
 # Web frontend
 
-Use for work under `apps/web`. Read the assigned Daily Flag and Feature ID in `PLAN.md`, then read `docs/api-contract.md` when connecting to the API.
+Use for work under `apps/web`. Read the assigned Daily Flag and Feature ID in `PLAN/PLAN.md`, read the matching `PLAN/APP_DEV_A.md` or `PLAN/APP_DEV_B.md` and shared rules in `PLAN/INTEGRATION.md`, then read `docs/api-contract.md` when connecting to the API.
 
 - Put customer routes in `src/app/(customer)/`, seller routes in `src/app/(seller)/`, and government routes in `src/app/(government)/`. Shared UI belongs in `src/components/` when reuse is real.
 - Use the agreed Next.js, shadcn/ui, Lucide React, React Hook Form, Axios, and Zod stack. Add shadcn components as needed; do not assume they are already installed.

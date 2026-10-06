@@ -162,7 +162,7 @@ Generate อาจทำใน build pipeline ก่อน deploy ได้ต�
 ## 7. Checklist ของโปรเจกต์นี้
 
 - เงินใช้ PostgreSQL Decimal; Coins ใช้ Int และแยกจากเงินบาท
-- Relations, unique constraints, idempotency และ ledger ต้องรองรับ PLAN.md
+- Relations, unique constraints, idempotency และ ledger ต้องรองรับ PLAN/INTEGRATION.md
 - Pull แล้วอย่าถือว่า DB ตรงกับข้อกำหนดธุรกิจทันที ต้อง review model ด้วย
 - การเปลี่ยน field ที่กระทบ API ให้ปรับ docs/api-contract.md และ Postman ตามกติกาโปรเจกต์
 - Schema ใช้ `prisma format`; TS ใช้ Prettier ตามคำแนะนำโปรเจกต์

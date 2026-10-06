@@ -5,7 +5,7 @@ description: Design and change THAI Please PostgreSQL schema, Prisma migrations,
 
 # Prisma data
 
-Use for work in `apps/api/prisma/` or for API logic that changes persisted money, Coins, or rewards. Read `PLAN.md` section 5, `docs/decisions.md`, and `docs/api-contract.md` first. `docs/blueprint/schema/` is reference material, not an applied migration.
+Use for work in `apps/api/prisma/` or for API logic that changes persisted money, Coins, or rewards. Read `PLAN/PLAN.md` and the contract/data rules in `PLAN/INTEGRATION.md`, `docs/decisions.md`, and `docs/api-contract.md` first. `docs/blueprint/schema/` is reference material, not an applied migration.
 
 - Keep Prisma schema, migrations, and seed in `apps/api/prisma/`. Run Prisma from the API workspace.
 - Store money as PostgreSQL decimal and send decimal strings through the API; keep Coins integer. Use `Asia/Bangkok` for monthly periods.
