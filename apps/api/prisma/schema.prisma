@@ -1,0 +1,190 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgres"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model coin_entries {
+  coin_entry_id      BigInt             @id @default(autoincrement())
+  user_id            BigInt
+  period_id          BigInt
+  purchase_id        BigInt             @unique
+  rule_id            BigInt
+  coins              Int                @db.SmallInt
+  awarded_at         DateTime           @default(now()) @db.Timestamptz(6)
+  reversed_at        DateTime?          @db.Timestamptz(6)
+  monthly_periods    monthly_periods    @relation(fields: [period_id], references: [period_id], onDelete: NoAction, onUpdate: NoAction)
+  purchases          purchases          @relation(fields: [purchase_id, user_id, rule_id], references: [purchase_id, customer_id, rule_id], onDelete: NoAction, onUpdate: NoAction)
+  coin_rule_versions coin_rule_versions @relation(fields: [rule_id], references: [rule_id], onDelete: NoAction, onUpdate: NoAction)
+  users              users              @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Prisma requires the complete composite relation key to be unique.
+  // purchase_id remains individually unique: one coin entry per purchase.
+  @@unique([purchase_id, user_id, rule_id])
+  @@index([user_id, period_id], map: "ix_coins_user_period")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model coin_rule_versions {
+  rule_id             BigInt         @id @default(autoincrement())
+  version             Int            @unique
+  created_by          BigInt
+  creator_role        String         @default("GOVERNMENT") @db.VarChar(16)
+  effective_from      DateTime       @db.Timestamptz(6)
+  effective_to        DateTime?      @db.Timestamptz(6)
+  minimum_purchase    Decimal        @db.Decimal(14, 2)
+  low_sales_threshold Decimal        @db.Decimal(14, 2)
+  sales_window_days   Int
+  repeat_coins        Int            @default(1) @db.SmallInt
+  new_low_sales_coins Int            @db.SmallInt
+  new_other_coins     Int            @db.SmallInt
+  created_at          DateTime       @default(now()) @db.Timestamptz(6)
+  coin_entries        coin_entries[]
+  users               users          @relation(fields: [created_by, creator_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+  purchases           purchases[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model money_entries {
+  entry_id        BigInt         @id @default(autoincrement())
+  idempotency_key String         @unique @db.VarChar(200)
+  wallet_id       BigInt
+  user_id         BigInt
+  wallet_type     String         @db.VarChar(16)
+  purchase_id     BigInt?
+  grant_id        BigInt?        @unique(map: "uq_reward_allocation", where: raw("((entry_type)::text = 'REWARD_ALLOCATION'::text)"))
+  signed_amount   Decimal        @db.Decimal(14, 2)
+  entry_type      String         @db.VarChar(24)
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  reward_grants   reward_grants? @relation(fields: [grant_id, user_id], references: [grant_id, user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_money_grant_owner")
+  purchases       purchases?     @relation(fields: [purchase_id, user_id], references: [purchase_id, customer_id], onDelete: NoAction, onUpdate: NoAction)
+  wallets         wallets        @relation(fields: [wallet_id, user_id, wallet_type], references: [wallet_id, user_id, wallet_type], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([purchase_id, wallet_id, entry_type], map: "uq_money_purchase_source", where: raw("((entry_type)::text = ANY ((ARRAY['PURCHASE'::character varying, 'REFUND'::character varying])::text[]))"))
+  @@index([grant_id, entry_type], map: "ix_money_grant")
+  @@index([wallet_id, created_at], map: "ix_money_wallet")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model monthly_periods {
+  period_id     BigInt          @id @default(autoincrement())
+  month_key     DateTime        @unique @db.Date
+  starts_at     DateTime        @db.Timestamptz(6)
+  ends_at       DateTime        @db.Timestamptz(6)
+  timezone      String          @default("Asia/Bangkok") @db.VarChar(40)
+  budget_limit  Decimal         @db.Decimal(14, 2)
+  coin_target   Int             @default(100)
+  reward_amount Decimal         @default(100) @db.Decimal(14, 2)
+  status        String          @default("DRAFT") @db.VarChar(16)
+  coin_entries  coin_entries[]
+  reward_grants reward_grants[]
+
+  @@unique([period_id, ends_at])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchases {
+  purchase_id         BigInt             @id @default(autoincrement())
+  customer_id         BigInt
+  customer_role       String             @default("CUSTOMER") @db.VarChar(16)
+  shop_id             BigInt
+  rule_id             BigInt
+  total_amount        Decimal            @db.Decimal(14, 2)
+  customer_paid       Decimal            @db.Decimal(14, 2)
+  base_subsidy_used   Decimal            @default(0) @db.Decimal(14, 2)
+  reward_subsidy_used Decimal            @default(0) @db.Decimal(14, 2)
+  subsidy_used        Decimal?           @default(dbgenerated("(base_subsidy_used + reward_subsidy_used)")) @db.Decimal(14, 2)
+  status              String             @default("PENDING") @db.VarChar(16)
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  confirmed_at        DateTime?          @db.Timestamptz(6)
+  refunded_at         DateTime?          @db.Timestamptz(6)
+  shop_area_snapshot  String             @db.VarChar(20)
+  shop_size_snapshot  String             @db.VarChar(16)
+  idempotency_key     String             @unique @db.VarChar(200)
+  coin_entries        coin_entries?
+  money_entries       money_entries[]
+  coin_rule_versions  coin_rule_versions @relation(fields: [rule_id], references: [rule_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_purchase_rule")
+  users               users              @relation(fields: [customer_id, customer_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+  shops               shops              @relation(fields: [shop_id], references: [shop_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([purchase_id, customer_id])
+  @@unique([purchase_id, customer_id, rule_id])
+  @@index([customer_id, shop_id, confirmed_at], map: "ix_purchases_customer_shop")
+  @@index([confirmed_at, shop_area_snapshot, shop_size_snapshot], map: "ix_purchases_report")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reward_grants {
+  grant_id        BigInt          @id @default(autoincrement())
+  user_id         BigInt
+  user_role       String          @default("CUSTOMER") @db.VarChar(16)
+  period_id       BigInt
+  amount          Decimal         @default(100) @db.Decimal(14, 2)
+  granted_at      DateTime        @default(now()) @db.Timestamptz(6)
+  expires_at      DateTime        @db.Timestamptz(6)
+  money_entries   money_entries[]
+  monthly_periods monthly_periods @relation(fields: [period_id, expires_at], references: [period_id, ends_at], onDelete: NoAction, onUpdate: NoAction)
+  users           users           @relation(fields: [user_id, user_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([grant_id, user_id])
+  @@unique([user_id, period_id])
+  @@index([period_id], map: "ix_grants_period")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shops {
+  shop_id              BigInt      @id @default(autoincrement())
+  owner_id             BigInt
+  owner_role           String      @default("SELLER") @db.VarChar(16)
+  name                 String      @db.VarChar(200)
+  category             String      @db.VarChar(100)
+  area_code            String      @db.VarChar(20)
+  latitude             Decimal     @db.Decimal(9, 6)
+  longitude            Decimal     @db.Decimal(9, 6)
+  opening_hours        Json        @default("{}")
+  participation_status String      @default("PENDING") @db.VarChar(16)
+  size_class           String      @db.VarChar(16)
+  purchases            purchases[]
+  users                users       @relation(fields: [owner_id, owner_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([participation_status, area_code, category], map: "ix_shops_map")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  user_id            BigInt               @id @default(autoincrement())
+  login_identifier   String               @unique @db.VarChar(255)
+  password_hash      String
+  role               String               @db.VarChar(16)
+  display_name       String               @db.VarChar(200)
+  interests          Json                 @default("[]")
+  status             String               @default("ACTIVE") @db.VarChar(16)
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  coin_entries       coin_entries[]
+  coin_rule_versions coin_rule_versions[]
+  purchases          purchases[]
+  reward_grants      reward_grants[]
+  shops              shops[]
+  wallets            wallets[]
+
+  @@unique([user_id, role])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model wallets {
+  wallet_id     BigInt          @id @default(autoincrement())
+  user_id       BigInt
+  user_role     String          @default("CUSTOMER") @db.VarChar(16)
+  wallet_type   String          @db.VarChar(16)
+  currency      String          @default("THB") @db.Char(3)
+  status        String          @default("ACTIVE") @db.VarChar(16)
+  money_entries money_entries[]
+  users         users           @relation(fields: [user_id, user_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, wallet_type])
+  @@unique([wallet_id, user_id, wallet_type])
+}
