@@ -1,0 +1,16 @@
+{
+  "name": "web-app-coins",
+  "private": true,
+  "packageManager": "pnpm@12.9.1",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev": "concurrently \"pnpm:dev:web\" \"pnpm:dev:api\"",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm --filter api test"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

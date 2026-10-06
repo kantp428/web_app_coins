@@ -1,0 +1,10 @@
+{
+  "files.exclude": {
+    "**/.next": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/node_modules/.pnpm": true,
+    "**/.next": true
+  }
+}
