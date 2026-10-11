@@ -13,3 +13,15 @@ Use for work under `apps/web`. Read the assigned Daily Flag and Feature ID in `P
 - Run from repo root: `pnpm --filter web lint` and `pnpm --filter web build`. Check the relevant UI flow and responsive states before calling it done.
 
 Example request: "Implement D2-A / F04 account page using the agreed `/me` and wallet response in `docs/api-contract.md`."
+
+## Feedback UI
+
+Use Sonner (`toast` from `sonner`, root Toaster) for errors, validation alerts and operation results; do not duplicate auth errors as inline UI text, and `components/shared/confirm-dialog` for confirmations. Base UI powers Dialog/AlertDialog; keep pending operations disabled and allow retry after failure. Format changed files and run web lint/build. Example: add a logout confirmation with error and success toasts.
+
+## Required PLAN update
+
+Apply the progress/handoff rules in [AGENTS.md](../../../AGENTS.md#required-progress-and-collaboration-handoff) on every task using this skill. Before the final response, update [PLAN/PLAN.md](../../../PLAN/PLAN.md) with affected flag status, changed files/routes, actual checks, blockers/unresolved rules, and the next action so another collaborator can continue. Log partial or blocked work too; do not mark a whole feature DONE from a partial implementation or passing unit tests. Reread the latest plan and preserve other contributors' edits.
+
+## Shop location maps
+
+Use React Leaflet/Leaflet client-only through dynamic import with ssr:false, plus Leaflet CSS. Load OSM tiles only when the user opens the map, keep visible attribution and normal browser cache/referrer behavior, and do not prefetch/offline-download tiles. ShopLocationPicker supports click/drag coordinate selection with manual coordinate/address entry retained. Never request device geolocation automatically. Tile provider uses NEXT_PUBLIC_MAP_TILE_URL and NEXT_PUBLIC_MAP_ATTRIBUTION. Address text is owner-confirmed, not geocoded. Example: select a shop pin in /register while preserving form validation and pending state.

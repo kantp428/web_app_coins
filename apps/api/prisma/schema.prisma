@@ -142,6 +142,7 @@ model shops {
   owner_role           String      @default("SELLER") @db.VarChar(16)
   name                 String      @db.VarChar(200)
   category             String      @db.VarChar(100)
+  address              String?     @db.VarChar(500)
   area_code            String      @db.VarChar(20)
   latitude             Decimal     @db.Decimal(9, 6)
   longitude            Decimal     @db.Decimal(9, 6)

@@ -2,6 +2,8 @@
 
 Monorepo สำหรับเว็บแอปตาม [Flag board](PLAN/PLAN.md) และ [Core Idea](CoreIdea.md) ใช้ pnpm workspace, Next.js, NestJS, Prisma และ PostgreSQL
 
+เว็บใช้ Base UI/shadcn สำหรับ Alert และ Dialog และใช้ Sonner สำหรับ toast แจ้งผล โดยติดตั้ง Toaster ที่ root layout; confirmation ที่ใช้ร่วมกันอยู่ใน `apps/web/src/components/shared/confirm-dialog.tsx`
+
 ## โครงสร้าง
 
 | ตำแหน่ง                          | งาน                                                                     |
@@ -63,3 +65,7 @@ pnpm test
 ```
 
 ปัจจุบันมี mobile wallet UI จำลอง, NestJS scaffold และ Neon/Prisma baseline `0_init` แล้ว. Seed, PrismaService และ business APIs ยังเป็นงานที่เหลือใน [Integration plan](PLAN/INTEGRATION.md). วิธี Pull/Push/Baseline/Migrate ดู [Prisma guide](apps/api/PRISMA_GUIDE.md).
+
+## Shop registration location
+
+`/register` ร้านค้าใช้ React Leaflet + Leaflet และ OpenStreetMap สำหรับเลือกพิกัด เปิดแผนที่แล้วคลิก/ลากหมุด หรือกรอกพิกัดเองได้ ที่อยู่ร้านกรอกและตรวจเองแยกจากรหัสพื้นที่ ไม่มี geocoding อัตโนมัติ ตั้ง tile provider/attribution ใน apps/web/.env.example ได้ รัน `pnpm --filter api exec prisma migrate deploy` ก่อนใช้ API ใหม่เพื่อเพิ่ม shops.address (ไม่แก้ baseline)

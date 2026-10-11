@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { customerRoutes, sellerRoutes } from "@/lib/role-routes";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -125,9 +129,22 @@ function Section({
   );
 }
 
-export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
+export function WalletApp({
+  role = "normal",
+  section = "home",
+}: {
+  role?: "normal" | "store";
+  section?:
+    "home" | "explore" | "quest" | "history" | "receive" | "manage" | "profile";
+}) {
+  const { user } = useAuth();
   const seller = role === "store";
-  const [tab, setTab] = useState("home");
+  const tab = section;
+  const router = useRouter();
+  const routes = seller ? sellerRoutes : customerRoutes;
+  function navigate(section: string) {
+    router.push(routes[section]);
+  }
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
   const [selected, setSelected] = useState<(typeof shops)[number] | null>(null);
@@ -234,7 +251,7 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
         <header className="space-y-5 px-5 pb-5 pt-6">
           <div className="flex items-center justify-between">
             <Link
-              href="/"
+              href={routes.home}
               className="flex items-center gap-2 font-semibold tracking-tight"
             >
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -247,36 +264,17 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
             </Link>
             <Badge variant="outline">UI Preview</Badge>
           </div>
-          <div className="flex rounded-lg bg-muted p-1">
-            <Button
-              nativeButton={false}
-              render={<Link href="/wallet" />}
-              variant={!seller ? "default" : "ghost"}
-              className="flex-1"
-            >
-              ผู้ใช้ทั่วไป
-            </Button>
-            <Button
-              nativeButton={false}
-              render={<Link href="/store" />}
-              variant={seller ? "default" : "ghost"}
-              className="flex-1"
-            >
-              <Store className="size-4" />
-              ร้านค้า
-            </Button>
-          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">
                 {seller ? "พื้นที่สำหรับร้านค้า" : "ยินดีต้อนรับกลับ"}
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                {seller ? storeName : "สวัสดี, คุณพลอย"}
+                {seller ? storeName : `สวัสดี, ${user.displayName}`}
               </h1>
             </div>
             <button
-              onClick={() => setTab("profile")}
+              onClick={() => navigate("profile")}
               aria-label="เปิดบัญชี"
               className="flex size-11 items-center justify-center rounded-full border bg-muted"
             >
@@ -366,7 +364,7 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
                           ? setNotice(
                               "ต้นแบบยังไม่เปิดกล้อง เลือกร้านในหน้าค้นหาเพื่อดูรายละเอียดได้",
                             )
-                          : setTab(a.target)
+                          : navigate(a.target)
                     }
                   >
                     <a.icon className="size-5" />
@@ -395,7 +393,7 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => setTab("manage")}
+                        onClick={() => navigate("manage")}
                       >
                         ดูข้อมูลร้าน
                         <ChevronRight className="size-4" />
@@ -427,7 +425,7 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
                         <Button
                           variant="outline"
                           className="w-full"
-                          onClick={() => setTab("quest")}
+                          onClick={() => navigate("quest")}
                         >
                           ดูภารกิจของฉัน
                           <ChevronRight className="size-4" />
@@ -524,7 +522,10 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
                     สะสมครบ 100 Coins รับวงเงินช่วยจ่าย ฿100 ครั้งเดียวต่อเดือน
                     ใช้ได้ภายในเดือนที่ได้รับ
                   </p>
-                  <Button className="w-full" onClick={() => setTab("explore")}>
+                  <Button
+                    className="w-full"
+                    onClick={() => navigate("explore")}
+                  >
                     ค้นหาร้านใหม่
                     <ArrowUpRight className="size-4" />
                   </Button>
@@ -666,11 +667,9 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
                     <User className="size-6" />
                   </div>
                   <div>
-                    <p className="font-semibold">
-                      {seller ? "คุณเล็ก • เจ้าของร้าน" : "พลอย ใจดี"}
-                    </p>
+                    <p className="font-semibold">{user.displayName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {seller ? "บัญชีร้านค้า" : "ผู้ใช้ทั่วไป"} • บัญชีตัวอย่าง
+                      {seller ? "บัญชีร้านค้า" : "ผู้ใช้ทั่วไป"}
                     </p>
                   </div>
                 </CardContent>
@@ -692,10 +691,13 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
                   <ChevronRight className="size-4" />
                 </Button>
               ))}
+              <div className="flex justify-end">
+                <LogoutButton />
+              </div>
               <p className="text-center text-xs text-muted-foreground">
                 THAI Please • Base UI v0.1
                 <br />
-                ไม่มีการเข้าสู่ระบบหรือเชื่อม API ในต้นแบบนี้
+                ยอดเงินและข้อมูลธุรกรรมยังเป็นตัวอย่าง
               </p>
             </Section>
           )}
@@ -709,18 +711,15 @@ export function WalletApp({ role = "normal" }: { role?: "normal" | "store" }) {
           style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
         >
           {nav.map((n) => (
-            <button
+            <Link
               key={n.id}
-              onClick={() => {
-                setTab(n.id);
-                setNotice("");
-              }}
+              href={routes[n.id]}
               aria-current={tab === n.id ? "page" : undefined}
               className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-lg text-[10px] transition-colors ${tab === n.id ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60"}`}
             >
               <n.icon className="size-5" strokeWidth={tab === n.id ? 2 : 1.5} />
               {n.label}
-            </button>
+            </Link>
           ))}
         </nav>
         <Dialog

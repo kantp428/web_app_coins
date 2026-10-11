@@ -1,4 +1,4 @@
-import { WalletApp } from "@/components/wallet/wallet-app";
+import { redirect } from "next/navigation";
 export default function Home() {
-  return <WalletApp />;
+  redirect("/login");
 }
