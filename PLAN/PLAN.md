@@ -72,7 +72,7 @@
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | F00/F01 — ข้อมูลและ contract | Demo seed CUSTOMER/SELLER/GOVERNMENT รันซ้ำไม่สร้างซ้ำ; Auth/Register contract, decisions และ Postman                                                                                                                                                          | PrismaService กลาง, seed ธุรกิจครบ scenarios, CI และ clean-database deploy/restore ยังไม่ครบ                                                                                             |
 | F02 — Authentication         | Login/Register 3 roles, scrypt password hash, JWT อายุ 1 ชั่วโมงใน HttpOnly cookie, `/me`, Logout; layout ตรวจ role; Context + hooks + Axios กลาง                                                                                                              | Wallet/Coins reads จาก ledger, guard/ownership สำหรับ business API และ full auth E2E ยังไม่ครบ                                                                                           |
-| F03 — ร้านค้า                | Register SELLER สร้าง user+shop แบบ atomic, owner ผูกบัญชีใหม่, server ตั้ง PENDING; validate รายละเอียดร้าน                                                                                                                                                   | Owner CRUD/multi-store, government approval/suspend, public search/filter และ owner-isolation tests ยังไม่มี                                                                             |
+| F03 — ร้านค้า                | Register SELLER สร้าง user+shop แบบ atomic, owner ผูกบัญชีใหม่, server ตั้ง PENDING; validate รายละเอียดร้านและ address JSON                                                                                                                                   | Owner CRUD/multi-store, government approval/suspend, public search/filter และ owner-isolation tests ยังไม่มี                                                                             |
 | F04/F05 — Web integration    | `/login`, `/register`; ลูกค้ากรอกชื่อ–นามสกุล/เลข 13 หลัก, ร้านกรอกรายละเอียดร้าน, รัฐใช้ credentials เท่านั้น; shadcn Select, Sonner alerts, Logout confirmation; Bai Jamjuree/Chivo Mono                                                                     | Map/API search, account/wallet จริง, แบบฟอร์มจัดการร้านจริง; browser QA ของ Register/Select/routes ล่าสุดยังไม่ครบ                                                                       |
 | F09/F10 — เมนูและหน้าจอ      | Customer `/wallet`, `/wallet/explore`, `/wallet/quests`, `/wallet/history`, `/wallet/account`; seller `/store`, `/store/receive`, `/store/history`, `/store/settings`, `/store/account`; Logout อยู่ account                                                   | ยอดเงิน/Coins/ประวัติ/รับเงิน/AI และแก้ร้านส่วนเดิมยังเป็น fixtures; F06/F07/F08 ยังไม่เริ่ม integration                                                                                 |
 | F12 — Government             | `/government`, `/government/stores`, `/government/coin-rules`, `/government/reports`, `/government/account` พร้อม shared role layout                                                                                                                           | Approval/rule/report pages เป็น placeholder; ยังไม่มี dashboard หรือ KPI จริง                                                                                                            |
@@ -109,3 +109,112 @@
 - Browser: แท็บร้านเปิด map/tiles และเครดิตได้; คลิกแผนที่สร้าง marker และเติมพิกัด 13.759394 / 100.497608 จริง; ยังไม่ได้ตรวจลากหมุด, responsive ล่าสุด หรือ submit สมัครครบทั้ง flow ผ่าน browser
 - ค้าง: ไม่ทำ reverse geocoding/ค้นหาที่อยู่หรือขอ device location; area_code ยังไม่มีมาตรฐาน; map นี้เป็น register picker ยังไม่ใช่ F04 public shop map/search
 - ทำต่อ: ล็อก master พื้นที่และตรวจ full Register E2E/owner isolation; ทำ store CRUD/approval และ public search ตาม dependencies ก่อนปิด Feature
+
+### 2026-10-12 Asia/Bangkok — F03/F05: ตรวจ Register map ต่อ
+
+- ขอบเขต R1-D3-B / R1-D3-I ยัง DOING; ใช้ web-frontend skill ตรวจ UI เดิม ไม่มีการแก้ application code
+- Browser ผ่าน: กรอกพิกัดเองสร้าง marker; ลาก marker แล้ว latitude/longitude เปลี่ยนเป็น 13.744388 / 100.519753; ที่ viewport 360x800 แผนที่/เครดิตแสดงครบและไม่มี horizontal overflow (documentWidth 345, viewport 360)
+- เริ่ม web dev ชั่วคราวเพื่อ QA เพราะ localhost เดิมหยุด; ปิด server ที่เริ่มในรอบนี้และคืน viewport หลังตรวจ
+- ผลตรวจรอบก่อนยังใช้ได้: web/API lint/build, API unit tests 16, Prisma และ formatting ผ่าน; รอบนี้แก้เอกสารเท่านั้นและตรวจ Prettier write/check
+- ค้าง: full successful register E2E และ persistence ผ่าน HTTP ยังไม่ได้ตรวจ; ไม่มี reverse geocoding; area_code/master พื้นที่ยังต้องล็อก
+- ทำต่อ: ตรวจสมัครจริงครบ flow ใน test environment และ owner CRUD/approval ตาม F03 dependencies; ไม่ยก F03/F05 เป็น DONE จาก map picker
+
+### 2026-10-12 Asia/Bangkok — F03/F05: JSON address + automatic reverse geocoding
+
+- Flags R1-D3-B/R1-D3-I ยัง DOING: เปลี่ยน shops.address เป็น JSONB {line1,province,district,subDistrict,postcode}; migration 20261012001000_shop_address_json apply สำเร็จ รักษา text เดิมเป็น line1/null เดิมเป็น null
+- Web: แยกช่องที่อยู่ แก้เองได้; useReverseGeocode + Axios กลาง debounce800ms/abort stale responses, retry button, Sonner errors; PC Ctrl+wheel zoom โดยไม่เปิด ordinary scroll zoom
+- API: GET /geocoding/reverse ผ่าน Next GET /api/geocoding; validate coordinates; configurable Nominatim provider, queue max3, serialized >=1100ms, 24h/500-entry cache; รับ registration address JSON แบบ whitelist/trim/length/postcode validation
+- ไฟล์: src/components/maps/, register/page.tsx, hooks/use-reverse-geocode.ts, lib/api.ts, api/geocoding/route.ts (web); src/geocoding/, app.module.ts, src/auth/, prisma/schema.prisma + migration (API); contract/Postman/env.example/README/Test.md/decisions และ web-frontend skill
+- ตรวจผ่าน: web/API lint/build; API tests 22 (Bangkok/provincial parser, invalid inputs, cache, provider failure และคิว >=1100ms); Prisma format/validate/generate; DB transaction ทดสอบ text/null conversion แล้ว rollback และตรวจ shops.address เป็น jsonb; Prettier write/check ไฟล์ที่แก้
+- HTTP จริง: reverse พิกัดตัวอย่าง 13.7455/100.534 ได้สยามสแควร์ซอย 4 / กรุงเทพมหานคร / ปทุมวัน / ปทุมวัน / 10330; invalid latitude91 ได้400. Browser กรอกพิกัดแล้วทั้ง5ช่องเติมอัตโนมัติจริง
+- ค้าง: Ctrl+wheel ยังไม่ได้ยืนยันด้วย wheel interaction ใน browser; responsive รอบ JSON และ successful register E2E ยังไม่ครบ; area_code ไม่อนุมานจาก postcode. ข้อมูล provider อาจขาด ต้องให้เจ้าของยืนยัน/เติม
+- ข้อจำกัด deployment: คิว/cache อยู่ใน API process เดียว ต้องมี shared limiter/cache หรือใช้ provider อื่นก่อน scale replicas ตาม Nominatim policy; ใช้เฉพาะ user-triggered reverse lookup ไม่ใช้ autocomplete/bulk
+- ทำต่อ: browser wheel/responsive + successful register E2E, owner CRUD/approval ตาม dependency; ไม่ปิดทั้ง F03/F05 จากงานนี้
+
+### 2026-10-12 Asia/Bangkok — F05: ปรับ Ctrl+wheel zoom ให้ต่อเนื่อง
+
+- Flag R1-D3-B ยัง DOING; แก้ apps/web/src/components/maps/shop-location-map.tsx ด้วย web-frontend/format-prettier skills
+- สาเหตุ: handler เดิม setZoom ±1 ทุก wheel event และ animate:false ทำให้ trackpad/wheel กระโดดระดับและตัด animation
+- เปลี่ยนเป็น Leaflet native wheel handler (รวม delta, debounce80ms, zoom รอบ cursor, animation) กำหนด zoomSnap0.25/zoomDelta0.5 และ wheelPxPerZoomLevel120; capture listener ยอมให้ Leaflet รับเฉพาะ Ctrl+wheel ส่วน wheel ปกติเลื่อนหน้า และ block browser Ctrl zoom ขณะ disabled
+- ตรวจผ่าน: Prettier write/check, web lint และ production build; อ่าน implementation ของ Leaflet ที่ติดตั้งยืนยัน delta batching/zoomAround ใช้ public options ไม่มีการเรียก private API
+- ค้าง: ยังไม่ได้ทดสอบ physical Ctrl+wheel/trackpad gesture จริง; ไม่อ้าง browser smoothness acceptance หรือปิด F05
+- ทำต่อ: ลอง Ctrl+wheel บน mouse/trackpad ทั้งซูมเข้าออก/ตำแหน่ง cursor และ ordinary scroll; ปรับ sensitivity ตามผลจริง ก่อนทำ register E2E ที่ค้าง
+
+### 2026-10-12 Asia/Bangkok — F05: แผนที่ท้ายข้อมูลร้านและที่อยู่แสดงผลอย่างเดียว
+
+- R1-D3-B ยัง DOING; ตามคำสั่งผู้ใช้ย้าย ShopLocationPicker ลงหลังเวลาเปิด–ปิด/ขนาดร้าน ก่อน credentials ใน /register
+- เปลี่ยนบ้านเลขที่/ถนน จังหวัด เขต/อำเภอ แขวง/ตำบล postcode และ latitude/longitude จาก input เป็น dl/dt/dd อ่านอย่างเดียวใต้แผนที่; watch ค่า form ที่เติมจาก geocoding และส่ง payload JSON เดิม; areaCode ยังเป็นช่องกรอกแยกตาม contract ที่ยังไม่ล็อก
+- เมื่อ provider คืนบางส่วน ไม่บังคับ field ที่ผู้ใช้แก้ไม่ได้ให้ครบทุกช่อง; validate ความยาว/รูปแบบและอย่างน้อยหนึ่งส่วนของที่อยู่ให้ตรง API พร้อม retry/toast. คำสั่งนี้แทนแนวทาง manual address inputs เดิมเฉพาะหน้า Register
+- ไฟล์แก้ apps/web/src/app/register/page.tsx และ components/maps/shop-location-picker.tsx; ไม่เปลี่ยน API/schema
+- ผลตรวจ: Prettier write/check, web lint และ production build ผ่านหลังเอา inputMode branch ของพิกัดที่ไม่ได้เป็น input แล้วออก
+- ค้าง: ยังไม่ได้ browser QA layout ล่าสุด/submit สมัครสำเร็จ; ถ้า provider ใช้ไม่ได้ให้ retry หรือเลือกตำแหน่งใหม่ ข้อมูลพื้นที่อาจไม่ครบ
+- ทำต่อ: ตรวจ browser responsive, retry และ JSON submit E2E; F03/F05 ยังไม่ปิด DONE
+
+### 2026-10-12 Asia/Bangkok — F03/F05: categories many-to-many
+
+- R1-D3-I/R1-D3-B ยัง DOING; user authorized DB adjustment. เพิ่ม categories(category_id/name unique/slug unique) และ shop_categories composite PK(shop_id,category_id), FK + reverse index; migration 20261012003000_shop_categories apply สำเร็จ
+- ย้าย legacy shops.category เป็น master/join แล้วลบคอลัมน์เดิม; rebuild ix_shops_map ตาม status/area. Master เริ่ม 7 หมวดไทยและรักษาหมวดเดิมเป็นรายการเพิ่ม; taxonomy prototype บันทึก decisions แล้ว
+- API: GET /categories public คืน ID string/name/slug; register SELLER รับ categoryIds 1–10 unique positive bigint strings ตรวจ master ก่อน atomic user/shop/join; invalid/unknown/duplicate ได้400 ไม่สร้างบัญชี
+- Web: GET /api/categories + useCategories ผ่าน Axios กลาง; Register เลือกหลายหมวดจาก DB พร้อมโหลด/retry/Sonner. Wallet fixtures ไม่เปลี่ยนและยังไม่ใช่ search integration
+- ไฟล์: prisma/schema.prisma + migration, src/categories/, app.module.ts, src/auth/ (API); register/page.tsx, lib/api.ts, hooks/use-categories.ts, api/categories/route.ts (web); contract/Postman/README/decisions/Test.md
+- ตรวจผ่าน: isolated-schema migration ใน DB transaction ครอบ backfill legacy/หลายหมวด/duplicate PK/FK invalid แล้ว rollback (ไม่ใช่ clean full-database baseline test); nested Prisma user/shop/2หมวดจริงและ rollback ไม่เหลือบัญชี QA; GET /categories จริงได้7รายการ; browser เลือกคาเฟ่+เบเกอรี่พร้อมกันได้
+- ตรวจผ่าน: web/API lint/build, API tests23, Prisma format/validate/generate, Prettier write/check ไฟล์ที่แก้; migration deploy สำเร็จ
+- ค้าง: taxonomy ยังต้อง business review, category admin endpoint ยังไม่มี; full HTTP register/browser submit E2E, clean full-database deploy และ owner CRUD/public filter ยังต้องทำ
+- ทำต่อ: business taxonomy review + owner CRUD/filter ด้วย relation ใหม่, register E2E ก่อนปิด F03/F05; ใช้ IDs จาก GET /categories ไม่ hardcode ID
+
+### 2026-10-12 Asia/Bangkok — F05: Search multiple category dropdown
+
+- R1-D3-B ยัง DOING; เปลี่ยนปุ่มหมวดใน Register เป็น shadcn/Base UI Combobox multiple ค้นหาชื่อจาก master ที่โหลดผ่าน hook/Axios เดิม เลือกหลายรายการ แสดง chips และลบแต่ละหมวดได้; จำกัด10หมวดผ่าน toast; selected values ยังคง categoryIds
+- ไฟล์: register/page.tsx, components/maps/shop-category-select.tsx, ui/combobox.tsx + input-group.tsx/textarea.tsx (shadcn dependencies); button/input ถูก generator เขียนรูปแบบใหม่แล้ว Prettier ทำกลับเหมือนเดิม ไม่มี behavior diff
+- ตรวจผ่าน: browser ค้นหาคาเฟ่/เบเกอรี่ เลือกสองหมวดผ่าน ArrowDown/Enter, Escape ปิด; ปุ่มลบคาเฟ่ทำงาน ช่องค้นหาล้างหลังเลือก และผลไม่มีรายการแสดงไม่พบหมวดหมู่; web lint/build และ Prettier write/check ผ่านไฟล์ที่แก้
+- API/schema ไม่เปลี่ยน ไม่รัน API tests ซ้ำจาก UI-only task; ค้าง responsive ล่าสุด/full successful register E2E
+- ทำต่อ: responsive dropdown/keyboard focus และ register submit E2E ต่อ; ไม่ปิด F05 ทั้ง feature
+
+### 2026-10-12 Asia/Bangkok — F05: ค้นหาภายใน dropdown เท่านั้น
+
+- R1-D3-B ยัง DOING; เปลี่ยน shop-category-select.tsx ให้ช่องหลักเป็น trigger แสดงชื่อหมวดที่เลือก ไม่มีช่องพิมพ์ก่อนเปิด dropdown
+- ช่องค้นหาอยู่บน popup พร้อม autofocus; เลือกหลายหมวด/ยกเลิกโดยกดรายการเดิม จำกัด10หมวด และล้างคำค้นเมื่อเลือก/ปิด; ใช้ categoryIds เดิม ไม่แก้ API/schema
+- ตรวจผ่าน: browser กดเปิดก่อนจึงแสดงช่องค้นหา ค้นหาคาเฟ่และเบเกอรี่ผ่าน ArrowDown/Enter แล้ว Escape ปิด ช่องหลักแสดงทั้งสองหมวด; Prettier write/check, web lint/build ผ่าน
+- ค้าง: responsive/full register submit E2E ตามรายการเดิม; ทำต่อ keyboard/refocus และ responsive acceptance ก่อนปิด F05
+
+### 2026-10-12 Asia/Bangkok — F05: ปรับสี category dropdown/search
+
+- R1-D3-B ยัง DOING; สาเหตุพื้นหลังเทาจาก shadcn ComboboxContent child input-group bg-input/30; เปลี่ยนเป็น bg-popover ให้ตรงพื้น dropdown และใช้ border-input ปกติ
+- เอา visual aria-invalid:border-destructive ออกจาก category trigger ตามคำสั่งผู้ใช้ ช่องว่าง/validation ไม่ทำกรอบแดง; คง aria-invalid สำหรับ accessibility และ Sonner validation เดิม
+- ไฟล์ components/ui/combobox.tsx และ components/maps/shop-category-select.tsx; ไม่แก้ API/schema
+- ผลตรวจ: Prettier write/check, web lint/build ผ่าน; ยังไม่ได้ visual browser QA สีรอบนี้
+- ทำต่อ: ตรวจสี light/dark และ responsive พร้อม full Register E2E ที่ค้าง; ไม่ปิด F05
+
+### 2026-10-12 Asia/Bangkok — F05: เอากรอบเทา search และเพิ่ม gap
+
+- R1-D3-B ยัง DOING; แก้ globals.css เฉพาะ .shop-category-dropdown ให้ input-group/control รวม focus-within/focus-visible ไม่มี border/outline/box-shadow ใช้พื้น popover; shop-category-select.tsx เพิ่ม mt-2 ให้รายการห่าง search 8px
+- ตรวจ browser ขณะ autofocus: computed border0px/outline none/shadow none ทั้ง wrapper และ input; list marginTop8px และ screenshot แสดงช่องค้นหาไร้กรอบเทาจริง
+- Prettier write/check, web lint และ production build ผ่าน; ไม่แก้ API/schema ไม่ต้องรัน API tests ซ้ำ
+- ค้าง responsive/dark mode/full register E2E ตามเดิม; ทำต่อ acceptance ดังกล่าวก่อนปิด F05
+
+### 2026-10-12 Asia/Bangkok — F05: คืนกรอบ search บาง คงไม่มีเงา
+
+- ตามคำชี้แจงผู้ใช้ คืน border1px var(--input) ให้ search input-group ทั้งปกติ/focus ใน globals.css; คง box-shadow none/outline none และพื้น popover เดิม ช่อง input ด้านในไม่มีกรอบซ้อน; gap8px เดิม
+- R1-D3-B ยัง DOING; Prettier write/check, web lint/build ผ่าน; ไม่แก้ API/schema ไม่มี browser QA เพิ่มรอบนี้
+- ทำต่อ responsive/dark-mode/full register E2E ตามรายการค้างเดิม
+
+### 2026-10-12 Asia/Bangkok — F05: ตัดชื่อหมวดที่ยาวด้วย ellipsis
+
+- R1-D3-B ยัง DOING; shop-category-select.tsx เปลี่ยน selected label เป็น truncate บรรทัดเดียว แสดง ellipsis เมื่อเกินพื้นที่; title เก็บชื่อเต็มให้ hover ดูได้ ไม่ตัดค่าหมวดที่ส่ง API
+- ตรวจผ่าน Prettier write/check, web lint/build; ไม่เปลี่ยน API/schema; ยังไม่ได้ browser overflow QA รอบนี้
+- ทำต่อ responsive/overflow visual และ full Register E2E ตามรายการเดิม
+
+### 2026-10-12 Asia/Bangkok — F05: แก้กรอบ search ขาด/ซ้อน
+
+- สาเหตุ input สูง32px อยู่ใน wrapper สูง32px ที่มี border ทำให้พื้นที่ด้านในเหลือ30px; พื้น input บังกรอบล่างและ addon ว่างทำให้ช่องขวาเหลือ
+- แก้ globals.css ให้ input height100%/min-height0 พื้นโปร่งใส และ wrapper overflow hidden; combobox.tsx ไม่ render addon เมื่อไม่มี trigger/clear; กรอบบาง1px/ไม่มีเงาและ gap8px เดิม
+- ตรวจ browser screenshot ขณะ autofocus กรอบบางโค้งครบแล้ว; Prettier write/check, web lint/build ผ่าน; R1-D3-B ยัง DOING
+- ค้าง responsive/dark mode/full Register E2E ตามเดิม
+
+### 2026-10-12 Asia/Bangkok — F05: ใช้ตำแหน่งปัจจุบันตอนสมัครร้าน
+
+- R1-D3-B ยัง DOING; เพิ่มปุ่มใช้ตำแหน่งปัจจุบันใน components/maps/shop-location-picker.tsx เรียก navigator.geolocation.getCurrentPosition เมื่อกดเท่านั้น (high accuracy/timeout15s/cache60s)
+- สำเร็จเปิดแผนที่และส่งพิกัด6ตำแหน่งเข้า form/hook geocoding เดิม จึงย้ายหมุดและเติม address JSON อัตโนมัติ; ปิดการกดซ้ำ/เปลี่ยนหมุดระหว่างหา location และไม่อัปเดตหลัง component unmount
+- Error permission denied/timeout/unavailable/unsupported ใช้ Sonner และให้เลือกหมุดเอง/ลองใหม่; แสดงคำอธิบายขอสิทธิ์และส่งพิกัดไป Nominatim ก่อนใช้
+- Prettier write/check, web lint/build ผ่าน; ยังไม่ได้ยืนยัน geolocation จริงของอุปกรณ์/permission prompt ใน browser ไม่อ้าง end-to-end location acceptance
+- ไม่แก้ API/schema; ทำต่อทดสอบบนอุปกรณ์จริงผ่าน HTTPS/localhost และ full Register E2E ตามเดิมก่อนปิด F05

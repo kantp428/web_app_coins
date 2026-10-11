@@ -137,22 +137,22 @@ model reward_grants {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model shops {
-  shop_id              BigInt      @id @default(autoincrement())
+  shop_id              BigInt            @id @default(autoincrement())
   owner_id             BigInt
-  owner_role           String      @default("SELLER") @db.VarChar(16)
-  name                 String      @db.VarChar(200)
-  category             String      @db.VarChar(100)
-  address              String?     @db.VarChar(500)
-  area_code            String      @db.VarChar(20)
-  latitude             Decimal     @db.Decimal(9, 6)
-  longitude            Decimal     @db.Decimal(9, 6)
-  opening_hours        Json        @default("{}")
-  participation_status String      @default("PENDING") @db.VarChar(16)
-  size_class           String      @db.VarChar(16)
+  owner_role           String            @default("SELLER") @db.VarChar(16)
+  name                 String            @db.VarChar(200)
+  address              Json?
+  area_code            String            @db.VarChar(20)
+  latitude             Decimal           @db.Decimal(9, 6)
+  longitude            Decimal           @db.Decimal(9, 6)
+  opening_hours        Json              @default("{}")
+  participation_status String            @default("PENDING") @db.VarChar(16)
+  size_class           String            @db.VarChar(16)
   purchases            purchases[]
-  users                users       @relation(fields: [owner_id, owner_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+  shop_categories      shop_categories[]
+  users                users             @relation(fields: [owner_id, owner_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([participation_status, area_code, category], map: "ix_shops_map")
+  @@index([participation_status, area_code], map: "ix_shops_map")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -188,4 +188,21 @@ model wallets {
 
   @@unique([user_id, wallet_type])
   @@unique([wallet_id, user_id, wallet_type])
+}
+
+model categories {
+  category_id     BigInt            @id @default(autoincrement())
+  name            String            @unique @db.VarChar(100)
+  slug            String            @unique @db.VarChar(140)
+  shop_categories shop_categories[]
+}
+
+model shop_categories {
+  shop_id     BigInt
+  category_id BigInt
+  shops       shops      @relation(fields: [shop_id], references: [shop_id], onDelete: Cascade, onUpdate: NoAction)
+  categories  categories @relation(fields: [category_id], references: [category_id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([shop_id, category_id])
+  @@index([category_id, shop_id], map: "ix_shop_categories_category")
 }

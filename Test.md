@@ -66,3 +66,19 @@ Seed รันซ้ำได้โดยไม่เปลี่ยน ID ห�
 - เพิ่ม migration 20261011164000_shop_address และ apply DB ที่ตั้งค่าแล้ว; ข้อมูลร้านเดิมมี address เป็น null ได้
 - ผลตรวจ: web/API lint/build ผ่าน, API tests 16 ผ่าน, Prisma validate/generate และ Prettier ผ่าน; browser แสดง tiles/เครดิต และคลิกเติมพิกัดสำเร็จ
 - ยังไม่ได้ตรวจลากหมุด, responsive ล่าสุด และสมัครสำเร็จผ่าน browser ครบ flow
+
+ผลตรวจต่อ 12 ตุลาคม 2026: manual coordinates แสดง marker, ลากหมุดเปลี่ยนพิกัดจริง; viewport 360x800 แสดง map/attribution ครบและไม่มีแนวนอนล้น ยังไม่ได้ตรวจ submit สมัครสำเร็จครบ flow ผ่าน browser
+
+## ที่อยู่ JSON / auto geocoding — 12 ตุลาคม 2026
+
+แทนที่คำอธิบายที่อยู่แบบข้อความ/ไม่ทำ geocoding ด้านบน: shop.address ตอนนี้เป็น {line1, province, district, subDistrict, postcode}; ค่าแต่ละ field เป็น string. กรอกพิกัดหรือคลิก/ลากหมุดจะเติมที่อยู่ผ่าน Nominatim หลังหยุดเปลี่ยน800ms ตรวจและแก้ก่อนสมัคร; ปุ่มเติมอีกครั้งใช้ retry. ไม่ใช้ postcode แทน areaCode.
+
+PC: Ctrl + scroll ซูมแผนที่; scroll ปกติเลื่อนหน้า. Migration JSONB apply แล้วรักษาข้อความเดิมใน line1. HTTP และ browser พิกัดตัวอย่าง13.7455/100.534 เติมทั้ง5ช่องผ่าน; invalid latitude91 ได้400. API tests22, web/API lint/build, Prisma และ Prettier ผ่าน. ยังไม่ได้ทดสอบ wheel gesture จริง/responsiveล่าสุดหรือสมัครสำเร็จครบ flow.
+
+## หมวดหมู่หลายรายการ — 12 ตุลาคม 2026
+
+DB ใช้ categories + shop_categories แทน shops.category; migration 20261012003000_shop_categories apply แล้ว. Register ร้านเลือกหมวดจากรายการกลางได้1–10รายการ ส่ง shop.categoryIds เป็น string array. เรียก GET /categories เพื่อเอา IDs จริงก่อนทดสอบ (Postman request แรกตั้ง categoryId ให้); duplicate/unknown/empty IDs ได้400. Browser เลือกคาเฟ่+เบเกอรี่พร้อมกันผ่าน; Prisma nested user/shop/2หมวดแล้ว rollback ผ่าน; API tests23 และ web/API lint/build ผ่าน. ยังไม่ตรวจ full successful register ผ่าน HTTP/browser.
+
+## ใช้ตำแหน่งปัจจุบันตอนสมัครร้าน
+
+/register → ร้านค้า → ใช้ตำแหน่งปัจจุบัน → อนุญาต location ใน browser. สำเร็จเปิดแผนที่ ย้ายหมุดและเติมที่อยู่จากพิกัด ตรวจว่าตรงกับร้านก่อนสมัคร. หากไม่อนุญาต/timeout จะมี Sonner alert และเลือกหมุดเองได้. ต้อง HTTPS หรือ localhost. lint/build ผ่าน แต่ยังไม่ได้ทดสอบตำแหน่งจริงบนอุปกรณ์.

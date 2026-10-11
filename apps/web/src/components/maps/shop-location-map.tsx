@@ -28,6 +28,22 @@ function SelectedLocation({
   onChange,
 }: LocationMapProps) {
   const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    // Gate Leaflet's wheel handler without replacing its delta batching,
+    // animation, or cursor-anchored zoom. Ordinary scrolling stays on the page.
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey || disabled) {
+        event.stopImmediatePropagation();
+        if (event.ctrlKey) event.preventDefault();
+      }
+    };
+    container.addEventListener("wheel", wheel, {
+      capture: true,
+      passive: false,
+    });
+    return () => container.removeEventListener("wheel", wheel, true);
+  }, [map, disabled]);
   const lat = Number(latitude);
   const lng = Number(longitude);
   const valid =
@@ -72,7 +88,12 @@ export default function ShopLocationMap(props: LocationMapProps) {
     <MapContainer
       center={[13.7563, 100.5018]}
       zoom={12}
-      scrollWheelZoom={false}
+      scrollWheelZoom
+      zoomAnimation
+      zoomSnap={0.25}
+      zoomDelta={0.5}
+      wheelDebounceTime={80}
+      wheelPxPerZoomLevel={120}
       className="h-80 w-full"
       aria-label="แผนที่เลือกตำแหน่งร้าน"
     >

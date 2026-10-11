@@ -68,4 +68,8 @@ pnpm test
 
 ## Shop registration location
 
-`/register` ร้านค้าใช้ React Leaflet + Leaflet และ OpenStreetMap สำหรับเลือกพิกัด เปิดแผนที่แล้วคลิก/ลากหมุด หรือกรอกพิกัดเองได้ ที่อยู่ร้านกรอกและตรวจเองแยกจากรหัสพื้นที่ ไม่มี geocoding อัตโนมัติ ตั้ง tile provider/attribution ใน apps/web/.env.example ได้ รัน `pnpm --filter api exec prisma migrate deploy` ก่อนใช้ API ใหม่เพื่อเพิ่ม shops.address (ไม่แก้ baseline)
+`/register` ร้านค้าใช้ React Leaflet + Leaflet และ OpenStreetMap สำหรับเลือกพิกัด เปิดแผนที่แล้วคลิก/ลากหมุด หรือกรอกพิกัดเองได้ ที่อยู่ร้านเติมจาก reverse geocoding แล้วให้เจ้าของตรวจและแก้เอง แยกจากรหัสพื้นที่ ใช้ Ctrl + scroll ซูมบน PC ตั้ง tile provider/attribution ใน apps/web/.env.example ได้ รัน `pnpm --filter api exec prisma migrate deploy` ก่อนใช้ API ใหม่เพื่อเพิ่ม shops.address และแปลงข้อความเดิมเป็น JSON โดยเก็บข้อความเดิมใน line1 (ไม่แก้ baseline)
+
+Reverse geocoding ใช้ Nominatim ตาม https://operations.osmfoundation.org/policies/nominatim/ : ไม่เกิน 1 request/วินาทีรวมทั้งแอป มี attribution, cache และ User-Agent ระบุแอป; ใช้เฉพาะพิกัดร้านที่ผู้ใช้เลือก ไม่มี autocomplete/bulk lookup. API ปัจจุบันจำกัดผ่านคิวใน process เดียว หากเพิ่ม replicas ต้องใช้ shared limiter/cache หรือ provider ของตนเองก่อน. ตั้ง GEOCODING_REVERSE_URL และ GEOCODING_USER_AGENT ใน apps/api/.env เพื่อสลับ provider โดยไม่ build ใหม่.
+
+Shop categories use categories + shop_categories (many-to-many). Run prisma migrate deploy to apply 20261012003000_shop_categories; legacy category text becomes a master category and relationship before dropping the old column. GET /categories returns master IDs; register sends categoryIds (1–10 unique strings). Register supports multiple selections. Initial Thai labels are prototype taxonomy and legacy labels remain available.

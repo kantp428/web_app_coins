@@ -43,7 +43,27 @@
   ],
   "item": [
     {
-      "name": "Login CUSTOMER \u2014 200 (configured credentials)",
+      "name": "List shop categories (save categoryId)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "const categories = pm.response.json();",
+              "if (categories.length) pm.collectionVariables.set(\"categoryId\", categories[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login CUSTOMER — 200 (configured credentials)",
       "request": {
         "method": "POST",
         "header": [
@@ -72,7 +92,7 @@
       ]
     },
     {
-      "name": "Login SELLER \u2014 200 (configured credentials)",
+      "name": "Login SELLER — 200 (configured credentials)",
       "request": {
         "method": "POST",
         "header": [
@@ -101,7 +121,7 @@
       ]
     },
     {
-      "name": "Login GOVERNMENT \u2014 200 (configured credentials)",
+      "name": "Login GOVERNMENT — 200 (configured credentials)",
       "request": {
         "method": "POST",
         "header": [
@@ -130,7 +150,7 @@
       ]
     },
     {
-      "name": "Invalid customer ID \u2014 400",
+      "name": "Invalid customer ID — 400",
       "request": {
         "method": "POST",
         "header": [
@@ -158,7 +178,7 @@
       ]
     },
     {
-      "name": "Wrong password or role \u2014 401",
+      "name": "Wrong password or role — 401",
       "request": {
         "method": "POST",
         "header": [
@@ -186,7 +206,7 @@
       ]
     },
     {
-      "name": "Me \u2014 200",
+      "name": "Me — 200",
       "request": {
         "method": "GET",
         "header": [
@@ -210,7 +230,7 @@
       ]
     },
     {
-      "name": "Me missing token \u2014 401",
+      "name": "Me missing token — 401",
       "request": {
         "method": "GET",
         "header": [],
@@ -229,7 +249,7 @@
       ]
     },
     {
-      "name": "Me invalid token \u2014 401",
+      "name": "Me invalid token — 401",
       "request": {
         "method": "GET",
         "header": [
@@ -253,7 +273,7 @@
       ]
     },
     {
-      "name": "Register CUSTOMER \u2014 201 (use unused identifier)",
+      "name": "Register CUSTOMER — 201 (use unused identifier)",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -281,7 +301,7 @@
       ]
     },
     {
-      "name": "Register SELLER \u2014 201 (use unused identifier)",
+      "name": "Register SELLER — 201 (use unused identifier)",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -293,7 +313,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\"role\": \"SELLER\", \"username\": \"{{registerSellerUsername}}\", \"password\": \"ExamplePass!2026\", \"confirmPassword\": \"ExamplePass!2026\", \"shop\": {\"name\": \"Test shop\", \"category\": \"Food\", \"areaCode\": \"BKK\", \"latitude\": 13.75, \"longitude\": 100.5, \"openingHours\": \"08:00-18:00\", \"sizeClass\": \"SMALL\", \"address\": \"123 Test Road, Bangkok\"}}"
+          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"{{registerSellerUsername}}\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": \"08:00-18:00\",\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
         }
       },
       "event": [
@@ -309,7 +329,7 @@
       ]
     },
     {
-      "name": "Register GOVERNMENT \u2014 201 (use unused identifier)",
+      "name": "Register GOVERNMENT — 201 (use unused identifier)",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -337,7 +357,7 @@
       ]
     },
     {
-      "name": "Register duplicate \u2014 409",
+      "name": "Register duplicate — 409",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -349,7 +369,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\"role\": \"SELLER\", \"username\": \"demo_shop\", \"password\": \"ExamplePass!2026\", \"confirmPassword\": \"ExamplePass!2026\", \"shop\": {\"name\": \"Test shop\", \"category\": \"Food\", \"areaCode\": \"BKK\", \"latitude\": 13.75, \"longitude\": 100.5, \"openingHours\": \"08:00-18:00\", \"sizeClass\": \"SMALL\", \"address\": \"123 Test Road, Bangkok\"}}"
+          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"demo_shop\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": \"08:00-18:00\",\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
         }
       },
       "event": [
@@ -365,7 +385,7 @@
       ]
     },
     {
-      "name": "Register invalid customer ID \u2014 400",
+      "name": "Register invalid customer ID — 400",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -393,7 +413,7 @@
       ]
     },
     {
-      "name": "Register password mismatch \u2014 400",
+      "name": "Register password mismatch — 400",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -405,7 +425,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\"role\": \"SELLER\", \"username\": \"test_mismatch\", \"password\": \"ExamplePass!2026\", \"confirmPassword\": \"different\", \"shop\": {\"name\": \"Test shop\", \"category\": \"Food\", \"areaCode\": \"BKK\", \"latitude\": 13.75, \"longitude\": 100.5, \"openingHours\": \"08:00-18:00\", \"sizeClass\": \"SMALL\", \"address\": \"123 Test Road, Bangkok\"}}"
+          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"test_mismatch\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"different\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": \"08:00-18:00\",\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
         }
       },
       "event": [
@@ -421,7 +441,7 @@
       ]
     },
     {
-      "name": "Register missing customer name \u2014 400",
+      "name": "Register missing customer name — 400",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -449,7 +469,7 @@
       ]
     },
     {
-      "name": "Register missing shop \u2014 400",
+      "name": "Register missing shop — 400",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -477,7 +497,7 @@
       ]
     },
     {
-      "name": "Register invalid coordinates \u2014 400",
+      "name": "Register invalid coordinates — 400",
       "request": {
         "method": "POST",
         "url": "{{baseUrl}}/auth/register",
@@ -489,7 +509,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\"role\": \"SELLER\", \"username\": \"invalid_coordinates\", \"shop\": {\"name\": \"Test shop\", \"category\": \"Food\", \"areaCode\": \"BKK\", \"latitude\": 91, \"longitude\": 100.5, \"openingHours\": \"08:00-18:00\", \"sizeClass\": \"SMALL\", \"address\": \"123 Test Road, Bangkok\"}, \"password\": \"ExamplePass!2026\", \"confirmPassword\": \"ExamplePass!2026\"}"
+          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"invalid_coordinates\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 91,\n    \"longitude\": 100.5,\n    \"openingHours\": \"08:00-18:00\",\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  },\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\"\n}"
         }
       },
       "event": [
@@ -500,6 +520,46 @@
             "exec": [
               "pm.test('Expected 400', () => pm.response.to.have.status(400));"
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reverse geocode shop location",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/geocoding/reverse?latitude=13.7455&longitude=100.534"
+      }
+    },
+    {
+      "name": "Reverse geocode invalid coordinates (400)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/geocoding/reverse?latitude=91&longitude=100"
+      }
+    },
+    {
+      "name": "Register seller duplicate categories (400)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/register",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"{{registerSellerUsername}}\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": \"08:00-18:00\",\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\",\n      \"{{categoryId}}\"\n    ]\n  }\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test(\"400\", () => pm.response.to.have.status(400));"]
           }
         }
       ]

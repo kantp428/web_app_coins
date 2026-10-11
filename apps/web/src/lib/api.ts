@@ -40,16 +40,42 @@ export type RegisterPayload = LoginPayload & {
   lastName?: string;
   shop?: {
     name: string;
-    category: string;
+    categoryIds: string[];
     areaCode: string;
-    address: string;
+    address: ShopAddress;
     latitude: number;
     longitude: number;
-    openingHours: string;
+    openingHours: {days:string[];open:string;close:string;timeZone:"Asia/Bangkok"};
     sizeClass: "SMALL" | "MEDIUM" | "LARGE";
   };
   confirmPassword: string;
 };
 export async function register(payload: RegisterPayload) {
   return (await authApi.post<{ message: string }>("/register", payload)).data;
+}
+
+export type ShopAddress = {
+  line1: string;
+  province: string;
+  district: string;
+  subDistrict: string;
+  postcode: string;
+};
+export async function reverseGeocode(
+  latitude: string,
+  longitude: string,
+  signal: AbortSignal,
+) {
+  return (
+    await api.get<ShopAddress>("/geocoding", {
+      params: { latitude, longitude },
+      signal,
+      timeout: 15000,
+    })
+  ).data;
+}
+
+export type ShopCategory = { id: string; name: string; slug: string };
+export async function getCategories(signal: AbortSignal) {
+  return (await api.get<ShopCategory[]>("/categories", { signal })).data;
 }

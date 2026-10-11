@@ -1,3 +1,11 @@
+import {
+  CategoriesController,
+  CategoriesService,
+} from './categories/categories.controller.js';
+import {
+  GeocodingController,
+  GeocodingService,
+} from './geocoding/geocoding.controller.js';
 import { AuthService } from './auth/auth.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { Module } from '@nestjs/common';
@@ -7,7 +15,12 @@ import { AppService } from './app.service.js';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [AppController, AuthController],
-  providers: [AppService, AuthService],
+  controllers: [
+    AppController,
+    AuthController,
+    GeocodingController,
+    CategoriesController,
+  ],
+  providers: [AppService, AuthService, GeocodingService, CategoriesService],
 })
 export class AppModule {}

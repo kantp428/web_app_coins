@@ -43,6 +43,42 @@ export function verifyPassword(password: string, hash: string): boolean {
     Buffer.from(digest, 'hex'),
   );
 }
+export function validAddress(value: unknown): value is Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const address = value as Record<string, unknown>;
+  const keys = ['line1', 'province', 'district', 'subDistrict', 'postcode'];
+  return (
+    Object.keys(address).every((key) => keys.includes(key)) &&
+    keys.every(
+      (key) =>
+        typeof address[key] === 'string' &&
+        address[key].trim().length <= (key === 'line1' ? 500 : 100),
+    ) &&
+    keys.some((key) => (address[key] as string).trim().length > 0) &&
+    ((address.postcode as string).trim() === '' ||
+      /^[0-9]{5}$/.test((address.postcode as string).trim()))
+  );
+}
+export function validCategoryIds(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 1 &&
+    value.length <= 10 &&
+    value.every(
+      (id) =>
+        typeof id === 'string' &&
+        /^[1-9][0-9]{0,18}$/.test(id) &&
+        BigInt(id) <= 9223372036854775807n,
+    ) &&
+    new Set(value).size === value.length
+  );
+}
+export function validOpeningHours(value: unknown): value is {days:string[];open:string;close:string;timeZone:string} {
+ if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+ const v=value as Record<string,unknown>;
+ const time=(value:unknown):value is string=>typeof value==='string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
+ return Object.keys(v).every(key=>['days','open','close','timeZone'].includes(key)) && Array.isArray(v.days) && v.days.length>=1 && v.days.length<=7 && v.days.every(day=>typeof day==='string' && ['MON','TUE','WED','THU','FRI','SAT','SUN'].includes(day)) && new Set(v.days).size===v.days.length && time(v.open) && time(v.close) && v.open!==v.close && v.timeZone==='Asia/Bangkok';
+}
 @Injectable()
 export class AuthService implements OnModuleDestroy {
   private readonly db: PrismaClient;
@@ -86,12 +122,12 @@ export class AuthService implements OnModuleDestroy {
     let shop:
       | {
           name: string;
-          category: string;
+          categoryIds: string[];
           areaCode: string;
-          address: string;
+          address: Record<string, string>;
           latitude: number;
           longitude: number;
-          openingHours: string;
+          openingHours: {days:string[];open:string;close:string;timeZone:string};
           sizeClass: string;
         }
       | undefined;
@@ -106,10 +142,10 @@ export class AuthService implements OnModuleDestroy {
       const value = data.shop as Record<string, unknown>;
       if (
         !text(value.name, 200) ||
-        !text(value.category, 100) ||
+        !validCategoryIds(value.categoryIds) ||
         !text(value.areaCode, 20) ||
-        !text(value.address, 500) ||
-        !text(value.openingHours, 500) ||
+        !validAddress(value.address) ||
+        !validOpeningHours(value.openingHours) ||
         typeof value.latitude !== 'number' ||
         !Number.isFinite(value.latitude) ||
         value.latitude < -90 ||
@@ -124,14 +160,25 @@ export class AuthService implements OnModuleDestroy {
         throw new BadRequestException('ข้อมูลร้านค้าไม่ครบหรือพิกัดไม่ถูกต้อง');
       shop = {
         name: value.name.trim(),
-        category: value.category.trim(),
+        categoryIds: value.categoryIds as string[],
         areaCode: value.areaCode.trim(),
-        address: value.address.trim(),
+        address: Object.fromEntries(
+          Object.entries(value.address as Record<string, string>).map(
+            ([k, v]) => [k, v.trim()],
+          ),
+        ),
         latitude: value.latitude,
         longitude: value.longitude,
-        openingHours: value.openingHours.trim(),
+        openingHours: value.openingHours,
         sizeClass: value.sizeClass,
       };
+      const count = await this.db.categories.count({
+        where: {
+          category_id: { in: shop.categoryIds.map((id) => BigInt(id)) },
+        },
+      });
+      if (count !== shop.categoryIds.length)
+        throw new BadRequestException('หมวดหมู่ร้านไม่ถูกต้อง');
       displayName = shop.name;
     }
     const salt = randomBytes(16).toString('hex');
@@ -148,12 +195,16 @@ export class AuthService implements OnModuleDestroy {
                 shops: {
                   create: {
                     name: shop.name,
-                    category: shop.category,
+                    shop_categories: {
+                      create: shop.categoryIds.map((id) => ({
+                        category_id: BigInt(id),
+                      })),
+                    },
                     area_code: shop.areaCode,
                     address: shop.address,
                     latitude: shop.latitude,
                     longitude: shop.longitude,
-                    opening_hours: { text: shop.openingHours },
+                    opening_hours: shop.openingHours,
                     size_class: shop.sizeClass,
                     participation_status: 'PENDING',
                   },
@@ -172,6 +223,15 @@ export class AuthService implements OnModuleDestroy {
         error.code === 'P2002'
       )
         throw new ConflictException('ชื่อผู้ใช้นี้ถูกใช้งานแล้ว');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2003'
+      )
+        throw new BadRequestException(
+          'หมวดหมู่ร้านไม่พร้อมใช้งาน กรุณาเลือกใหม่',
+        );
       throw error;
     }
   }

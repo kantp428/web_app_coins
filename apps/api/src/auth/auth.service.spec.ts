@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import { SignJWT } from 'jose';
-const { findUnique, create } = vi.hoisted(() => ({
+const { findUnique, create, categoryCount } = vi.hoisted(() => ({
   findUnique: vi.fn(),
   create: vi.fn(),
+  categoryCount: vi.fn(),
 }));
 vi.mock('@prisma/client', () => ({
   PrismaClient: class {
     users = { findUnique, create };
+    categories = { count: categoryCount };
     $disconnect = vi.fn();
   },
 }));
@@ -147,16 +149,23 @@ describe('registration by role', () => {
   };
   const shop = {
     name: ' Test shop ',
-    category: 'Food',
+    categoryIds: ['1', '2'],
     areaCode: 'BKK',
-    address: ' Test address Bangkok ',
+    address: {
+      line1: ' Test address Bangkok ',
+      province: '',
+      district: '',
+      subDistrict: '',
+      postcode: '',
+    },
     latitude: 13.75,
     longitude: 100.5,
-    openingHours: '08:00-18:00',
+    openingHours: {days:['MON','TUE'],open:'08:00',close:'18:00',timeZone:'Asia/Bangkok'},
     sizeClass: 'SMALL',
   };
   beforeEach(() => {
     create.mockReset();
+    categoryCount.mockResolvedValue(2);
     create.mockImplementation(async ({ data }) => ({ ...data, user_id: 4n }));
   });
   it('requires customer name and stores the full name with a password hash', async () => {
@@ -183,16 +192,33 @@ describe('registration by role', () => {
     });
     expect(create.mock.calls[0][0].data.shops.create).toMatchObject({
       name: 'Test shop',
-      category: 'Food',
+      shop_categories: { create: [{ category_id: 1n }, { category_id: 2n }] },
       area_code: 'BKK',
-      address: 'Test address Bangkok',
+      address: {
+        line1: 'Test address Bangkok',
+        province: '',
+        district: '',
+        subDistrict: '',
+        postcode: '',
+      },
       latitude: 13.75,
       longitude: 100.5,
-      opening_hours: { text: '08:00-18:00' },
+      opening_hours: shop.openingHours,
       size_class: 'SMALL',
       participation_status: 'PENDING',
     });
     expect(create.mock.calls[0][0].data.shops.create.owner_id).toBeUndefined();
+  });
+  it('rejects unknown category IDs before creating a user', async () => {
+    categoryCount.mockResolvedValue(1);
+    await expect(
+      auth.register({ ...base, role: 'SELLER', shop }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(create).not.toHaveBeenCalled();
+  });
+  it('supports closing after midnight with selected days', async () => {
+    await auth.register({...base,role:'SELLER',shop:{...shop,openingHours:{...shop.openingHours,open:'18:00',close:'02:00'}}});
+    expect(create.mock.calls[0][0].data.shops.create.opening_hours).toMatchObject({open:'18:00',close:'02:00'});
   });
   it('allows government credentials without profile details', async () => {
     expect(await auth.register({ ...base, role: 'GOVERNMENT' })).toEqual({
@@ -204,14 +230,27 @@ describe('registration by role', () => {
     for (const details of [
       undefined,
       {},
+      { ...shop, categoryIds: [] },
+      { ...shop, categoryIds: ['1', '1'] },
+      { ...shop, categoryIds: ['0'] },
+      { ...shop, categoryIds: ['9223372036854775808'] },
+      { ...shop, categoryIds: [1] },
       { ...shop, latitude: 91 },
       { ...shop, longitude: -181 },
       { ...shop, latitude: '13' },
       { ...shop, sizeClass: 'INVALID' },
       { ...shop, openingHours: '' },
+      {...shop,openingHours:{...shop.openingHours,days:[]}},
+      {...shop,openingHours:{...shop.openingHours,days:['MON','MON']}},
+      {...shop,openingHours:{...shop.openingHours,days:['INVALID']}},
+      {...shop,openingHours:{...shop.openingHours,open:'24:00'}},
+      {...shop,openingHours:{...shop.openingHours,close:'08:00'}},
+      {...shop,openingHours:{...shop.openingHours,timeZone:'UTC'}},
       { ...shop, name: ' ' },
       { ...shop, address: '' },
-      { ...shop, address: 'x'.repeat(501) },
+      { ...shop, address: { ...shop.address, line1: 'x'.repeat(501) } },
+      { ...shop, address: { ...shop.address, postcode: 'abc' } },
+      { ...shop, address: { ...shop.address, province: 42 } },
     ])
       await expect(
         auth.register({ ...base, role: 'SELLER', shop: details }),

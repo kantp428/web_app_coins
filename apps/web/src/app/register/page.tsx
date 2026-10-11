@@ -1,21 +1,27 @@
 "use client";
-import Link from "next/link";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import { LoaderCircle } from "lucide-react";
-import { useRegister } from "@/hooks/use-register";
+import { ShopCategorySelect } from "@/components/maps/shop-category-select";
+import { ShopLocationPicker } from "@/components/maps/shop-location-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShopLocationPicker } from "@/components/maps/shop-location-picker";
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { useCategories } from "@/hooks/use-categories";
+import { useRegister } from "@/hooks/use-register";
+import { useReverseGeocode } from "@/hooks/use-reverse-geocode";
+import type { ShopAddress } from "@/lib/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { LoaderCircle } from "lucide-react";
+import Link from "next/link";
+import {ShopOpeningHours} from "@/components/maps/shop-opening-hours";
+import { useCallback } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 const roles = [
   { role: "CUSTOMER", label: "ลูกค้า" },
   { role: "SELLER", label: "ร้านค้า" },
@@ -27,12 +33,18 @@ const schema = z
     firstName: z.string(),
     lastName: z.string(),
     shopName: z.string(),
-    category: z.string(),
+    categoryIds: z.array(z.string()),
     areaCode: z.string(),
     address: z.string(),
+    province: z.string(),
+    district: z.string(),
+    subDistrict: z.string(),
+    postcode: z.string(),
     latitude: z.string(),
     longitude: z.string(),
-    openingHours: z.string(),
+    openingDays:z.array(z.string()),
+    openTime:z.string(),
+    closeTime:z.string(),
     sizeClass: z.enum(["SMALL", "MEDIUM", "LARGE"]),
     username: z.string().trim().min(1, "กรุณากรอกชื่อผู้ใช้"),
     password: z
@@ -66,25 +78,46 @@ const schema = z
     if (v.role === "SELLER") {
       for (const [key, label, max] of [
         ["shopName", "ชื่อร้าน", 200],
-        ["category", "หมวดหมู่ร้าน", 100],
         ["areaCode", "รหัสพื้นที่", 20],
-        ["address", "ที่อยู่ร้าน", 500],
-        ["openingHours", "เวลาเปิด–ปิด", 500],
       ] as const)
         if (!v[key].trim() || v[key].trim().length > max)
           issue(key, `กรุณากรอก${label} ไม่เกิน ${max} ตัวอักษร`);
+      if (!v.openingDays.length) issue("openingDays","กรุณาเลือกวันที่ร้านเปิด");
+      const time = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!time.test(v.openTime) || !time.test(v.closeTime) || v.openTime === v.closeTime) issue("openTime","กรุณาระบุเวลาเปิด–ปิดให้ถูกต้องและไม่เท่ากัน");
+      if (!v.categoryIds.length || v.categoryIds.length > 10)
+        issue("categoryIds", "กรุณาเลือกหมวดหมู่ร้าน 1–10 หมวด");
+      for (const key of [
+        "address",
+        "province",
+        "district",
+        "subDistrict",
+      ] as const)
+        if (v[key].length > (key === "address" ? 500 : 100))
+          issue(key, "ข้อมูลที่อยู่ยาวเกินกำหนด กรุณาเลือกตำแหน่งใหม่");
+      if (
+        ![v.address, v.province, v.district, v.subDistrict, v.postcode].some(
+          (value) => value.trim(),
+        )
+      )
+        issue(
+          "address",
+          "กรุณาเลือกตำแหน่งบนแผนที่และรอข้อมูลที่อยู่ หรือกดเติมที่อยู่อีกครั้ง",
+        );
+      if (v.postcode && !/^[0-9]{5}$/.test(v.postcode))
+        issue("postcode", "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก");
       if (
         !v.latitude.trim() ||
         !Number.isFinite(Number(v.latitude)) ||
         Math.abs(Number(v.latitude)) > 90
       )
-        issue("latitude", "กรุณากรอกละติจูด -90 ถึง 90");
+        issue("latitude", "กรุณาเลือกตำแหน่งร้านบนแผนที่");
       if (
         !v.longitude.trim() ||
         !Number.isFinite(Number(v.longitude)) ||
         Math.abs(Number(v.longitude)) > 180
       )
-        issue("longitude", "กรุณากรอกลองจิจูด -180 ถึง 180");
+        issue("longitude", "กรุณาเลือกตำแหน่งร้านบนแผนที่");
     }
   });
 const defaults = {
@@ -92,12 +125,18 @@ const defaults = {
   firstName: "",
   lastName: "",
   shopName: "",
-  category: "",
+  categoryIds: [] as string[],
   areaCode: "",
   address: "",
+  province: "",
+  district: "",
+  subDistrict: "",
+  postcode: "",
   latitude: "",
   longitude: "",
-  openingHours: "",
+  openingDays:[] as string[],
+  openTime:"08:00",
+  closeTime:"18:00",
   sizeClass: "SMALL" as const,
   username: "",
   password: "",
@@ -120,7 +159,47 @@ export default function RegisterPage() {
   const role = useWatch({ control, name: "role" });
   const latitude = useWatch({ control, name: "latitude" });
   const longitude = useWatch({ control, name: "longitude" });
-  const pending = loading || isSubmitting;
+  const location = useWatch({
+    control,
+    name: [
+      "address",
+      "province",
+      "district",
+      "subDistrict",
+      "postcode",
+      "latitude",
+      "longitude",
+    ],
+  });
+  const applyAddress = useCallback(
+    (address: ShopAddress) => {
+      setValue("address", address.line1, { shouldDirty: true });
+      for (const key of [
+        "province",
+        "district",
+        "subDistrict",
+        "postcode",
+      ] as const)
+        setValue(key, address[key], { shouldDirty: true });
+    },
+    [setValue],
+  );
+  const { loading: geocoding } = useReverseGeocode(
+    latitude,
+    longitude,
+    role === "SELLER",
+    applyAddress,
+  );
+  const {
+    categories,
+    loading: categoriesLoading,
+    retry: retryCategories,
+  } = useCategories(role === "SELLER");
+  const pending = loading || isSubmitting || geocoding;
+  const openingDays=useWatch({control,name:"openingDays"});
+  const openTime=useWatch({control,name:"openTime"});
+  const closeTime=useWatch({control,name:"closeTime"});
+  const selectedCategoryIds = useWatch({ control, name: "categoryIds" });
   return (
     <main className="flex min-h-dvh items-center justify-center bg-muted/40 px-4 py-10">
       <section
@@ -202,12 +281,18 @@ export default function RegisterPage() {
                   ? {
                       shop: {
                         name: values.shopName.trim(),
-                        category: values.category.trim(),
+                        categoryIds: values.categoryIds,
                         areaCode: values.areaCode.trim(),
-                        address: values.address.trim(),
+                        address: {
+                          line1: values.address.trim(),
+                          province: values.province.trim(),
+                          district: values.district.trim(),
+                          subDistrict: values.subDistrict.trim(),
+                          postcode: values.postcode.trim(),
+                        },
                         latitude: Number(values.latitude),
                         longitude: Number(values.longitude),
-                        openingHours: values.openingHours.trim(),
+                        openingHours:{days:values.openingDays,open:values.openTime,close:values.closeTime,timeZone:"Asia/Bangkok"},
                         sizeClass: values.sizeClass,
                       },
                     }
@@ -222,28 +307,16 @@ export default function RegisterPage() {
           )}
         >
           <input type="hidden" {...register("role")} />
+          {geocoding && (
+            <p role="status" className="text-sm text-muted-foreground">
+              กำลังเติมที่อยู่จากพิกัด…
+            </p>
+          )}
           {role !== "GOVERNMENT" && (
             <fieldset className="space-y-4">
               <legend className="mb-3 font-semibold">
                 {role === "CUSTOMER" ? "ข้อมูลส่วนตัว" : "ข้อมูลร้านค้า"}
               </legend>
-              {role === "SELLER" && (
-                <ShopLocationPicker
-                  latitude={latitude}
-                  longitude={longitude}
-                  disabled={pending}
-                  onChange={(lat, lng) => {
-                    setValue("latitude", lat, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                    setValue("longitude", lng, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                  }}
-                />
-              )}
               {(role === "CUSTOMER"
                 ? ([
                     { name: "firstName", label: "ชื่อ", max: 100 },
@@ -251,29 +324,8 @@ export default function RegisterPage() {
                   ] as const)
                 : ([
                     { name: "shopName", label: "ชื่อร้าน", max: 200 },
-                    { name: "category", label: "หมวดหมู่ร้าน", max: 100 },
                     { name: "areaCode", label: "รหัสพื้นที่", max: 20 },
-                    {
-                      name: "address",
-                      label:
-                        "ที่อยู่ร้าน (บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด)",
-                      max: 500,
-                    },
-                    {
-                      name: "latitude",
-                      label: "ละติจูด (-90 ถึง 90)",
-                      max: 20,
-                    },
-                    {
-                      name: "longitude",
-                      label: "ลองจิจูด (-180 ถึง 180)",
-                      max: 20,
-                    },
-                    {
-                      name: "openingHours",
-                      label: "เวลาเปิด–ปิด เช่น จันทร์–ศุกร์ 08:00–18:00",
-                      max: 500,
-                    },
+
                   ] as const)
               ).map((field) => (
                 <div key={field.name} className="space-y-2">
@@ -287,11 +339,7 @@ export default function RegisterPage() {
                     maxLength={field.max}
                     aria-invalid={!!errors[field.name]}
                     disabled={pending}
-                    inputMode={
-                      field.name === "latitude" || field.name === "longitude"
-                        ? "decimal"
-                        : "text"
-                    }
+                    inputMode="text"
                     autoComplete={
                       field.name === "firstName"
                         ? "given-name"
@@ -302,6 +350,41 @@ export default function RegisterPage() {
                   />
                 </div>
               ))}
+              {role === "SELLER" && <ShopOpeningHours days={openingDays} open={openTime} close={closeTime} disabled={pending} onDaysChange={value=>setValue("openingDays",value,{shouldDirty:true,shouldValidate:true})} onOpenChange={value=>setValue("openTime",value,{shouldDirty:true,shouldValidate:true})} onCloseChange={value=>setValue("closeTime",value,{shouldDirty:true,shouldValidate:true})} />}
+              {role === "SELLER" && (
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-medium">
+                    หมวดหมู่ร้าน (เลือกได้หลายหมวด)
+                  </legend>
+                  {categoriesLoading && (
+                    <p role="status" className="text-sm text-muted-foreground">
+                      กำลังโหลดหมวดหมู่…
+                    </p>
+                  )}
+                  <ShopCategorySelect
+                    categories={categories}
+                    value={selectedCategoryIds}
+                    disabled={pending || categoriesLoading}
+                    invalid={!!errors.categoryIds}
+                    onChange={(ids) =>
+                      setValue("categoryIds", ids, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                  {!categoriesLoading && !categories.length && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={retryCategories}
+                    >
+                      โหลดหมวดหมู่อีกครั้ง
+                    </Button>
+                  )}
+                </fieldset>
+              )}
               {role === "SELLER" && (
                 <div className="space-y-2">
                   <label htmlFor="sizeClass" className="text-sm font-medium">
@@ -345,6 +428,53 @@ export default function RegisterPage() {
                     ร้านที่สมัครจะอยู่ในสถานะรออนุมัติ
                   </p>
                 </div>
+              )}
+              {role === "SELLER" && (
+                <ShopLocationPicker
+                  latitude={latitude}
+                  longitude={longitude}
+                  disabled={pending}
+                  onChange={(lat, lng) => {
+                    setValue("latitude", lat, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    setValue("longitude", lng, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                />
+              )}
+              {role === "SELLER" && (
+                <dl
+                  className="space-y-3 rounded-xl bg-muted/50 p-4 text-sm"
+                  aria-label="ที่อยู่ร้านจากแผนที่"
+                  aria-live="polite"
+                >
+                  {[
+                    "บ้านเลขที่/อาคาร/ถนน",
+                    "จังหวัด",
+                    "เขต/อำเภอ",
+                    "แขวง/ตำบล",
+                    "รหัสไปรษณีย์",
+                    "ละติจูด",
+                    "ลองจิจูด",
+                  ].map((label, index) => (
+                    <div key={label} className="space-y-1">
+                      <dt className="text-muted-foreground">{label}</dt>
+                      <dd
+                        className={
+                          index >= 5
+                            ? "wrap-break-word font-mono"
+                            : "wrap-break-word font-medium"
+                        }
+                      >
+                        {location[index] || "—"}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               )}
             </fieldset>
           )}
@@ -401,7 +531,14 @@ export default function RegisterPage() {
               />
             </div>
           ))}
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={
+              pending ||
+              (role === "SELLER" && (categoriesLoading || !categories.length))
+            }
+          >
             {pending && (
               <LoaderCircle
                 className="size-4 animate-spin"
