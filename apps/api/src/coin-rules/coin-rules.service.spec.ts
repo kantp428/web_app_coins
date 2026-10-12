@@ -25,7 +25,7 @@ import {
   CoinRulesService,
   validRule,
   nextCutoff,
-} from './coin-rules.controller.js';
+} from './coin-rules.service.js';
 const body = {
   minimumPurchase: '50.00',
   lowSalesThreshold: '10000.00',

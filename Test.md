@@ -15,7 +15,7 @@
 3. รัน `pnpm dev` แล้วเปิด <http://localhost:3001/login>
 4. เลือกแท็บให้ตรงกับบัญชีแล้วกรอกข้อมูลตามตาราง
 
-Seed รันซ้ำได้โดยไม่เปลี่ยน ID หรือรหัสผ่านเดิม ถ้า username ซ้ำแต่ role/status/password ไม่ตรงจะหยุดและ rollback ทั้งชุด ไม่มีการเพิ่มยอดเงิน Coins หรือร้านค้า
+Seed รันซ้ำได้โดยไม่เปลี่ยน ID หรือรหัสผ่านเดิม ถ้า username ซ้ำแต่ role/status/password ไม่ตรงจะหยุดและ rollback ทั้งชุด ไม่มีการเพิ่มยอดเงินหรือ Coins; demo seller มีร้าน APPROVED สำหรับทดสอบ QR/Purchase
 
 ## สิ่งที่ควรตรวจ
 
@@ -92,3 +92,12 @@ Register ร้าน: dropdown วันเปิด เลือกหลา�
 Run pnpm --filter api seed:coin-rules after seed:demo. Adds expired versions1–3 (1 Sep–1 Oct2026, Asia/Bangkok) to Government /government/coin-rules history. Idempotent; refuses conflicting versions/windows and production. Values are demo only; no active/pending rule or shop rates created.
 
 Current mock rule: pnpm --filter api seed:coin-rules:current. Creates an active version if none exists; minimum50บาท, threshold10000บาท/7days, new-low10/new-other5/repeat1. Existing active rule retained, pending rule refused.
+
+## Wallet help fallback / QR lifecycle — 12 ตุลาคม 2026
+
+- Help ใช้เฉพาะยอดของเดือนปัจจุบันตาม Asia/Bangkok และตั้งต้น 1,000 บาท; เดือนเก่าไม่สะสมมาใช้ต่อ
+- Preview/Pay ตั้งเป้ารัฐช่วย 60%; ถ้า help เหลือน้อยกว่านั้น ใช้ help เท่าที่มีและหักส่วนขาดจาก balance ลูกค้า ถ้า balance ลูกค้าไม่พอจึงปฏิเสธ
+- Top-up ต้องมี Idempotency-Key; ส่งซ้ำ key เดิมไม่เพิ่มยอดซ้ำ. Reset help แสดง/เรียกได้เฉพาะ non-production และ ENABLE_TEST_WALLET_ACTIONS=true
+- Seller QR อายุ 15 นาที, ดูรายการล่าสุดและยกเลิก PENDING ได้; paid/cancelled/expired ใช้จ่ายไม่ได้ และการจ่ายสำเร็จสร้าง Purchase เชื่อมกับ payment request
+- Unit tests ผ่าน 40 tests; API/web lint และ production build ผ่าน; Prisma format/validate/generate และ migration deploy ผ่าน. Live E2E ยืนยัน fallback, top-up retry, cancel และ QR เดียวถูกจ่ายพร้อมกันได้ 201 หนึ่งคำขอ/409 หนึ่งคำขอ; กรณี help เหลือ 0 หัก balance ลูกค้าเต็ม 2,000 บาทและสร้าง Purchase สำเร็จ. ยังไม่ได้ทดสอบกล้องบนอุปกรณ์จริง
+- แก้หน้า `/store/receive`: ปุ่ม Base UI เดิมไม่มี `type="submit"` จึงกดแล้วไม่เรียก form handler; กำหนด submit ชัดเจนและแสดง “กำลังสร้าง QR...” ระหว่างรอ

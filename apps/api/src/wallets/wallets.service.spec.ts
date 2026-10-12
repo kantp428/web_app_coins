@@ -1,0 +1,61 @@
+import { describe, expect, it } from 'vitest';
+import {
+  amountToCents,
+  bangkokMonth,
+  bangkokMonthRange,
+  paymentBreakdown,
+} from './wallets.service.js';
+
+describe('wallet money rules', () => {
+  it('parses positive decimal THB amounts as integer satang', () => {
+    expect(amountToCents('1')).toBe(100);
+    expect(amountToCents('10.05')).toBe(1005);
+    expect(() => amountToCents('0')).toThrow();
+    expect(() => amountToCents('1.001')).toThrow();
+  });
+
+  it('uses Bangkok calendar months including the UTC boundary', () => {
+    expect(bangkokMonth(new Date('2026-09-30T16:59:59.999Z'))).toBe(
+      '2026-09-01',
+    );
+    expect(bangkokMonth(new Date('2026-09-30T17:00:00.000Z'))).toBe(
+      '2026-10-01',
+    );
+    expect(bangkokMonthRange(new Date('2026-10-15T00:00:00Z'))).toEqual({
+      month: '2026-10-01',
+      startsAt: new Date('2026-09-30T17:00:00.000Z'),
+      endsAt: new Date('2026-10-31T17:00:00.000Z'),
+    });
+  });
+
+  it('uses help up to 60 percent and moves any shortage to customer cash', () => {
+    expect(paymentBreakdown(10_000, 10_000)).toEqual({
+      targetHelp: 6_000,
+      help: 6_000,
+      cash: 4_000,
+    });
+    expect(paymentBreakdown(10_000, 2_500)).toEqual({
+      targetHelp: 6_000,
+      help: 2_500,
+      cash: 7_500,
+    });
+    expect(paymentBreakdown(10_000, 0)).toEqual({
+      targetHelp: 6_000,
+      help: 0,
+      cash: 10_000,
+    });
+  });
+
+  it('rounds the 60 percent target half-up to one satang', () => {
+    expect(paymentBreakdown(1, 1)).toEqual({
+      targetHelp: 1,
+      help: 1,
+      cash: 0,
+    });
+    expect(paymentBreakdown(2, 2)).toEqual({
+      targetHelp: 1,
+      help: 1,
+      cash: 1,
+    });
+  });
+});

@@ -32,6 +32,8 @@ type Entry = {
   amount: string;
   createdAt: string;
   shopName: string | null;
+  helpAmount?: string;
+  customerAmount?: string;
 };
 type RequestData = {
   id: string;
@@ -41,6 +43,10 @@ type RequestData = {
   helpAmount?: string;
   customerAmount?: string;
   scanPayload?: string;
+  createdAt?: string;
+  expiresAt?: string;
+  paidAt?: string | null;
+  purchaseId?: string | null;
 };
 
 export function LiveWallet({
@@ -54,6 +60,7 @@ export function LiveWallet({
   const [history, setHistory] = useState<Entry[]>([]);
   const [amount, setAmount] = useState("");
   const [payment, setPayment] = useState<RequestData | null>(null);
+  const [sellerRequests, setSellerRequests] = useState<RequestData[]>([]);
   const [pending, setPending] = useState(false);
   const router = useRouter();
   const load = useCallback(async () => {
@@ -62,6 +69,14 @@ export function LiveWallet({
         setHistory(
           (await api.get<Entry[]>("/wallet", { params: { action: "history" } }))
             .data,
+        );
+      else if (section === "receive")
+        setSellerRequests(
+          (
+            await api.get<RequestData[]>("/wallet", {
+              params: { action: "requests" },
+            })
+          ).data,
         );
       else
         setSummary(
@@ -80,14 +95,21 @@ export function LiveWallet({
             params: { action: "history" },
             signal: controller.signal,
           })
-        : api.get<Summary>("/wallet", {
-            params: { action: "summary" },
-            signal: controller.signal,
-          });
+        : section === "receive"
+          ? api.get<RequestData[]>("/wallet", {
+              params: { action: "requests" },
+              signal: controller.signal,
+            })
+          : api.get<Summary>("/wallet", {
+              params: { action: "summary" },
+              signal: controller.signal,
+            });
     request
       .then((response) => {
         if (controller.signal.aborted) return;
         if (section === "history") setHistory(response.data as Entry[]);
+        else if (section === "receive")
+          setSellerRequests(response.data as RequestData[]);
         else setSummary(response.data as Summary);
       })
       .catch((error) => {
@@ -95,6 +117,11 @@ export function LiveWallet({
       });
     return () => controller.abort();
   }, [section]);
+  useEffect(() => {
+    if (section !== "receive") return;
+    const timer = window.setInterval(() => void load(), 3000);
+    return () => window.clearInterval(timer);
+  }, [load, section]);
   async function mutate(action: string, data: Record<string, string> = {}) {
     setPending(true);
     try {
@@ -136,6 +163,12 @@ export function LiveWallet({
                     {new Date(entry.createdAt).toLocaleString("th-TH")} ·{" "}
                     {entry.walletType}
                   </p>
+                  {entry.helpAmount && (
+                    <p className="text-xs text-muted-foreground">
+                      Help ฿{entry.helpAmount} · Balance ฿
+                      {entry.customerAmount ?? "0.00"}
+                    </p>
+                  )}
                 </div>
                 <p
                   className={`font-semibold ${Number(entry.amount) >= 0 ? "text-emerald-600" : "text-destructive"}`}
@@ -160,7 +193,10 @@ export function LiveWallet({
           onSubmit={async (event) => {
             event.preventDefault();
             const value = await mutate("create", { amount });
-            if (value) setPayment(value);
+            if (value) {
+              setPayment(value);
+              await load();
+            }
           }}
         >
           <Input
@@ -172,8 +208,8 @@ export function LiveWallet({
             placeholder="จำนวนเงิน"
             required
           />
-          <Button disabled={pending} className="w-full">
-            สร้าง QR ใช้ครั้งเดียว
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "กำลังสร้าง QR..." : "สร้าง QR ใช้ครั้งเดียว"}
           </Button>
         </form>
         {payment && (
@@ -194,11 +230,47 @@ export function LiveWallet({
                 {payment.scanPayload}
               </p>
               <p className="text-xs text-muted-foreground">
-                ส่งรหัสนี้ให้ลูกค้า แต่ละรหัสชำระสำเร็จได้เพียงครั้งเดียว
+                ใช้ได้ครั้งเดียวและหมดอายุเวลา{" "}
+                {payment.expiresAt
+                  ? new Date(payment.expiresAt).toLocaleTimeString("th-TH")
+                  : "—"}
               </p>
             </CardContent>
           </Card>
         )}
+        <div className="space-y-2">
+          <h3 className="font-medium">QR ล่าสุด</h3>
+          {sellerRequests.length === 0 ? (
+            <p className="rounded-xl border p-4 text-sm text-muted-foreground">
+              ยังไม่มี QR รับเงิน
+            </p>
+          ) : (
+            sellerRequests.map((request) => (
+              <Card key={request.id}>
+                <CardContent className="flex items-center justify-between gap-3 p-4">
+                  <div>
+                    <p className="font-medium">฿{request.amount}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {request.status} · {request.shopName}
+                    </p>
+                  </div>
+                  {request.status === "PENDING" && (
+                    <Button
+                      variant="outline"
+                      disabled={pending}
+                      onClick={async () => {
+                        await mutate("cancel", { id: request.id });
+                        await load();
+                      }}
+                    >
+                      ยกเลิก
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </section>
     );
   if (section === "scan") return <CustomerQrScanner />;

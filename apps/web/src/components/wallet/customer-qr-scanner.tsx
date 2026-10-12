@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, getApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 type Payment = {
   id: string;
@@ -14,6 +15,8 @@ type Payment = {
   amount: string;
   helpAmount?: string;
   customerAmount?: string;
+  targetHelpAmount?: string;
+  canPay?: boolean;
 };
 type Detector = {
   detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]>;
@@ -26,6 +29,7 @@ export function CustomerQrScanner() {
   const [scanning, setScanning] = useState(false);
   const [pending, setPending] = useState(false);
   const [payment, setPayment] = useState<Payment | null>(null);
+  const [manualCode, setManualCode] = useState("");
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const run = useRef(0);
@@ -160,6 +164,28 @@ export function CustomerQrScanner() {
               </Button>
             )}
           </div>
+          <form
+            className="flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const id = manualCode.match(idPattern)?.[0];
+              if (!id) {
+                toast.error("รหัส QR ไม่ถูกต้อง");
+                return;
+              }
+              void inspect(id);
+            }}
+          >
+            <Input
+              value={manualCode}
+              onChange={(event) => setManualCode(event.target.value)}
+              placeholder="กรอกรหัส QR กรณีกล้องไม่รองรับ"
+              aria-label="รหัส QR สำหรับชำระเงิน"
+            />
+            <Button type="submit" variant="outline" disabled={pending}>
+              ตรวจสอบ
+            </Button>
+          </form>
           {payment && (
             <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -169,16 +195,30 @@ export function CustomerQrScanner() {
                     รัฐช่วย ฿{payment.helpAmount} · จ่ายจากกระเป๋า ฿
                     {payment.customerAmount}
                   </p>
+                  {payment.targetHelpAmount !== payment.helpAmount && (
+                    <p className="mt-1 text-xs text-amber-700">
+                      Help ไม่พอ ระบบย้ายส่วนที่เหลือไปหัก Balance แล้ว
+                    </p>
+                  )}
                 </div>
                 <p className="text-xl font-semibold">฿{payment.amount}</p>
               </div>
               <Button
                 className="w-full"
-                disabled={pending || payment.status !== "PENDING"}
+                disabled={
+                  pending ||
+                  payment.status !== "PENDING" ||
+                  payment.canPay === false
+                }
                 onClick={() => void pay()}
               >
                 ยืนยันชำระเงิน
               </Button>
+              {payment.canPay === false && (
+                <p className="text-xs text-destructive">
+                  Balance ไม่เพียงพอสำหรับยอดที่ลูกค้าต้องจ่าย
+                </p>
+              )}
             </div>
           )}
         </CardContent>

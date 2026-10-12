@@ -12,6 +12,11 @@ const targets: Record<
   topup: { method: "POST", path: () => "/wallets/top-up" },
   reset: { method: "POST", path: () => "/wallets/help/reset" },
   create: { method: "POST", path: () => "/seller/payment-requests" },
+  requests: { method: "GET", path: () => "/seller/payment-requests" },
+  cancel: {
+    method: "POST",
+    path: (id) => `/seller/payment-requests/${id}/cancel`,
+  },
   pay: { method: "POST", path: (id) => `/payment-requests/${id}/pay` },
 };
 
@@ -24,7 +29,12 @@ async function proxy(request: NextRequest) {
   const token = (await cookies()).get("session")?.value;
   if (!token)
     return NextResponse.json({ message: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
-  let input: { action?: string; id?: string; amount?: string } = {};
+  let input: {
+    action?: string;
+    id?: string;
+    amount?: string;
+    idempotencyKey?: string;
+  } = {};
   if (request.method === "GET")
     input = Object.fromEntries(request.nextUrl.searchParams);
   else {
@@ -41,7 +51,7 @@ async function proxy(request: NextRequest) {
   if (
     !target ||
     target.method !== request.method ||
-    ((input.action === "request" || input.action === "pay") && !input.id)
+    (["request", "pay", "cancel"].includes(input.action ?? "") && !input.id)
   )
     return NextResponse.json({ message: "คำขอไม่ถูกต้อง" }, { status: 400 });
   try {
@@ -50,6 +60,9 @@ async function proxy(request: NextRequest) {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...(input.action === "topup" && input.idempotencyKey
+          ? { "Idempotency-Key": input.idempotencyKey }
+          : {}),
       },
       body:
         request.method === "POST" && input.amount

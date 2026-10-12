@@ -1,0 +1,565 @@
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
+import { AuthService } from '../auth/auth.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+
+const HELP_MONTHLY_CENTS = 100_000;
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function amountToCents(value: unknown) {
+  if (
+    typeof value !== 'string' ||
+    !/^(?:0|[1-9]\d{0,11})(?:\.\d{1,2})?$/.test(value)
+  )
+    throw new BadRequestException(
+      'จำนวนเงินต้องมากกว่า 0 และมีทศนิยมไม่เกิน 2 ตำแหน่ง',
+    );
+  const [whole, fraction = ''] = value.split('.');
+  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+  if (!Number.isSafeInteger(cents) || cents <= 0)
+    throw new BadRequestException('จำนวนเงินต้องมากกว่า 0');
+  return cents;
+}
+const money = (cents: number) => (cents / 100).toFixed(2);
+export function bangkokMonth(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(now);
+  const value = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  return `${value.year}-${value.month}-01`;
+}
+
+export function bangkokMonthRange(now = new Date()) {
+  const month = bangkokMonth(now);
+  const [year, monthNumber] = month.split('-').map(Number);
+  const nextYear = monthNumber === 12 ? year + 1 : year;
+  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
+  const nextMonthKey = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+  return {
+    month,
+    startsAt: new Date(`${month}T00:00:00+07:00`),
+    endsAt: new Date(`${nextMonthKey}T00:00:00+07:00`),
+  };
+}
+
+export function paymentBreakdown(total: number, availableHelp: number) {
+  const targetHelp = Math.floor((total * 60 + 50) / 100);
+  const help = Math.min(targetHelp, Math.max(0, availableHelp));
+  return { targetHelp, help, cash: total - help };
+}
+
+function isSerializationFailure(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  const meta = error.meta as
+    { driverAdapterError?: { cause?: { originalCode?: string } } } | undefined;
+  return (
+    error.code === 'P2010' &&
+    meta?.driverAdapterError?.cause?.originalCode === '40001'
+  );
+}
+
+@Injectable()
+export class WalletsService {
+  private readonly testActionsEnabled: boolean;
+  constructor(
+    private readonly db: PrismaService,
+    private readonly auth: AuthService,
+  ) {
+    this.testActionsEnabled =
+      process.env.NODE_ENV !== 'production' &&
+      process.env.ENABLE_TEST_WALLET_ACTIONS === 'true';
+  }
+
+  private async user(authorization?: string) {
+    return this.auth.me(authorization);
+  }
+
+  private async ensureWallets(
+    tx: Prisma.TransactionClient,
+    user: { id: string; role: string },
+  ) {
+    const userId = BigInt(user.id);
+    const cash = await tx.wallets.upsert({
+      where: { user_id_wallet_type: { user_id: userId, wallet_type: 'CASH' } },
+      create: { user_id: userId, user_role: user.role, wallet_type: 'CASH' },
+      update: {},
+    });
+    if (user.role !== 'CUSTOMER') return { cash, base: null };
+    const base = await tx.wallets.upsert({
+      where: { user_id_wallet_type: { user_id: userId, wallet_type: 'BASE' } },
+      create: { user_id: userId, user_role: 'CUSTOMER', wallet_type: 'BASE' },
+      update: {},
+    });
+    const month = bangkokMonth();
+    await tx.money_entries.upsert({
+      where: { idempotency_key: `help:${user.id}:${month}` },
+      create: {
+        idempotency_key: `help:${user.id}:${month}`,
+        wallet_id: base.wallet_id,
+        user_id: userId,
+        wallet_type: 'BASE',
+        signed_amount: '1000.00',
+        entry_type: 'BASE_ALLOCATION',
+      },
+      update: {},
+    });
+    return { cash, base };
+  }
+
+  private async balance(
+    tx: Prisma.TransactionClient,
+    walletId: bigint,
+    range?: { startsAt: Date; endsAt: Date },
+  ) {
+    if (range) {
+      const rows = await tx.$queryRaw<{ cents: bigint }[]>`
+        SELECT COALESCE(ROUND(SUM(signed_amount) * 100), 0)::bigint AS cents
+        FROM money_entries
+        WHERE wallet_id = ${walletId}
+          AND created_at >= ${range.startsAt}
+          AND created_at < ${range.endsAt}`;
+      return Number(rows[0]?.cents ?? 0n);
+    }
+    const rows = await tx.$queryRaw<{ cents: bigint }[]>`
+      SELECT COALESCE(ROUND(SUM(signed_amount) * 100), 0)::bigint AS cents
+      FROM money_entries WHERE wallet_id = ${walletId}`;
+    return Number(rows[0]?.cents ?? 0n);
+  }
+
+  private currentHelpBalance(tx: Prisma.TransactionClient, walletId: bigint) {
+    return this.balance(tx, walletId, bangkokMonthRange());
+  }
+
+  async summary(authorization?: string) {
+    const user = await this.user(authorization);
+    if (!['CUSTOMER', 'SELLER'].includes(user.role))
+      throw new ForbiddenException('บัญชีนี้ไม่มีกระเป๋าเงิน');
+    return this.db.$transaction(async (tx) => {
+      const wallets = await this.ensureWallets(tx, user);
+      return {
+        role: user.role,
+        balance: money(await this.balance(tx, wallets.cash.wallet_id)),
+        help: wallets.base
+          ? money(await this.currentHelpBalance(tx, wallets.base.wallet_id))
+          : null,
+        helpMonthlyLimit: user.role === 'CUSTOMER' ? '1000.00' : null,
+        month: bangkokMonth(),
+        testActionsEnabled: this.testActionsEnabled,
+      };
+    });
+  }
+
+  async topUp(body: unknown, idempotencyKey?: string, authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    const cents = amountToCents((body as { amount?: unknown })?.amount);
+    if (
+      !idempotencyKey ||
+      idempotencyKey.length > 128 ||
+      !/^[A-Za-z0-9._:-]+$/.test(idempotencyKey)
+    )
+      throw new BadRequestException('Idempotency-Key ไม่ถูกต้อง');
+    await this.db.$transaction(async (tx) => {
+      const { cash } = await this.ensureWallets(tx, user);
+      await tx.money_entries.upsert({
+        where: { idempotency_key: `topup:${user.id}:${idempotencyKey}` },
+        create: {
+          idempotency_key: `topup:${user.id}:${idempotencyKey}`,
+          wallet_id: cash.wallet_id,
+          user_id: BigInt(user.id),
+          wallet_type: 'CASH',
+          signed_amount: money(cents),
+          entry_type: 'TOPUP',
+        },
+        update: {},
+      });
+    });
+    return this.summary(authorization);
+  }
+
+  async resetHelp(authorization?: string) {
+    if (!this.testActionsEnabled)
+      throw new ForbiddenException('ปิดการรีเซ็ตวงเงินทดสอบ');
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    await this.db.$transaction(async (tx) => {
+      const { base } = await this.ensureWallets(tx, user);
+      if (!base) return;
+      const current = await this.currentHelpBalance(tx, base.wallet_id);
+      if (current !== HELP_MONTHLY_CENTS)
+        await tx.money_entries.create({
+          data: {
+            idempotency_key: `help-reset:${randomUUID()}`,
+            wallet_id: base.wallet_id,
+            user_id: BigInt(user.id),
+            wallet_type: 'BASE',
+            signed_amount: money(HELP_MONTHLY_CENTS - current),
+            entry_type:
+              current < HELP_MONTHLY_CENTS ? 'BASE_ALLOCATION' : 'EXPIRY',
+          },
+        });
+    });
+    return this.summary(authorization);
+  }
+
+  async history(authorization?: string) {
+    const user = await this.user(authorization);
+    if (!['CUSTOMER', 'SELLER'].includes(user.role))
+      throw new ForbiddenException('บัญชีนี้ไม่มีกระเป๋าเงิน');
+    return this.db.$transaction(async (tx) => {
+      await this.ensureWallets(tx, user);
+      const entries = await tx.money_entries.findMany({
+        where: { user_id: BigInt(user.id) },
+        include: {
+          payment_requests: {
+            include: {
+              shop: { select: { name: true } },
+              seller: { select: { display_name: true } },
+            },
+          },
+        },
+        orderBy: [{ created_at: 'desc' }, { entry_id: 'desc' }],
+        take: 100,
+      });
+      const history: Array<{
+        id: string;
+        type: string;
+        walletType: string;
+        amount: string;
+        createdAt: string;
+        paymentRequestId: string | null;
+        shopName: string | null;
+        helpAmount?: string;
+        customerAmount?: string;
+      }> = [];
+      const payments = new Map<
+        string,
+        {
+          id: string;
+          type: string;
+          walletType: string;
+          amountCents: number;
+          createdAt: string;
+          paymentRequestId: string;
+          shopName: string;
+          helpCents: number;
+          customerCents: number;
+        }
+      >();
+      for (const entry of entries) {
+        const amountCents = Number(entry.signed_amount.mul(100).toFixed(0));
+        if (!entry.payment_request_id || !entry.payment_requests) {
+          history.push({
+            id: entry.entry_id.toString(),
+            type: entry.entry_type,
+            walletType: entry.wallet_type,
+            amount: money(amountCents),
+            createdAt: entry.created_at.toISOString(),
+            paymentRequestId: null,
+            shopName: null,
+          });
+          continue;
+        }
+        const existing = payments.get(entry.payment_request_id) ?? {
+          id: `payment:${entry.payment_request_id}`,
+          type: 'PAYMENT',
+          walletType: entry.wallet_type,
+          amountCents: 0,
+          createdAt: entry.created_at.toISOString(),
+          paymentRequestId: entry.payment_request_id,
+          shopName:
+            entry.payment_requests.shop?.name ??
+            entry.payment_requests.seller.display_name,
+          helpCents: 0,
+          customerCents: 0,
+        };
+        existing.amountCents += amountCents;
+        if (entry.wallet_type === 'BASE')
+          existing.helpCents += Math.abs(amountCents);
+        if (entry.wallet_type === 'CASH' && amountCents < 0)
+          existing.customerCents += Math.abs(amountCents);
+        payments.set(entry.payment_request_id, existing);
+      }
+      history.push(
+        ...Array.from(payments.values()).map((entry) => ({
+          id: entry.id,
+          type: entry.type,
+          walletType: entry.walletType,
+          amount: money(entry.amountCents),
+          createdAt: entry.createdAt,
+          paymentRequestId: entry.paymentRequestId,
+          shopName: entry.shopName,
+          ...(entry.helpCents > 0
+            ? { helpAmount: money(entry.helpCents) }
+            : {}),
+          ...(entry.customerCents > 0
+            ? { customerAmount: money(entry.customerCents) }
+            : {}),
+        })),
+      );
+      return history.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    });
+  }
+
+  async createPaymentRequest(body: unknown, authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'SELLER')
+      throw new ForbiddenException('เฉพาะบัญชีร้านค้า');
+    const cents = amountToCents((body as { amount?: unknown })?.amount);
+    const shop = await this.db.shops.findFirst({
+      where: { owner_id: BigInt(user.id) },
+      orderBy: { shop_id: 'asc' },
+    });
+    if (!shop)
+      throw new NotFoundException('บัญชีร้านค้ายังไม่มีร้านสำหรับรับชำระเงิน');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const request = await this.db.payment_requests.create({
+      data: {
+        payment_request_id: randomUUID(),
+        seller_id: BigInt(user.id),
+        shop_id: shop.shop_id,
+        amount: money(cents),
+        expires_at: expiresAt,
+      },
+    });
+    return {
+      id: request.payment_request_id,
+      amount: request.amount.toFixed(2),
+      shopName: shop.name,
+      status: request.status,
+      scanPayload: request.payment_request_id,
+      expiresAt: request.expires_at.toISOString(),
+    };
+  }
+
+  async sellerPaymentRequests(authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'SELLER')
+      throw new ForbiddenException('เฉพาะบัญชีร้านค้า');
+    const now = new Date();
+    const requests = await this.db.payment_requests.findMany({
+      where: { seller_id: BigInt(user.id) },
+      include: { shop: { select: { name: true } } },
+      orderBy: [{ created_at: 'desc' }],
+      take: 50,
+    });
+    return requests.map((request) => ({
+      id: request.payment_request_id,
+      amount: request.amount.toFixed(2),
+      shopName: request.shop?.name ?? user.displayName,
+      status:
+        request.status === 'PENDING' && request.expires_at <= now
+          ? 'EXPIRED'
+          : request.status,
+      createdAt: request.created_at.toISOString(),
+      expiresAt: request.expires_at.toISOString(),
+      paidAt: request.paid_at?.toISOString() ?? null,
+      purchaseId: request.purchase_id?.toString() ?? null,
+    }));
+  }
+
+  async cancelPaymentRequest(id: string, authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'SELLER')
+      throw new ForbiddenException('เฉพาะบัญชีร้านค้า');
+    if (!uuid.test(id)) throw new BadRequestException('QR ไม่ถูกต้อง');
+    const result = await this.db.payment_requests.updateMany({
+      where: {
+        payment_request_id: id,
+        seller_id: BigInt(user.id),
+        status: 'PENDING',
+        expires_at: { gt: new Date() },
+      },
+      data: { status: 'CANCELLED' },
+    });
+    if (result.count === 0)
+      throw new ConflictException('QR นี้ยกเลิกไม่ได้หรือสิ้นสุดแล้ว');
+    return { id, status: 'CANCELLED' };
+  }
+
+  async paymentRequest(id: string, authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    if (!uuid.test(id)) throw new BadRequestException('QR ไม่ถูกต้อง');
+    const request = await this.db.payment_requests.findUnique({
+      where: { payment_request_id: id },
+      include: {
+        shop: { select: { name: true } },
+        seller: { select: { display_name: true } },
+      },
+    });
+    if (!request) throw new NotFoundException('ไม่พบ QR รับเงิน');
+    const status =
+      request.status === 'PENDING' && request.expires_at <= new Date()
+        ? 'EXPIRED'
+        : request.status;
+    return this.db.$transaction(async (tx) => {
+      const wallets = await this.ensureWallets(tx, user);
+      if (!wallets.base) throw new ConflictException('ไม่พบสิทธิช่วยจ่าย');
+      const total = Number(request.amount.mul(100).toFixed(0));
+      const availableHelp = await this.currentHelpBalance(
+        tx,
+        wallets.base.wallet_id,
+      );
+      const availableCash = await this.balance(tx, wallets.cash.wallet_id);
+      const breakdown = paymentBreakdown(total, availableHelp);
+      return {
+        id,
+        status,
+        shopName: request.shop?.name ?? request.seller.display_name,
+        amount: money(total),
+        targetHelpAmount: money(breakdown.targetHelp),
+        helpAmount: money(breakdown.help),
+        customerAmount: money(breakdown.cash),
+        canPay: availableCash >= breakdown.cash,
+      };
+    });
+  }
+
+  async pay(id: string, authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    if (!uuid.test(id)) throw new BadRequestException('QR ไม่ถูกต้อง');
+    try {
+      return await this.db.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT payment_request_id FROM payment_requests WHERE payment_request_id = ${id}::uuid FOR UPDATE`;
+          const request = await tx.payment_requests.findUnique({
+            where: { payment_request_id: id },
+          });
+          if (!request) throw new NotFoundException('ไม่พบ QR รับเงิน');
+          if (request.status !== 'PENDING')
+            throw new ConflictException('QR นี้ถูกใช้แล้ว');
+          if (request.expires_at <= new Date())
+            throw new ConflictException('QR นี้หมดอายุแล้ว');
+          if (!request.shop_id)
+            throw new ConflictException('QR นี้ไม่ได้ผูกกับร้านค้า');
+          const customerWallets = await this.ensureWallets(tx, user);
+          const seller = { id: request.seller_id.toString(), role: 'SELLER' };
+          const sellerWallets = await this.ensureWallets(tx, seller);
+          if (!customerWallets.base)
+            throw new ConflictException('ไม่พบสิทธิช่วยจ่าย');
+          await tx.$queryRaw`SELECT wallet_id FROM wallets WHERE wallet_id IN (${customerWallets.cash.wallet_id}, ${customerWallets.base.wallet_id}, ${sellerWallets.cash.wallet_id}) ORDER BY wallet_id FOR UPDATE`;
+          const total = Number(request.amount.mul(100).toFixed(0));
+          const availableHelp = await this.currentHelpBalance(
+            tx,
+            customerWallets.base.wallet_id,
+          );
+          const { help, cash } = paymentBreakdown(total, availableHelp);
+          if ((await this.balance(tx, customerWallets.cash.wallet_id)) < cash)
+            throw new ConflictException('ยอดเงินใน wallet ไม่เพียงพอ');
+          const shop = await tx.shops.findUniqueOrThrow({
+            where: { shop_id: request.shop_id },
+            select: { shop_id: true, size_class: true },
+          });
+          const now = new Date();
+          const rule = await tx.coin_rule_versions.findFirst({
+            where: {
+              effective_from: { lte: now },
+              OR: [{ effective_to: null }, { effective_to: { gt: now } }],
+            },
+            orderBy: { version: 'desc' },
+            select: { rule_id: true },
+          });
+          const purchase = await tx.purchases.create({
+            data: {
+              customer_id: BigInt(user.id),
+              shop_id: shop.shop_id,
+              rule_id: rule?.rule_id ?? null,
+              total_amount: money(total),
+              customer_paid: money(cash),
+              base_subsidy_used: money(help),
+              reward_subsidy_used: '0.00',
+              status: 'SUCCEEDED',
+              created_at: now,
+              confirmed_at: now,
+              shop_area_snapshot: null,
+              shop_size_snapshot: shop.size_class,
+              idempotency_key: `payment:${id}`,
+            },
+          });
+          await tx.money_entries.createMany({
+            data: [
+              ...(help > 0
+                ? [
+                    {
+                      idempotency_key: `pay:${id}:help`,
+                      wallet_id: customerWallets.base.wallet_id,
+                      user_id: BigInt(user.id),
+                      wallet_type: 'BASE' as const,
+                      signed_amount: money(-help),
+                      entry_type: 'PAYMENT_DEBIT' as const,
+                      payment_request_id: id,
+                    },
+                  ]
+                : []),
+              {
+                idempotency_key: `pay:${id}:cash`,
+                wallet_id: customerWallets.cash.wallet_id,
+                user_id: BigInt(user.id),
+                wallet_type: 'CASH',
+                signed_amount: money(-cash),
+                entry_type: 'PAYMENT_DEBIT',
+                payment_request_id: id,
+              },
+              {
+                idempotency_key: `pay:${id}:seller`,
+                wallet_id: sellerWallets.cash.wallet_id,
+                user_id: request.seller_id,
+                wallet_type: 'CASH',
+                signed_amount: money(total),
+                entry_type: 'PAYMENT_CREDIT',
+                payment_request_id: id,
+              },
+            ],
+          });
+          await tx.payment_requests.update({
+            where: { payment_request_id: id },
+            data: {
+              status: 'PAID',
+              customer_id: BigInt(user.id),
+              paid_at: new Date(),
+              purchase_id: purchase.purchase_id,
+            },
+          });
+          return {
+            id,
+            status: 'PAID',
+            amount: money(total),
+            helpAmount: money(help),
+            customerAmount: money(cash),
+            purchaseId: purchase.purchase_id.toString(),
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (isSerializationFailure(error)) {
+        const request = await this.db.payment_requests.findUnique({
+          where: { payment_request_id: id },
+          select: { status: true },
+        });
+        if (request?.status !== 'PENDING')
+          throw new ConflictException('QR นี้ถูกใช้แล้ว');
+        throw new ConflictException('รายการชนกัน กรุณาลองอีกครั้ง');
+      }
+      throw error;
+    }
+  }
+}

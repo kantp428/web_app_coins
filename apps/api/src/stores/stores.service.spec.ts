@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nearbyScope } from './stores.controller.js';
+import { nearbyScope } from './stores.service.js';
 describe('nearby scope', () => {
   it('requires coordinates and defaults to5km', () => {
     expect(nearbyScope({ latitude: '13.75', longitude: '100.5' })).toEqual({

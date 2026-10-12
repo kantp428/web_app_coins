@@ -1,29 +1,23 @@
-import { StoresController, StoresService } from './stores/stores.controller.js';
-import {
-  CoinRulesController,
-  CoinRulesService,
-} from './coin-rules/coin-rules.controller.js';
-import {
-  CategoriesController,
-  CategoriesService,
-} from './categories/categories.controller.js';
-import {
-  GeocodingController,
-  GeocodingService,
-} from './geocoding/geocoding.controller.js';
+import { StoresController } from './stores/stores.controller.js';
+import { StoresService } from './stores/stores.service.js';
+import { CoinRulesController } from './coin-rules/coin-rules.controller.js';
+import { CoinRulesService } from './coin-rules/coin-rules.service.js';
+import { CategoriesController } from './categories/categories.controller.js';
+import { CategoriesService } from './categories/categories.service.js';
+import { GeocodingController } from './geocoding/geocoding.controller.js';
+import { GeocodingService } from './geocoding/geocoding.service.js';
 import { AuthService } from './auth/auth.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import {
-  WalletsController,
-  WalletsService,
-} from './wallets/wallets.controller.js';
+import { WalletsController } from './wallets/wallets.controller.js';
+import { WalletsService } from './wallets/wallets.service.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true })],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule],
   controllers: [
     StoresController,
     CoinRulesController,

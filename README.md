@@ -64,7 +64,7 @@ pnpm lint
 pnpm test
 ```
 
-ปัจจุบันมี mobile wallet UI จำลอง, NestJS scaffold และ Neon/Prisma baseline `0_init` แล้ว. Seed, PrismaService และ business APIs ยังเป็นงานที่เหลือใน [Integration plan](PLAN/INTEGRATION.md). วิธี Pull/Push/Baseline/Migrate ดู [Prisma guide](apps/api/PRISMA_GUIDE.md).
+ปัจจุบัน wallet ใช้ API/ledger จริงแล้ว: CUSTOMER เติมเงินจำลอง, ใช้ help รายเดือน, สแกน QR จ่ายครั้งเดียว และหาก help ไม่ครบ 60% ระบบหักส่วนขาดจาก balance ลูกค้า; SELLER สร้าง/ยกเลิก QR และดูสถานะได้. ตั้ง `ENABLE_TEST_WALLET_ACTIONS=true` เฉพาะเครื่องพัฒนาเมื่อต้องการปุ่ม reset help. Coins, refund และ payment provider จริงยังอยู่ใน [Integration plan](PLAN/INTEGRATION.md). วิธี Pull/Push/Baseline/Migrate ดู [Prisma guide](apps/api/PRISMA_GUIDE.md).
 
 ## Shop registration location
 

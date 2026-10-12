@@ -955,7 +955,8 @@
             "method": "POST",
             "header": [
               { "key": "Authorization", "value": "Bearer {{customerToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "topup-demo-{{$guid}}" }
             ],
             "body": { "mode": "raw", "raw": "{\"amount\":\"500.00\"}" },
             "url": "{{baseUrl}}/wallets/top-up"
@@ -991,6 +992,26 @@
               { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}/pay"
+          }
+        },
+        {
+          "name": "Seller lists recent payment requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+            ],
+            "url": "{{baseUrl}}/seller/payment-requests"
+          }
+        },
+        {
+          "name": "Seller cancels pending payment request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+            ],
+            "url": "{{baseUrl}}/seller/payment-requests/{{paymentRequestId}}/cancel"
           }
         },
         {

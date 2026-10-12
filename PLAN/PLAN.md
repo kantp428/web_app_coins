@@ -11,23 +11,23 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                               | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                             | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                          | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth + wallet balance/help/top-up/history จริง; Coins ยังไม่มี   | D2                     | I               | F01                   |
-| F03     | PARTIAL: สมัครร้านสร้าง PENDING; CRUD/approval/search ยังไม่มี            | D3                     | I               | F02                   |
-| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                 | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview               | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                     | I               | F02/F03               |
-| F07     | TODO                                                                      | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: one-time QR payment + 60/40 ledger; Coins/refund ยังไม่มี        | D5                     | I               | F06                   |
-| F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                       | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                 | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                      | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                  | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                      | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                                  | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | ---------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                             | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth + wallet/monthly help/top-up/history จริง; Coins ยังไม่มี      | D2                     | I               | F01                   |
+| F03     | PARTIAL: สมัครร้านสร้าง PENDING; CRUD/approval/search ยังไม่มี               | D3                     | I               | F02                   |
+| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                    | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview                  | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO    | D4                     | I               | F02/F03               |
+| F07     | TODO                                                                         | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: QR lifecycle + help 60%/cash fallback + Purchase; Coins/refund ค้าง | D5                     | I               | F06                   |
+| F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                          | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO             | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                                    | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                         | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                     | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                         | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
@@ -318,3 +318,22 @@
 
 - หน้า CUSTOMER `/wallet` เหลือยอดเงินจริง, shortcut 4 ปุ่ม และ Main Quest เท่านั้น; เอา section จัดการกระเป๋า/ชำระ QR ออกจาก home. ปุ่มเป็น สแกนจ่าย→`/wallet/scan`, QR เติมเงิน→`/wallet/top-up`, ร้านใกล้ฉัน→`/wallet/explore`, ผู้ช่วย AI→แจ้งสถานะเดิม
 - แยก `customer-qr-scanner.tsx` และ `customer-top-up.tsx`; เพิ่ม route pages scan/top-up และ customerRoutes. หน้า scan ขอสิทธิกล้องเมื่อกดเท่านั้น/preview+pay; หน้า top-up มีเติมเงินและ reset help. Seller receive render QR SVG จริงผ่าน qrcode.react. Prettier write/checkไฟล์แก้ผ่าน, web lint และ production build31routesผ่าน; ยังไม่ได้ browser/device camera QA. Next: restart web และตรวจ4ปุ่ม/route/back navigationที่360/1920px รวมกล้องจริง; F04/F09คงPARTIAL
+
+### 2026-10-12 Asia/Bangkok — F02/F08/F09/F10: monthly help fallback and payment lifecycle
+
+- แก้ BASE help ให้นับเฉพาะเดือนปัจจุบัน Asia/Bangkok; เป้ารัฐช่วย60%แต่ถ้า helpไม่พอให้ใช้เท่าที่เหลือและโยนส่วนขาดไป CASH ลูกค้า จึงปฏิเสธเฉพาะ CASHไม่พอ. History รวม debit help/cash เป็น payment เดียวพร้อม breakdown
+- Top-up เพิ่ม Idempotency-Key กัน retryเพิ่มยอดซ้ำ; reset help ปรับยอดเดือนนี้ให้เท่ากับ1,000และเปิดเฉพาะ non-production + ENABLE_TEST_WALLET_ACTIONS=true. เพิ่ม shared PrismaService สำหรับ wallet module
+- Seller request ต้องมี owned shop, อายุ15นาที, list/cancel ได้; preview/payกัน CANCELLED/EXPIRED. Pay transaction สร้าง SUCCEEDED Purchase และ link request; migration20261012010000 apply Neon แล้ว. demo seed สร้าง APPROVED shop ให้ seller
+- Web เพิ่ม manual UUID fallback, warning เมื่อต้องจ่ายส่วนรัฐที่ขาด, canPay guard, seller status polling/cancel/expiry และ history breakdown; Postman เพิ่ม idempotent top-up/list/cancel. อัปเดต contract/decisions/Test/README
+- ตรวจผ่าน: Prisma format/validate/generate + migrate deploy, API lint/build และ Vitest40, web lint/build31routes. Live E2Eยืนยัน help1000, previewยอด2000ได้ target1200/help1000/customer1000, top-up retryไม่เพิ่มซ้ำ, cancelแล้วpay409; หลังแก้ timestamp/zero-help ledger/concurrency mapping แล้ว QR เดียวพร้อมกันได้201หนึ่งครั้ง+409หนึ่งครั้ง และเมื่อ help0 หัก CASH2000เต็มพร้อมสร้าง Purchase
+- F02/F08/F09/F10คง PARTIAL: Coins award/rule linkage, refund/reversal, history pagination และ device camera QA ยังไม่เสร็จ. Next: ทำ Coin award+refund ตาม F06/F08 แล้วเพิ่ม automated DB integration regression สำหรับ concurrent scan
+
+### 2026-10-12 Asia/Bangkok — F10: seller create QR submit fix
+
+- แก้ `/store/receive` กดสร้างแล้วเงียบ: shared Base UI Button ไม่ submit form โดยปริยาย จึงเพิ่ม `type="submit"` และ pending label. ตรวจ API พอร์ต3000โดยตรงสร้างยอด111111ได้201; web lint/build31routesผ่าน; browserจริงสร้าง12.34แล้วเห็น QR UUID/expiry/toast และรายการ PENDING สำเร็จ. มี test requests 111111 และ12.34ค้างเพื่อ audit/ยกเลิกผ่านUIได้
+
+### 2026-10-12 Asia/Bangkok — API controller/service separation maintenance
+
+- แยก service ที่เคยฝังใน controller ครบ5 domain: categories, geocoding, stores, coin-rules และ wallets เป็น `*.service.ts`; controller เหลือเฉพาะ HTTP decorators/request mapping และ AppModule import provider จาก service file. Auth/App แยก service อยู่แล้วจึงไม่เปลี่ยน
+- ย้าย unit spec ที่ทดสอบ service/helper เป็น `*.service.spec.ts`. ไม่มี route, request/response, DB schema หรือ business rule เปลี่ยน จึงไม่แก้ API contract/Postman และไม่เปลี่ยนสถานะ Feature
+- ตรวจ API Vitest40/40, oxlint type-aware และ Nest build ผ่าน; Prettier write/check source ที่แก้ผ่าน. Next: refactor Auth/Categories/Stores/CoinRules ให้ใช้ shared PrismaService แทนสร้าง PrismaClient ราย serviceในงาน maintenance ถัดไป

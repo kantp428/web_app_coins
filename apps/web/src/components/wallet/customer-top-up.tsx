@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, RefreshCw } from "lucide-react";
 import { api, getApiError } from "@/lib/api";
@@ -11,12 +11,28 @@ import { Input } from "@/components/ui/input";
 export function CustomerTopUp() {
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
+  const [testActionsEnabled, setTestActionsEnabled] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    api
+      .get<{ testActionsEnabled: boolean }>("/wallet", {
+        params: { action: "summary" },
+        signal: controller.signal,
+      })
+      .then((response) =>
+        setTestActionsEnabled(response.data.testActionsEnabled),
+      )
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
   async function submit(action: "topup" | "reset") {
     setPending(true);
     try {
       await api.post("/wallet", {
         action,
-        ...(action === "topup" ? { amount } : {}),
+        ...(action === "topup"
+          ? { amount, idempotencyKey: crypto.randomUUID() }
+          : {}),
       });
       toast.success(
         action === "topup" ? "เติมเงินสำเร็จ" : "รีเซ็ตวงเงินช่วยจ่ายแล้ว",
@@ -31,9 +47,12 @@ export function CustomerTopUp() {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">QR เติมเงิน</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          เติมเงินสำหรับทดสอบ
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          ระบุจำนวนเงินเพื่อเติมเข้ากระเป๋าทันที
+          ระบุจำนวนเงินเพื่อเพิ่ม Balance ทันที
+          ระบบนี้ยังไม่เชื่อมผู้ให้บริการรับเงิน
         </p>
       </div>
       <Card>
@@ -62,15 +81,17 @@ export function CustomerTopUp() {
               <Plus className="size-4" /> เติมเงิน
             </Button>
           </form>
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={pending}
-            onClick={() => void submit("reset")}
-          >
-            <RefreshCw className="size-4" /> รีเซ็ตวงเงินช่วยจ่ายเป็น ฿1,000
-            (สำหรับทดสอบ)
-          </Button>
+          {testActionsEnabled && (
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={pending}
+              onClick={() => void submit("reset")}
+            >
+              <RefreshCw className="size-4" /> รีเซ็ตวงเงินช่วยจ่ายเป็น ฿1,000
+              (สำหรับทดสอบ)
+            </Button>
+          )}
         </CardContent>
       </Card>
     </section>
