@@ -103,7 +103,7 @@ model purchases {
   created_at          DateTime           @default(now()) @db.Timestamptz(6)
   confirmed_at        DateTime?          @db.Timestamptz(6)
   refunded_at         DateTime?          @db.Timestamptz(6)
-  shop_area_snapshot  String             @db.VarChar(20)
+  shop_area_snapshot  String?            @db.VarChar(20)
   shop_size_snapshot  String             @db.VarChar(16)
   idempotency_key     String             @unique @db.VarChar(200)
   coin_entries        coin_entries?
@@ -115,7 +115,7 @@ model purchases {
   @@unique([purchase_id, customer_id])
   @@unique([purchase_id, customer_id, rule_id])
   @@index([customer_id, shop_id, confirmed_at], map: "ix_purchases_customer_shop")
-  @@index([confirmed_at, shop_area_snapshot, shop_size_snapshot], map: "ix_purchases_report")
+  @@index([confirmed_at, shop_size_snapshot], map: "ix_purchases_report")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -143,8 +143,8 @@ model shops {
   owner_id             BigInt
   owner_role           String            @default("SELLER") @db.VarChar(16)
   name                 String            @db.VarChar(200)
+  description          String?           @db.VarChar(2000)
   address              Json?
-  area_code            String            @db.VarChar(20)
   latitude             Decimal           @db.Decimal(9, 6)
   longitude            Decimal           @db.Decimal(9, 6)
   opening_hours        Json              @default("{}")
@@ -154,7 +154,7 @@ model shops {
   shop_categories      shop_categories[]
   users                users             @relation(fields: [owner_id, owner_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([participation_status, area_code], map: "ix_shops_map")
+  @@index([participation_status], map: "ix_shops_map")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

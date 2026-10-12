@@ -3,6 +3,7 @@ import { ShopCategorySelect } from "@/components/maps/shop-category-select";
 import { ShopLocationPicker } from "@/components/maps/shop-location-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -33,8 +34,8 @@ const schema = z
     firstName: z.string(),
     lastName: z.string(),
     shopName: z.string(),
+    shopDescription: z.string(),
     categoryIds: z.array(z.string()),
-    areaCode: z.string(),
     address: z.string(),
     province: z.string(),
     district: z.string(),
@@ -76,10 +77,9 @@ const schema = z
         issue("lastName", "กรุณากรอกนามสกุล ไม่เกิน 99 ตัวอักษร");
     }
     if (v.role === "SELLER") {
-      for (const [key, label, max] of [
-        ["shopName", "ชื่อร้าน", 200],
-        ["areaCode", "รหัสพื้นที่", 20],
-      ] as const)
+      if (!v.shopDescription.trim() || v.shopDescription.trim().length > 2000)
+        issue("shopDescription", "กรุณากรอกรายละเอียดร้าน 1–2,000 ตัวอักษร");
+      for (const [key, label, max] of [["shopName", "ชื่อร้าน", 200]] as const)
         if (!v[key].trim() || v[key].trim().length > max)
           issue(key, `กรุณากรอก${label} ไม่เกิน ${max} ตัวอักษร`);
       if (!v.openingDays.length)
@@ -131,8 +131,8 @@ const defaults = {
   firstName: "",
   lastName: "",
   shopName: "",
+  shopDescription: "",
   categoryIds: [] as string[],
-  areaCode: "",
   address: "",
   province: "",
   district: "",
@@ -287,8 +287,8 @@ export default function RegisterPage() {
                   ? {
                       shop: {
                         name: values.shopName.trim(),
+                        description: values.shopDescription.trim(),
                         categoryIds: values.categoryIds,
-                        areaCode: values.areaCode.trim(),
                         address: {
                           line1: values.address.trim(),
                           province: values.province.trim(),
@@ -333,10 +333,7 @@ export default function RegisterPage() {
                     { name: "firstName", label: "ชื่อ", max: 100 },
                     { name: "lastName", label: "นามสกุล", max: 99 },
                   ] as const)
-                : ([
-                    { name: "shopName", label: "ชื่อร้าน", max: 200 },
-                    { name: "areaCode", label: "รหัสพื้นที่", max: 20 },
-                  ] as const)
+                : ([{ name: "shopName", label: "ชื่อร้าน", max: 200 }] as const)
               ).map((field) => (
                 <div key={field.name} className="space-y-2">
                   <label htmlFor={field.name} className="text-sm font-medium">
@@ -361,30 +358,57 @@ export default function RegisterPage() {
                 </div>
               ))}
               {role === "SELLER" && (
-                <ShopOpeningHours
-                  days={openingDays}
-                  open={openTime}
-                  close={closeTime}
-                  disabled={pending}
-                  onDaysChange={(value) =>
-                    setValue("openingDays", value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                  onOpenChange={(value) =>
-                    setValue("openTime", value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                  onCloseChange={(value) =>
-                    setValue("closeTime", value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                />
+                <>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="shopDescription"
+                      className="text-sm font-medium"
+                    >
+                      รายละเอียดร้าน
+                    </label>
+                    <Textarea
+                      id="shopDescription"
+                      {...register("shopDescription")}
+                      maxLength={2000}
+                      rows={4}
+                      placeholder="ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง"
+                      aria-describedby="shop-description-help"
+                      aria-invalid={!!errors.shopDescription}
+                      disabled={pending}
+                    />
+                    <p
+                      id="shop-description-help"
+                      className="text-xs text-muted-foreground"
+                    >
+                      อธิบายประเภทอาหาร เมนู สินค้าหรือบริการเด่น
+                      เพื่อช่วยแนะนำร้านให้ลูกค้า (ไม่เกิน 2,000 ตัวอักษร)
+                    </p>
+                  </div>
+                  <ShopOpeningHours
+                    days={openingDays}
+                    open={openTime}
+                    close={closeTime}
+                    disabled={pending}
+                    onDaysChange={(value) =>
+                      setValue("openingDays", value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    onOpenChange={(value) =>
+                      setValue("openTime", value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    onCloseChange={(value) =>
+                      setValue("closeTime", value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                </>
               )}
               {role === "SELLER" && (
                 <fieldset className="space-y-3">

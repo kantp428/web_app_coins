@@ -149,8 +149,8 @@ describe('registration by role', () => {
   };
   const shop = {
     name: ' Test shop ',
+    description: ' ร้านอาหารอีสาน ส้มตำ ลาบ ไก่ย่าง ',
     categoryIds: ['1', '2'],
-    areaCode: 'BKK',
     address: {
       line1: ' Test address Bangkok ',
       province: '',
@@ -197,8 +197,8 @@ describe('registration by role', () => {
     });
     expect(create.mock.calls[0][0].data.shops.create).toMatchObject({
       name: 'Test shop',
+      description: 'ร้านอาหารอีสาน ส้มตำ ลาบ ไก่ย่าง',
       shop_categories: { create: [{ category_id: 1n }, { category_id: 2n }] },
-      area_code: 'BKK',
       address: {
         line1: 'Test address Bangkok',
         province: '',
@@ -261,6 +261,9 @@ describe('registration by role', () => {
       { ...shop, openingHours: { ...shop.openingHours, close: '08:00' } },
       { ...shop, openingHours: { ...shop.openingHours, timeZone: 'UTC' } },
       { ...shop, name: ' ' },
+      { ...shop, description: undefined },
+      { ...shop, description: '   ' },
+      { ...shop, description: 'a'.repeat(2001) },
       { ...shop, address: '' },
       { ...shop, address: { ...shop.address, line1: 'x'.repeat(501) } },
       { ...shop, address: { ...shop.address, postcode: 'abc' } },

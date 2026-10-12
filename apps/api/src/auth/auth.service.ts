@@ -142,8 +142,8 @@ export class AuthService implements OnModuleDestroy {
     let shop:
       | {
           name: string;
+          description: string;
           categoryIds: string[];
-          areaCode: string;
           address: Record<string, string>;
           latitude: number;
           longitude: number;
@@ -167,8 +167,8 @@ export class AuthService implements OnModuleDestroy {
       const value = data.shop as Record<string, unknown>;
       if (
         !text(value.name, 200) ||
+        !text(value.description, 2000) ||
         !validCategoryIds(value.categoryIds) ||
-        !text(value.areaCode, 20) ||
         !validAddress(value.address) ||
         !validOpeningHours(value.openingHours) ||
         typeof value.latitude !== 'number' ||
@@ -185,8 +185,8 @@ export class AuthService implements OnModuleDestroy {
         throw new BadRequestException('ข้อมูลร้านค้าไม่ครบหรือพิกัดไม่ถูกต้อง');
       shop = {
         name: value.name.trim(),
+        description: value.description.trim(),
         categoryIds: value.categoryIds as string[],
-        areaCode: value.areaCode.trim(),
         address: Object.fromEntries(
           Object.entries(value.address as Record<string, string>).map(
             ([k, v]) => [k, v.trim()],
@@ -220,12 +220,12 @@ export class AuthService implements OnModuleDestroy {
                 shops: {
                   create: {
                     name: shop.name,
+                    description: shop.description,
                     shop_categories: {
                       create: shop.categoryIds.map((id) => ({
                         category_id: BigInt(id),
                       })),
                     },
-                    area_code: shop.areaCode,
                     address: shop.address,
                     latitude: shop.latitude,
                     longitude: shop.longitude,

@@ -40,8 +40,8 @@ export type RegisterPayload = LoginPayload & {
   lastName?: string;
   shop?: {
     name: string;
+    description: string;
     categoryIds: string[];
-    areaCode: string;
     address: ShopAddress;
     latitude: number;
     longitude: number;
@@ -130,4 +130,28 @@ export async function getCoinRules(signal?: AbortSignal) {
 }
 export async function createCoinRule(body: CoinRuleInput) {
   return (await api.post<CoinRule>("/government/coin-rules", body)).data;
+}
+
+export type NearbyStore = {
+  description: string | null;
+  id: string;
+  name: string;
+  address: Record<string, string> | null;
+  latitude: string;
+  longitude: string;
+  distanceKm: number;
+  categories: string[];
+};
+export async function getNearbyStores(
+  latitude: number,
+  longitude: number,
+  radiusKm: number,
+  signal?: AbortSignal,
+) {
+  return (
+    await api.get<{ radiusKm: number; stores: NearbyStore[] }>("/stores", {
+      params: { latitude, longitude, radiusKm },
+      signal,
+    })
+  ).data;
 }

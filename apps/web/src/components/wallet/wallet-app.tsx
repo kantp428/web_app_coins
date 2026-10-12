@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { NearbyStores } from "@/components/wallet/nearby-stores";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
@@ -18,7 +19,6 @@ import {
   MapPin,
   MessageCircle,
   QrCode,
-  Search,
   Settings,
   ShieldCheck,
   Store,
@@ -145,8 +145,6 @@ export function WalletApp({
   function navigate(section: string) {
     router.push(routes[section]);
   }
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("ทั้งหมด");
   const [selected, setSelected] = useState<(typeof shops)[number] | null>(null);
   const [notice, setNotice] = useState("");
   const [chat, setChat] = useState(false);
@@ -159,11 +157,7 @@ export function WalletApp({
   const [amount, setAmount] = useState("");
   const [qr, setQr] = useState(false);
   const nav = seller ? sellerTabs : tabs;
-  const filtered = shops.filter(
-    (s) =>
-      (category === "ทั้งหมด" || s.category === category) &&
-      `${s.name} ${s.description}`.includes(query),
-  );
+  const filtered = shops;
   function shopCards() {
     return (
       <div className="space-y-3">
@@ -262,7 +256,7 @@ export function WalletApp({
                 / wallet
               </span>
             </Link>
-            <Badge variant="outline">UI Preview</Badge>
+            {tab !== "explore" && <Badge variant="outline">UI Preview</Badge>}
           </div>
           <div className="flex items-center justify-between">
             <div>
@@ -443,63 +437,7 @@ export function WalletApp({
               )}
             </>
           )}
-          {tab === "explore" && (
-            <Section
-              title="ค้นพบร้านใกล้คุณ"
-              subtitle="ค้นหาด้วยชื่อร้านหรือพื้นที่ โดยไม่ต้องใช้ตำแหน่ง"
-            >
-              <div className="relative">
-                <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
-                <Input
-                  className="h-11 pl-9"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="ชื่อร้าน หรือพื้นที่ เช่น สามย่าน"
-                  aria-label="ค้นหาร้าน"
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {["ทั้งหมด", "อาหาร", "เครื่องดื่ม", "ของใช้"].map((c) => (
-                  <Button
-                    key={c}
-                    size="sm"
-                    variant={category === c ? "default" : "outline"}
-                    onClick={() => setCategory(c)}
-                  >
-                    {c}
-                  </Button>
-                ))}
-              </div>
-              <div className="relative h-44 overflow-hidden rounded-xl border bg-muted">
-                <div
-                  className="absolute inset-0 opacity-20"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(90deg, var(--border) 1px, transparent 1px), linear-gradient(var(--border) 1px, transparent 1px)",
-                    backgroundSize: "36px 36px",
-                  }}
-                />
-                <p className="absolute left-3 top-3 rounded-md bg-background px-2 py-1 text-xs">
-                  แผนที่จำลอง • สามย่าน
-                </p>
-                {shops.map((s, i) => (
-                  <button
-                    key={s.name}
-                    aria-label={`ดู ${s.name}`}
-                    onClick={() => setSelected(s)}
-                    className="absolute rounded-full border bg-background px-3 py-2 text-xs shadow-sm"
-                    style={{
-                      left: `${15 + i * 26}%`,
-                      top: `${46 + (i % 2) * 22}%`,
-                    }}
-                  >
-                    <MapPin className="inline size-3" /> {s.coins} Coins
-                  </button>
-                ))}
-              </div>
-              {shopCards()}
-            </Section>
-          )}
+          {tab === "explore" && <NearbyStores />}
           {tab === "quest" && (
             <Section
               title="ภารกิจประจำเดือน"
@@ -702,7 +640,9 @@ export function WalletApp({
             </Section>
           )}
           <p className="text-center text-[11px] text-muted-foreground">
-            ข้อมูลและยอดทั้งหมดเป็นตัวอย่างสำหรับออกแบบ UI
+            {tab === "explore"
+              ? "ร้านที่อนุมัติแล้ว เรียงตามระยะห่างจากพิกัดที่ค้นหา"
+              : "ข้อมูลและยอดทั้งหมดเป็นตัวอย่างสำหรับออกแบบ UI"}
           </p>
         </main>
         <nav

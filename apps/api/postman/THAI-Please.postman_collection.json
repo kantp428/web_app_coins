@@ -44,6 +44,10 @@
     {
       "key": "nonGovernmentToken",
       "value": ""
+    },
+    {
+      "value": "",
+      "key": "nonCustomerToken"
     }
   ],
   "item": [
@@ -318,7 +322,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"{{registerSellerUsername}}\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": {\n      \"days\": [\n        \"MON\",\n        \"TUE\",\n        \"WED\",\n        \"THU\",\n        \"FRI\"\n      ],\n      \"open\": \"08:00\",\n      \"close\": \"18:00\",\n      \"timeZone\": \"Asia/Bangkok\"\n    },\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
+          "raw": "{\r\n  \"role\": \"SELLER\",\r\n  \"username\": \"{{registerSellerUsername}}\",\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"ExamplePass!2026\",\r\n  \"shop\": {\r\n    \"name\": \"Test shop\",\r\n    \"latitude\": 13.75,\r\n    \"longitude\": 100.5,\r\n    \"openingHours\": {\r\n      \"days\": [\r\n        \"MON\",\r\n        \"TUE\",\r\n        \"WED\",\r\n        \"THU\",\r\n        \"FRI\"\r\n      ],\r\n      \"open\": \"08:00\",\r\n      \"close\": \"18:00\",\r\n      \"timeZone\": \"Asia/Bangkok\"\r\n    },\r\n    \"sizeClass\": \"SMALL\",\r\n    \"address\": {\r\n      \"line1\": \"123 Test Road, Bangkok\",\r\n      \"province\": \"กรุงเทพมหานคร\",\r\n      \"district\": \"ปทุมวัน\",\r\n      \"subDistrict\": \"ลุมพินี\",\r\n      \"postcode\": \"10330\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"description\": \"ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง\"\r\n  }\r\n}"
         }
       },
       "event": [
@@ -374,7 +378,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"demo_shop\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": {\n      \"days\": [\n        \"MON\",\n        \"TUE\",\n        \"WED\",\n        \"THU\",\n        \"FRI\"\n      ],\n      \"open\": \"08:00\",\n      \"close\": \"18:00\",\n      \"timeZone\": \"Asia/Bangkok\"\n    },\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
+          "raw": "{\r\n  \"role\": \"SELLER\",\r\n  \"username\": \"demo_shop\",\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"ExamplePass!2026\",\r\n  \"shop\": {\r\n    \"name\": \"Test shop\",\r\n    \"latitude\": 13.75,\r\n    \"longitude\": 100.5,\r\n    \"openingHours\": {\r\n      \"days\": [\r\n        \"MON\",\r\n        \"TUE\",\r\n        \"WED\",\r\n        \"THU\",\r\n        \"FRI\"\r\n      ],\r\n      \"open\": \"08:00\",\r\n      \"close\": \"18:00\",\r\n      \"timeZone\": \"Asia/Bangkok\"\r\n    },\r\n    \"sizeClass\": \"SMALL\",\r\n    \"address\": {\r\n      \"line1\": \"123 Test Road, Bangkok\",\r\n      \"province\": \"กรุงเทพมหานคร\",\r\n      \"district\": \"ปทุมวัน\",\r\n      \"subDistrict\": \"ลุมพินี\",\r\n      \"postcode\": \"10330\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"description\": \"ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง\"\r\n  }\r\n}"
         }
       },
       "event": [
@@ -430,7 +434,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"test_mismatch\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"different\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": {\n      \"days\": [\n        \"MON\",\n        \"TUE\",\n        \"WED\",\n        \"THU\",\n        \"FRI\"\n      ],\n      \"open\": \"08:00\",\n      \"close\": \"18:00\",\n      \"timeZone\": \"Asia/Bangkok\"\n    },\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
+          "raw": "{\r\n  \"role\": \"SELLER\",\r\n  \"username\": \"test_mismatch\",\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"different\",\r\n  \"shop\": {\r\n    \"name\": \"Test shop\",\r\n    \"latitude\": 13.75,\r\n    \"longitude\": 100.5,\r\n    \"openingHours\": {\r\n      \"days\": [\r\n        \"MON\",\r\n        \"TUE\",\r\n        \"WED\",\r\n        \"THU\",\r\n        \"FRI\"\r\n      ],\r\n      \"open\": \"08:00\",\r\n      \"close\": \"18:00\",\r\n      \"timeZone\": \"Asia/Bangkok\"\r\n    },\r\n    \"sizeClass\": \"SMALL\",\r\n    \"address\": {\r\n      \"line1\": \"123 Test Road, Bangkok\",\r\n      \"province\": \"กรุงเทพมหานคร\",\r\n      \"district\": \"ปทุมวัน\",\r\n      \"subDistrict\": \"ลุมพินี\",\r\n      \"postcode\": \"10330\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"description\": \"ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง\"\r\n  }\r\n}"
         }
       },
       "event": [
@@ -514,7 +518,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"invalid_coordinates\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 91,\n    \"longitude\": 100.5,\n    \"openingHours\": {\n      \"days\": [\n        \"MON\",\n        \"TUE\",\n        \"WED\",\n        \"THU\",\n        \"FRI\"\n      ],\n      \"open\": \"08:00\",\n      \"close\": \"18:00\",\n      \"timeZone\": \"Asia/Bangkok\"\n    },\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  },\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\"\n}"
+          "raw": "{\r\n  \"role\": \"SELLER\",\r\n  \"username\": \"invalid_coordinates\",\r\n  \"shop\": {\r\n    \"name\": \"Test shop\",\r\n    \"latitude\": 91,\r\n    \"longitude\": 100.5,\r\n    \"openingHours\": {\r\n      \"days\": [\r\n        \"MON\",\r\n        \"TUE\",\r\n        \"WED\",\r\n        \"THU\",\r\n        \"FRI\"\r\n      ],\r\n      \"open\": \"08:00\",\r\n      \"close\": \"18:00\",\r\n      \"timeZone\": \"Asia/Bangkok\"\r\n    },\r\n    \"sizeClass\": \"SMALL\",\r\n    \"address\": {\r\n      \"line1\": \"123 Test Road, Bangkok\",\r\n      \"province\": \"กรุงเทพมหานคร\",\r\n      \"district\": \"ปทุมวัน\",\r\n      \"subDistrict\": \"ลุมพินี\",\r\n      \"postcode\": \"10330\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"description\": \"ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง\"\r\n  },\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"ExamplePass!2026\"\r\n}"
         }
       },
       "event": [
@@ -556,7 +560,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"{{registerSellerUsername}}\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": {\n      \"days\": [\n        \"MON\",\n        \"TUE\",\n        \"WED\",\n        \"THU\",\n        \"FRI\"\n      ],\n      \"open\": \"08:00\",\n      \"close\": \"18:00\",\n      \"timeZone\": \"Asia/Bangkok\"\n    },\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\",\n      \"{{categoryId}}\"\n    ]\n  }\n}"
+          "raw": "{\r\n  \"role\": \"SELLER\",\r\n  \"username\": \"{{registerSellerUsername}}\",\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"ExamplePass!2026\",\r\n  \"shop\": {\r\n    \"name\": \"Test shop\",\r\n    \"latitude\": 13.75,\r\n    \"longitude\": 100.5,\r\n    \"openingHours\": {\r\n      \"days\": [\r\n        \"MON\",\r\n        \"TUE\",\r\n        \"WED\",\r\n        \"THU\",\r\n        \"FRI\"\r\n      ],\r\n      \"open\": \"08:00\",\r\n      \"close\": \"18:00\",\r\n      \"timeZone\": \"Asia/Bangkok\"\r\n    },\r\n    \"sizeClass\": \"SMALL\",\r\n    \"address\": {\r\n      \"line1\": \"123 Test Road, Bangkok\",\r\n      \"province\": \"กรุงเทพมหานคร\",\r\n      \"district\": \"ปทุมวัน\",\r\n      \"subDistrict\": \"ลุมพินี\",\r\n      \"postcode\": \"10330\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\",\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"description\": \"ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง\"\r\n  }\r\n}"
         }
       },
       "event": [
@@ -582,7 +586,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"role\": \"SELLER\",\n  \"username\": \"{{registerSellerUsername}}\",\n  \"password\": \"ExamplePass!2026\",\n  \"confirmPassword\": \"ExamplePass!2026\",\n  \"shop\": {\n    \"name\": \"Test shop\",\n    \"areaCode\": \"BKK\",\n    \"latitude\": 13.75,\n    \"longitude\": 100.5,\n    \"openingHours\": {\n      \"days\": [],\n      \"open\": \"08:00\",\n      \"close\": \"18:00\",\n      \"timeZone\": \"Asia/Bangkok\"\n    },\n    \"sizeClass\": \"SMALL\",\n    \"address\": {\n      \"line1\": \"123 Test Road, Bangkok\",\n      \"province\": \"กรุงเทพมหานคร\",\n      \"district\": \"ปทุมวัน\",\n      \"subDistrict\": \"ลุมพินี\",\n      \"postcode\": \"10330\"\n    },\n    \"categoryIds\": [\n      \"{{categoryId}}\"\n    ]\n  }\n}"
+          "raw": "{\r\n  \"role\": \"SELLER\",\r\n  \"username\": \"{{registerSellerUsername}}\",\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"ExamplePass!2026\",\r\n  \"shop\": {\r\n    \"name\": \"Test shop\",\r\n    \"latitude\": 13.75,\r\n    \"longitude\": 100.5,\r\n    \"openingHours\": {\r\n      \"days\": [],\r\n      \"open\": \"08:00\",\r\n      \"close\": \"18:00\",\r\n      \"timeZone\": \"Asia/Bangkok\"\r\n    },\r\n    \"sizeClass\": \"SMALL\",\r\n    \"address\": {\r\n      \"line1\": \"123 Test Road, Bangkok\",\r\n      \"province\": \"กรุงเทพมหานคร\",\r\n      \"district\": \"ปทุมวัน\",\r\n      \"subDistrict\": \"ลุมพินี\",\r\n      \"postcode\": \"10330\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"description\": \"ร้านอาหารอีสานทั่วไป ส้มตำ ลาบ ก้อย ไก่ย่าง คอหมูย่าง ปลาดุกย่าง\"\r\n  }\r\n}"
         }
       },
       "event": [
@@ -795,6 +799,141 @@
       ],
       "name": "Government Coin Rules",
       "description": "Use government token. Set nonGovernmentToken from customer/seller login. 201 creates a pending rule; run 409 immediately after. No delete endpoint."
+    },
+    {
+      "item": [
+        {
+          "request": {
+            "url": "{{baseUrl}}/stores?latitude=13.75&longitude=100.5&radiusKm=5",
+            "method": "GET",
+            "header": [
+              {
+                "value": "Bearer {{token}}",
+                "key": "Authorization"
+              }
+            ]
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test('Expected status', function(){pm.response.to.have.status(200);});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "name": "Nearby approved stores"
+        },
+        {
+          "request": {
+            "url": "{{baseUrl}}/stores?latitude=91&longitude=100",
+            "method": "GET",
+            "header": [
+              {
+                "value": "Bearer {{token}}",
+                "key": "Authorization"
+              }
+            ]
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test('Expected status', function(){pm.response.to.have.status(400);});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "name": "Invalid coordinates"
+        },
+        {
+          "request": {
+            "url": "{{baseUrl}}/stores?latitude=13.75&longitude=100.5",
+            "method": "GET",
+            "header": [
+              {
+                "value": "",
+                "key": "Authorization"
+              }
+            ]
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test('Expected status', function(){pm.response.to.have.status(401);});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "name": "Missing authentication"
+        },
+        {
+          "request": {
+            "url": "{{baseUrl}}/stores?latitude=13.75&longitude=100.5",
+            "method": "GET",
+            "header": [
+              {
+                "value": "Bearer {{nonCustomerToken}}",
+                "key": "Authorization"
+              }
+            ]
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test('Expected status', function(){pm.response.to.have.status(403);});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "name": "Reject seller/government"
+        }
+      ],
+      "description": "Customer token required; explicit location consent. Radius default5 max50km, approved only nearest first max50. nonCustomerToken must be valid seller/government token.",
+      "name": "Nearby stores"
+    },
+    {
+      "event": [
+        {
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Blank description rejected',function(){pm.response.to.have.status(400);});"
+            ]
+          },
+          "listen": "test"
+        }
+      ],
+      "name": "Register seller rejects blank description",
+      "request": {
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\r\n  \"username\": \"invalid_description\",\r\n  \"shop\": {\r\n    \"description\": \" \",\r\n    \"sizeClass\": \"SMALL\",\r\n    \"openingHours\": {\r\n      \"close\": \"18:00\",\r\n      \"days\": [\r\n        \"MON\"\r\n      ],\r\n      \"timeZone\": \"Asia/Bangkok\",\r\n      \"open\": \"08:00\"\r\n    },\r\n    \"categoryIds\": [\r\n      \"{{categoryId}}\"\r\n    ],\r\n    \"latitude\": 13.75,\r\n    \"name\": \"Test shop\",\r\n    \"address\": {\r\n      \"postcode\": \"\",\r\n      \"district\": \"\",\r\n      \"province\": \"\",\r\n      \"line1\": \"123 Test\",\r\n      \"subDistrict\": \"\"\r\n    },\r\n    \"longitude\": 100.5\r\n  },\r\n  \"role\": \"SELLER\",\r\n  \"password\": \"ExamplePass!2026\",\r\n  \"confirmPassword\": \"ExamplePass!2026\"\r\n}",
+          "mode": "raw"
+        },
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/register"
+      }
     }
   ]
 }

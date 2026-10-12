@@ -270,3 +270,16 @@
 
 - เพิ่ม prisma/seed-current-coin-rule.mjs + package seed:coin-rules:current; shared lock/production guard, preserve active/refuse pending, version max+1 current Bangkok cutoff. รันจริงได้version4และรันซ้ำexisting4;ไม่เปลี่ยนhistorical1–3หรือshop rates/ledger
 - test-seed-coin-rules.mjsเพิ่ม current seed/idempotency/effective_from<=now/effective_to null/count4;clean migration isolated DB testผ่านและลบQA schemaแล้ว. Prettier write/checkผ่าน;ไม่มีUI/API/schema change,ไม่รันbuildซ้ำ. F06/F10ยังPARTIAL;nextrefreshGovernmentเพื่อเห็นv4และทำgeneration/preview/awardตามเดิม
+
+### 2026-10-12 Asia/Bangkok — F03/F04: Nearby shops replaces area_code
+
+- User supersedes area-based discovery/grouping. Migration20261012006000_nearby_shops applyจริง:drop shops.area_code,rebuild status index; purchases.shop_area_snapshot nullable deprecated audit-onlyรักษาประวัติเดิม/report indexไม่ใช้area. เอาareaCodeออกRegister schema/default/input/payload/APIvalidation/nestedcreate/specและlib types. Applied baseline migrationsไม่แก้
+- เพิ่ม GET /stores CUSTOMER-only authenticated:requiredlat/lng,radius0.1–50 default5km,APPROVED only,HaversineparameterizedSQL nearest/id order limit50. Web BFF /api/stores+Axios/useNearbyStores,NearbyStores componentแทนExplorefixtures:opt-in current location,manualcoordfallback,radius,abort/stale guard,Sonnererrors,pending/empty. ไม่เก็บcustomercoordหรือส่งgeocoder. Home/AI fixturesส่วนอื่นยังpreview;ไม่มีCoinestimateก่อนpreview/rate service
+- APIlint/tests36/buildผ่าน;cleanfullmigration+DBintegration test-nearby-stores.mjsผ่านnoarea shopinsert/approvedonly/order/radius/zero-distance/date-line/empty,ลบQA schemaแล้ว. Prismaformat/validate/generateผ่าน. HTTP CUSTOMER200/invalid400,SELLER403,unauth401. Browsercustomer manual13.75/100.5 returns emptyจริง,360pxไม่overflow;actualdevice geolocationยังไม่ทดสอบ
+- Docsdecisions/contract+Postmanregister bodiesและnearby200/400/401/403ปรับแล้ว. Weblint/build+Prettierwrite/checkผ่าน;SQLไม่มีformatterและ.prismaใช้prismaformat. F03/F04ยังPARTIAL(approvalCRUD/homeintegration/coinpreviewค้าง),F07AI scopeและF11geographicimpactdefinitionsต้องปรับตามdecisionใหม่ก่อนทำ. Nextอนุมัติ/seedร้านสำหรับcustomerfullnearbyflowและต่อAI/previewตามradius;ไม่เรียกcompletionของทั้งfeature
+
+### 2026-10-12 09:12 Asia/Bangkok — F03/F05/F07: Shop description context
+
+- เพิ่มshops.description nullableVARCHAR2000พร้อมnonemptycheck migration20261012007000_shop_description applyจริง;legacyNULLไม่backfill. RegisterSELLERบังคับtrim1–2000,textareaใต้ชื่อร้านพร้อมตัวอย่างเมนู;AuthService atomicnestedwrite และGET/storesส่งdescription:string|null. ไม่ได้เชื่อมmodel/recommendationในรอบนี้
+- ไฟล์schema/migration,auth.service+spec,stores.controller,register/page,lib/api,test-nearby-stores.mjs,contract/decisions/Postmanปรับ;invalidmissing/blank/over2000และtrimcoveredในAPItests36ผ่าน. CleanmigrationDBintegrationตรวจThai description roundtrip/legacyNULL/blankconstraintผ่านแล้วลบQA schema;Prismaformat/validate/generateผ่าน,API+weblint/buildผ่าน,Prettierwrite/checkผ่าน
+- BrowserRegisterSELLERเห็นtextareaใต้ชื่อร้าน,กรอกตัวอย่างภาษาไทยได้และmaxlength2000;ไม่ได้submitfullregistrationบนpublicDB. F03/F05ยังPARTIAL,F07ยังTODO;nextrecommendationcandidateส่งdescriptionเป็นuntrusteddataตามdecisions,ไม่ใช้เป็นmodelinstruction;owneredit/backfillตามCRUDงานถัดไป
