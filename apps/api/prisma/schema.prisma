@@ -30,21 +30,22 @@ model coin_entries {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model coin_rule_versions {
-  rule_id             BigInt         @id @default(autoincrement())
-  version             Int            @unique
+  shop_coin_rates     shop_coin_rates[]
+  rule_id             BigInt            @id @default(autoincrement())
+  version             Int               @unique
   created_by          BigInt
-  creator_role        String         @default("GOVERNMENT") @db.VarChar(16)
-  effective_from      DateTime       @db.Timestamptz(6)
-  effective_to        DateTime?      @db.Timestamptz(6)
-  minimum_purchase    Decimal        @db.Decimal(14, 2)
-  low_sales_threshold Decimal        @db.Decimal(14, 2)
+  creator_role        String            @default("GOVERNMENT") @db.VarChar(16)
+  effective_from      DateTime          @db.Timestamptz(6)
+  effective_to        DateTime?         @db.Timestamptz(6)
+  minimum_purchase    Decimal           @db.Decimal(14, 2)
+  low_sales_threshold Decimal           @db.Decimal(14, 2)
   sales_window_days   Int
-  repeat_coins        Int            @default(1) @db.SmallInt
-  new_low_sales_coins Int            @db.SmallInt
-  new_other_coins     Int            @db.SmallInt
-  created_at          DateTime       @default(now()) @db.Timestamptz(6)
+  repeat_coins        Int               @default(1) @db.SmallInt
+  new_low_sales_coins Int               @db.SmallInt
+  new_other_coins     Int               @db.SmallInt
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
   coin_entries        coin_entries[]
-  users               users          @relation(fields: [created_by, creator_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+  users               users             @relation(fields: [created_by, creator_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
   purchases           purchases[]
 }
 
@@ -137,6 +138,7 @@ model reward_grants {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model shops {
+  shop_coin_rates      shop_coin_rates[]
   shop_id              BigInt            @id @default(autoincrement())
   owner_id             BigInt
   owner_role           String            @default("SELLER") @db.VarChar(16)
@@ -205,4 +207,34 @@ model shop_categories {
 
   @@id([shop_id, category_id])
   @@index([category_id, shop_id], map: "ix_shop_categories_category")
+}
+
+/// Global non-overlapping half-open rate periods; SQL migration enforces overlap checks.
+model coin_rate_periods {
+  period_id       BigInt            @id @default(autoincrement())
+  starts_at       DateTime          @unique @db.Timestamptz(6)
+  ends_at         DateTime          @db.Timestamptz(6)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  shop_coin_rates shop_coin_rates[]
+}
+
+/// Frozen per-shop rate and calculation inputs. SQL migration enforces checks.
+model shop_coin_rates {
+  shop_coin_rate_id      BigInt             @id @default(autoincrement())
+  period_id              BigInt
+  shop_id                BigInt
+  rule_id                BigInt
+  new_customer_coins     Int                @db.SmallInt
+  repeat_customer_coins  Int                @db.SmallInt
+  sales_total_snapshot   Decimal            @db.Decimal(14, 2)
+  sales_window_starts_at DateTime           @db.Timestamptz(6)
+  sales_window_ends_at   DateTime           @db.Timestamptz(6)
+  created_at             DateTime           @default(now()) @db.Timestamptz(6)
+  coin_rate_periods      coin_rate_periods  @relation(fields: [period_id], references: [period_id], onDelete: NoAction, onUpdate: NoAction)
+  shops                  shops              @relation(fields: [shop_id], references: [shop_id], onDelete: NoAction, onUpdate: NoAction)
+  coin_rule_versions     coin_rule_versions @relation(fields: [rule_id], references: [rule_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([shop_id, period_id])
+  @@index([period_id])
+  @@index([rule_id])
 }

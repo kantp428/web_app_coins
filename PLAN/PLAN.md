@@ -19,7 +19,7 @@
 | F03     | PARTIAL: สมัครร้านสร้าง PENDING; CRUD/approval/search ยังไม่มี | D3                     | I               | F02                   |
 | F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview      | D3                     | A               | F01/F02/F03           |
 | F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview    | D3                     | B               | F01/F02/F03           |
-| F06     | TODO                                                           | D4                     | I               | F02/F03               |
+| F06     | PARTIAL: rate period schema migrated; API/calculation TODO     | D4                     | I               | F02/F03               |
 | F07     | TODO                                                           | D4–5                   | AI              | F03/F06               |
 | F08     | TODO                                                           | D5                     | I               | F06                   |
 | F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม            | D5                     | A               | F07/F08               |
@@ -228,3 +228,20 @@
 - ตรวจผ่าน: API tests24 รวม invalidวัน/ซ้ำ/เวลา/timezone และ overnight; API lint/build, web lint/build, Prettier write/check
 - Browser: เลือกทุกวันครบ7, ยกเลิกครบ, เลือกจันทร์+ศุกร์ได้; กรอก18:00–02:00แสดงปิดวันถัดไป; viewport360ไม่มี horizontal overflow. พบ native time12hแคบบนมือถือจึงเปลี่ยนเป็น explicit24h text และทดสอบค่าทั้งสองผ่าน
 - ค้าง full HTTP/browser successful registration และ legacy-read/backfill acceptance; ทำต่อ E2E + owner CRUD ตาม dependencies ไม่ปิด F03/F05 จากงานนี้
+
+### 2026-10-12 Asia/Bangkok — Review: Coins ต่อร้าน/วัน
+
+- อ่าน schema/CoreIdea/Integration เพื่ออธิบาย coin_rule_versions (กติกา), purchases (ร้าน/ยอดขาย/เวลา), coin_entries (แต้มที่ให้จริง) และ monthly_periods (รอบเดือน); ไม่มีตารางกำหนด Coins คงที่ต่อร้านต่อวัน
+- ไม่แก้ schema/API/code หรือเปลี่ยน Flag; F06/F08 ยังต้อง implement ตาม plan. ยอดรายวันต้องเลือกวัน awarded_at หรือ confirmed_at ตามนิยามรายงาน ใช้ Asia/Bangkok และพิจารณา reversed_at/refund
+- ทำต่อถ้าต้องการ daily shop override ต้องล็อก priority/ช่วงเวลาทับซ้อน/ลูกค้าใหม่หรือซ้ำใน decisions ก่อนเพิ่ม table; รอบนี้ตรวจเอกสารเท่านั้น Prettier write/check PLAN ผ่าน
+
+### 2026-10-12 Asia/Bangkok — Review: เงินในบัญชี
+
+- ตรวจ schema และ migration: wallets แยก CASH/BASE/REWARD, money_entries เก็บ signed_amount; v_wallet_balances ให้ available_balance โดย REWARD ใช้สิทธิที่ยังไม่หมดอายุผ่าน v_main_quest_grant_balances
+- balance/help_balance ไม่ใช่ column จริง; ชื่อ response ต้องตกลง mapping โดยแยกเงินลูกค้า/สิทธิพื้นฐาน/รางวัลตาม Integration. ไม่แก้ schema/API หรือสถานะ Feature; ตรวจเอกสารเท่านั้น ไม่รัน tests. งานถัดไปเชื่อม wallet API กับ ledger/view ตาม contract
+
+### 2026-10-12 Asia/Bangkok — F06/F08: Coin rate period storage
+
+- เพิ่ม coin_rate_periods (global half-open timestamptz windows, unique start, GiST exclusion กันทับซ้อน) และ shop_coin_rates (unique shop/period, FK shop/rule/period, Coins1–10, decimal sales snapshot/window); migration 20261012005000_coin_rate_periods apply DB สำเร็จ ไม่มีข้อมูลเดิมเปลี่ยน
+- แก้ schema.prisma, migration, prisma/test-coin-rates.mjs, decisions/contract/Postman description. Prisma format/validate/generate และ API build ผ่าน; isolated clean schema test พร้อม parent stubs ผ่าน adjacent/overlap/invalid window/duplicate/FK/Coin bounds/negative sales แล้ว rollback ไม่สร้าง QA data ค้าง; ไม่ได้ run full clean DB seed
+- F06 เป็น PARTIAL เฉพาะ schema; F08 ยัง TODO. ยังไม่มี endpoint/scheduler/rate rows หรือ ledger linkage. เวลา06/18และนิยามลูกค้าใหม่/ซ้ำยังต้องล็อกก่อน implement rate generation/award. ขั้นต่อไปผูก transaction กับเรตและทดสอบ concurrency ตาม F08; Prettier write/check ไฟล์ที่รองรับผ่าน (.prisma ใช้ prisma format, SQL ไม่มี formatter ที่ติดตั้ง)

@@ -1,7 +1,8 @@
 {
   "info": {
     "name": "THAI Please",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Coin rate schema 2026-10-12: shared coin_rate_periods + per-shop shop_coin_rates added. Storage only; no rate endpoints or changed request bodies. F06/F08 generation and award linkage pending."
   },
   "variable": [
     {
