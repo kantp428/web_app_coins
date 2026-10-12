@@ -33,6 +33,11 @@ export class WalletsController {
     return this.wallets.resetHelp(auth);
   }
 
+  @Post('wallets/help/reset-daily')
+  resetDaily(@Headers('authorization') auth?: string) {
+    return this.wallets.resetDailyHelp(auth);
+  }
+
   @Get('wallets/history')
   @Header('Cache-Control', 'no-store')
   history(@Headers('authorization') auth?: string) {

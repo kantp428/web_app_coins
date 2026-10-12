@@ -941,13 +941,32 @@
       "item": [
         {
           "name": "Customer wallet summary",
+          "description": "Returns server-calculated CASH balance, THB 200 daily help remaining and THB 1,000 monthly help remaining using Asia/Bangkok boundaries.",
           "request": {
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": "{{baseUrl}}/wallets/me"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Daily and monthly help are server-provided', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.helpDailyLimit).to.eql('200.00');",
+                  "  pm.expect(Number(body.helpDailyRemaining)).to.be.at.most(200);",
+                  "  pm.expect(Number(body.helpDailyRemaining)).to.be.at.most(Number(body.help));",
+                  "  pm.expect(body.helpMonthlyLimit).to.eql('1000.00');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Customer top-up",
@@ -963,7 +982,19 @@
           }
         },
         {
+          "name": "Reset customer daily help (test)",
+          "description": "Non-production only. Resets today's THB 200 usage counter without changing the monthly help balance.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/wallets/help/reset-daily"
+          }
+        },
+        {
           "name": "Reset customer help (test)",
+          "description": "Non-production only. Restores the current month's help balance to THB 1,000.",
           "request": {
             "method": "POST",
             "header": [

@@ -22,6 +22,8 @@ import { CustomerTopUp } from "@/components/wallet/customer-top-up";
 type Summary = {
   balance: string;
   help: string | null;
+  helpDailyRemaining: string | null;
+  helpDailyLimit: string | null;
   helpMonthlyLimit: string | null;
   month: string;
 };
@@ -63,6 +65,13 @@ export function LiveWallet({
   const [sellerRequests, setSellerRequests] = useState<RequestData[]>([]);
   const [pending, setPending] = useState(false);
   const router = useRouter();
+  const formatMoney = (value: string | null | undefined) =>
+    value == null
+      ? "—"
+      : Number(value).toLocaleString("th-TH", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
   const load = useCallback(async () => {
     try {
       if (section === "history")
@@ -221,7 +230,7 @@ export function LiveWallet({
                   size={192}
                   level="M"
                   marginSize={1}
-                  title={`QR รับเงิน ${payment.amount} บาท`}
+                  title={`รับเงิน ${payment.amount} บาท`}
                 />
               </div>
               <p className="text-2xl font-semibold">฿{payment.amount}</p>
@@ -298,21 +307,37 @@ export function LiveWallet({
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-primary-foreground/20 pt-4">
             <div>
               <p className="text-xs opacity-60">
-                {role === "CUSTOMER" ? "วงเงินช่วยจ่ายพื้นฐาน" : "สถานะกระเป๋า"}
+                {role === "CUSTOMER"
+                  ? "ไทยช่วยไทยคงเหลือวันนี้"
+                  : "สถานะกระเป๋า"}
               </p>
               <p className="mt-1 font-medium">
                 {role === "CUSTOMER"
-                  ? `฿${summary?.help ?? "—"}`
+                  ? `฿${formatMoney(summary?.helpDailyRemaining)}`
                   : "พร้อมรับเงิน"}
               </p>
+              {role === "CUSTOMER" && (
+                <p className="mt-1 text-xs opacity-60">
+                  จาก ฿{formatMoney(summary?.helpDailyLimit)} ต่อวัน
+                </p>
+              )}
             </div>
             <div>
               <p className="text-xs opacity-60">
-                {role === "CUSTOMER" ? "วงเงินต่อเดือน" : "ประเภทยอดเงิน"}
+                {role === "CUSTOMER"
+                  ? "เงินช่วยเหลือคงเหลือเดือนนี้"
+                  : "ประเภทยอดเงิน"}
               </p>
               <p className="mt-1 font-medium">
-                {role === "CUSTOMER" ? "฿1,000.00" : "ยอดขายสุทธิ"}
+                {role === "CUSTOMER"
+                  ? `฿${formatMoney(summary?.help)}`
+                  : "ยอดขายสุทธิ"}
               </p>
+              {role === "CUSTOMER" && (
+                <p className="mt-1 text-xs opacity-60">
+                  จาก ฿{formatMoney(summary?.helpMonthlyLimit)} ต่อเดือน
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

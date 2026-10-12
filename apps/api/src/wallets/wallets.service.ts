@@ -11,6 +11,7 @@ import { AuthService } from '../auth/auth.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const HELP_MONTHLY_CENTS = 100_000;
+const HELP_DAILY_CENTS = 20_000;
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -51,6 +52,25 @@ export function bangkokMonthRange(now = new Date()) {
     month,
     startsAt: new Date(`${month}T00:00:00+07:00`),
     endsAt: new Date(`${nextMonthKey}T00:00:00+07:00`),
+  };
+}
+
+export function bangkokDayRange(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const value = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  const day = `${value.year}-${value.month}-${value.day}`;
+  const startsAt = new Date(`${day}T00:00:00+07:00`);
+  return {
+    day,
+    startsAt,
+    endsAt: new Date(startsAt.getTime() + 24 * 60 * 60 * 1000),
   };
 }
 
@@ -142,18 +162,52 @@ export class WalletsService {
     return this.balance(tx, walletId, bangkokMonthRange());
   }
 
+  private async currentDailyHelpRemaining(
+    tx: Prisma.TransactionClient,
+    walletId: bigint,
+  ) {
+    const range = bangkokDayRange();
+    const rows = await tx.$queryRaw<{ cents: bigint }[]>`
+      SELECT COALESCE(ROUND(-SUM(signed_amount) * 100), 0)::bigint AS cents
+      FROM money_entries
+      WHERE wallet_id = ${walletId}
+        AND wallet_type = 'BASE'
+        AND entry_type = 'PAYMENT_DEBIT'
+        AND created_at >= ${range.startsAt}
+        AND created_at < ${range.endsAt}
+        AND entry_id > COALESCE((
+          SELECT MAX(entry_id)
+          FROM money_entries
+          WHERE wallet_id = ${walletId}
+            AND idempotency_key LIKE 'help-daily-reset:%'
+            AND created_at >= ${range.startsAt}
+            AND created_at < ${range.endsAt}
+        ), 0)`;
+    const used = Number(rows[0]?.cents ?? 0n);
+    return Math.max(0, HELP_DAILY_CENTS - used);
+  }
+
   async summary(authorization?: string) {
     const user = await this.user(authorization);
     if (!['CUSTOMER', 'SELLER'].includes(user.role))
       throw new ForbiddenException('บัญชีนี้ไม่มีกระเป๋าเงิน');
     return this.db.$transaction(async (tx) => {
       const wallets = await this.ensureWallets(tx, user);
+      const monthlyHelp = wallets.base
+        ? await this.currentHelpBalance(tx, wallets.base.wallet_id)
+        : null;
+      const dailyHelp = wallets.base
+        ? Math.min(
+            monthlyHelp ?? 0,
+            await this.currentDailyHelpRemaining(tx, wallets.base.wallet_id),
+          )
+        : null;
       return {
         role: user.role,
         balance: money(await this.balance(tx, wallets.cash.wallet_id)),
-        help: wallets.base
-          ? money(await this.currentHelpBalance(tx, wallets.base.wallet_id))
-          : null,
+        help: monthlyHelp === null ? null : money(monthlyHelp),
+        helpDailyRemaining: dailyHelp === null ? null : money(dailyHelp),
+        helpDailyLimit: user.role === 'CUSTOMER' ? '200.00' : null,
         helpMonthlyLimit: user.role === 'CUSTOMER' ? '1000.00' : null,
         month: bangkokMonth(),
         testActionsEnabled: this.testActionsEnabled,
@@ -212,6 +266,41 @@ export class WalletsService {
               current < HELP_MONTHLY_CENTS ? 'BASE_ALLOCATION' : 'EXPIRY',
           },
         });
+    });
+    return this.summary(authorization);
+  }
+
+  async resetDailyHelp(authorization?: string) {
+    if (!this.testActionsEnabled)
+      throw new ForbiddenException('ปิดการรีเซ็ตวงเงินทดสอบ');
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    await this.db.$transaction(async (tx) => {
+      const { base } = await this.ensureWallets(tx, user);
+      if (!base) return;
+      await tx.$queryRaw`SELECT wallet_id FROM wallets WHERE wallet_id = ${base.wallet_id} FOR UPDATE`;
+      const resetId = randomUUID();
+      await tx.money_entries.createMany({
+        data: [
+          {
+            idempotency_key: `help-daily-reset:${resetId}`,
+            wallet_id: base.wallet_id,
+            user_id: BigInt(user.id),
+            wallet_type: 'BASE',
+            signed_amount: '0.01',
+            entry_type: 'BASE_ALLOCATION',
+          },
+          {
+            idempotency_key: `help-daily-reset-offset:${resetId}`,
+            wallet_id: base.wallet_id,
+            user_id: BigInt(user.id),
+            wallet_type: 'BASE',
+            signed_amount: '-0.01',
+            entry_type: 'EXPIRY',
+          },
+        ],
+      });
     });
     return this.summary(authorization);
   }
@@ -416,8 +505,15 @@ export class WalletsService {
         tx,
         wallets.base.wallet_id,
       );
+      const dailyHelp = await this.currentDailyHelpRemaining(
+        tx,
+        wallets.base.wallet_id,
+      );
       const availableCash = await this.balance(tx, wallets.cash.wallet_id);
-      const breakdown = paymentBreakdown(total, availableHelp);
+      const breakdown = paymentBreakdown(
+        total,
+        Math.min(availableHelp, dailyHelp),
+      );
       return {
         id,
         status,
@@ -461,7 +557,14 @@ export class WalletsService {
             tx,
             customerWallets.base.wallet_id,
           );
-          const { help, cash } = paymentBreakdown(total, availableHelp);
+          const dailyHelp = await this.currentDailyHelpRemaining(
+            tx,
+            customerWallets.base.wallet_id,
+          );
+          const { help, cash } = paymentBreakdown(
+            total,
+            Math.min(availableHelp, dailyHelp),
+          );
           if ((await this.balance(tx, customerWallets.cash.wallet_id)) < cash)
             throw new ConflictException('ยอดเงินใน wallet ไม่เพียงพอ');
           const shop = await tx.shops.findUniqueOrThrow({

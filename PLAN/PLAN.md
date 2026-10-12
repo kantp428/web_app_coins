@@ -15,13 +15,13 @@
 | ------- | ---------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
 | F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                | D1                     | I               | —                     |
 | F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                             | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth + wallet/monthly help/top-up/history จริง; Coins ยังไม่มี      | D2                     | I               | F01                   |
+| F02     | PARTIAL: Auth + wallet help รายวัน/เดือน/top-up/history จริง; Coins ยังไม่มี | D2                     | I               | F01                   |
 | F03     | PARTIAL: สมัครร้านสร้าง PENDING; CRUD/approval/search ยังไม่มี               | D3                     | I               | F02                   |
 | F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                    | D3                     | A               | F01/F02/F03           |
 | F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview                  | D3                     | B               | F01/F02/F03           |
 | F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO    | D4                     | I               | F02/F03               |
 | F07     | TODO                                                                         | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: QR lifecycle + help 60%/cash fallback + Purchase; Coins/refund ค้าง | D5                     | I               | F06                   |
+| F08     | PARTIAL: QR + help 60%/เพดานวันละ200/cash fallback; Coins/refund ค้าง        | D5                     | I               | F06                   |
 | F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                          | D5                     | A               | F07/F08               |
 | F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO             | D5                     | B               | F06/F08               |
 | F11     | DB views มีแล้ว; API TODO                                                    | D6                     | I               | F08                   |
@@ -33,36 +33,36 @@
 
 สถานะรอบใหม่เริ่มที่ TODO; อัปเดตเป็น DOING → PR → DONE ตามผลจริง หรือ BLOCKED พร้อมลิงก์ issue. ไม่ยกสถานะ UI Preview เป็น DONE ของ Feature.
 
-| วัน          | Daily Flag                  | Feature     | สถานะ                                                                             | Dependency                                                                         | Issue / PR |
-| ------------ | --------------------------- | ----------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
-| D1 / 7 ต.ค.  | [`R1-D1-A`](APP_DEV_A.md)   | F04/F09     | DOING                                                                             | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-B`](APP_DEV_B.md)   | F05/F10/F12 | DOING                                                                             | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I                                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | TODO                                                                              | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                   | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-I`](INTEGRATION.md) | F00/F01     | DOING                                                                             | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้                     | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-A`](APP_DEV_A.md)   | F04         | DOING                                                                             | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode                         | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                             | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                       | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                              | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                 | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | DOING                                                                             | F00/F01; ยอดมาจาก ledger/DB จริง                                                   | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | TODO                                                                              | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                               | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                             | F03; owner isolation, validation/error และสถานะ pending/approved                   | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                              | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE       | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                             | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                    | —          |
-| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                              | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                   | —          |
-| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government rules API/UI; seller transactions/rules TODO                  | D5                                                                                 | B          | F06/F08 |
-| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                              | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                     | —          |
-| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: Government rules API/UI + period schema; preview/generation TODO         | D4                                                                                 | I          | F02/F03 |
-| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | TODO                                                                              | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                            | —          |
-| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md)   | F10/F12     | TODO                                                                              | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน             | —          |
-| D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md)     | F07/F13     | TODO                                                                              | F07/F09; รายงานผลจริงและข้อจำกัด                                                   | —          |
-| D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08         | PARTIAL: QR settle-once + 60/40 wallet ledger; Coins/refund/concurrency test ค้าง | F06; concurrent, insufficient funds/budget และ month boundary tests                | —          |
-| D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md)   | F13         | TODO                                                                              | F04/F09; browser evidence และผลทดสอบจริง                                           | —          |
-| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md)   | F12/F13     | TODO                                                                              | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล                                | —          |
-| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md)     | F13         | TODO                                                                              | F07/F09; แนบ cases ที่ผ่าน/ไม่ผ่าน                                                 | —          |
-| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13     | TODO                                                                              | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | —          |
-| D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md)   | F14         | TODO                                                                              | F13 และ blocker ที่เกี่ยวปิดแล้ว                                                   | —          |
-| D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md)   | F14         | TODO                                                                              | F12/F13; ไม่มี KPI mock ใน demo integrated                                         | —          |
-| D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md)     | F14         | TODO                                                                              | F13; grounded response ตรวจซ้ำ                                                     | —          |
-| D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14         | TODO                                                                              | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน                             | —          |
+| วัน          | Daily Flag                  | Feature     | สถานะ                                                                     | Dependency                                                                         | Issue / PR |
+| ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| D1 / 7 ต.ค.  | [`R1-D1-A`](APP_DEV_A.md)   | F04/F09     | DOING                                                                     | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ                | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-B`](APP_DEV_B.md)   | F05/F10/F12 | DOING                                                                     | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I                                | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | TODO                                                                      | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                   | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-I`](INTEGRATION.md) | F00/F01     | DOING                                                                     | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้                     | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-A`](APP_DEV_A.md)   | F04         | DOING                                                                     | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode                         | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                       | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                 | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | PARTIAL: wallet ส่งยอดช่วยเหลือคงเหลือรายวัน/เดือนจาก ledger จริง         | F00/F01; Coins read ยังไม่ครบ                                                      | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | TODO                                                                      | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                               | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F03; owner isolation, validation/error และสถานะ pending/approved                   | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE       | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                     | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                    | —          |
+| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                      | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                   | —          |
+| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                                                                                 | B          | F06/F08 |
+| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                     | —          |
+| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                                                                                 | I          | F02/F03 |
+| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | TODO                                                                      | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                            | —          |
+| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md)   | F10/F12     | TODO                                                                      | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน             | —          |
+| D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md)     | F07/F13     | TODO                                                                      | F07/F09; รายงานผลจริงและข้อจำกัด                                                   | —          |
+| D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08         | PARTIAL: QR settle-once + 60%/เพดานช่วยวันละ200; Coins/refund test ค้าง   | F06; daily limit มี unit test boundary แต่ยังขาด DB E2E/concurrency regression     | —          |
+| D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md)   | F13         | TODO                                                                      | F04/F09; browser evidence และผลทดสอบจริง                                           | —          |
+| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md)   | F12/F13     | TODO                                                                      | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล                                | —          |
+| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md)     | F13         | TODO                                                                      | F07/F09; แนบ cases ที่ผ่าน/ไม่ผ่าน                                                 | —          |
+| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13     | TODO                                                                      | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | —          |
+| D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md)   | F14         | TODO                                                                      | F13 และ blocker ที่เกี่ยวปิดแล้ว                                                   | —          |
+| D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md)   | F14         | TODO                                                                      | F12/F13; ไม่มี KPI mock ใน demo integrated                                         | —          |
+| D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md)     | F14         | TODO                                                                      | F13; grounded response ตรวจซ้ำ                                                     | —          |
+| D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14         | TODO                                                                      | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน                             | —          |
 
 อัปเดตตามงานใน working tree ณ **11 ตุลาคม 2569 (Asia/Bangkok)**; งานที่เริ่มทำระบุ DOING และยังไม่มี Daily Flag ที่ปิด DONE หรือเข้า PR จากหลักฐานรอบนี้. งาน Auth/Registration ทำได้แล้วไม่ได้แปลว่า F02/F03 ผ่านครบ เพราะ wallet/Coins, store CRUD/approval และ ownership acceptance ยังเหลือ. Release F14 ยังต้องรอ F13 และ gates ตาม [Integration](INTEGRATION.md).
 
@@ -337,3 +337,25 @@
 - แยก service ที่เคยฝังใน controller ครบ5 domain: categories, geocoding, stores, coin-rules และ wallets เป็น `*.service.ts`; controller เหลือเฉพาะ HTTP decorators/request mapping และ AppModule import provider จาก service file. Auth/App แยก service อยู่แล้วจึงไม่เปลี่ยน
 - ย้าย unit spec ที่ทดสอบ service/helper เป็น `*.service.spec.ts`. ไม่มี route, request/response, DB schema หรือ business rule เปลี่ยน จึงไม่แก้ API contract/Postman และไม่เปลี่ยนสถานะ Feature
 - ตรวจ API Vitest40/40, oxlint type-aware และ Nest build ผ่าน; Prettier write/check source ที่แก้ผ่าน. Next: refactor Auth/Categories/Stores/CoinRules ให้ใช้ shared PrismaService แทนสร้าง PrismaClient ราย serviceในงาน maintenance ถัดไป
+
+### 2026-10-12 18:42 Asia/Bangkok — R1-D2-I/F02 + R1-D5-I/F08 + F04/F09: Thai Chuai Thai daily/monthly remaining
+
+- CUSTOMER `/wallet` เปลี่ยนการ์ดจาก “วงเงินช่วยจ่ายพื้นฐาน/วงเงินต่อเดือน” เป็นยอดไทยช่วยไทยคงเหลือวันนี้จากเพดาน 200 บาท และยอดช่วยเหลือคงเหลือเดือนนี้จากวงเงิน 1,000 บาท โดยใช้ค่าจาก `GET /wallets/me`
+- Backend นับ BASE `PAYMENT_DEBIT` ตามวัน Asia/Bangkok แล้วจำกัด preview/pay ไม่เกินยอดรายวันที่เหลือและยอดเดือนที่เหลือ; ส่วนขาดยัง fallback ไป CASH ตามกติกาเดิม. อัปเดต decisions, API contract และ Postman wallet summary แล้ว; ไม่มี schema/migration
+- ตรวจผ่าน: API Vitest 41/41, API lint/build, web lint/build 31 routes, Prettier write/check และ `git diff --check`. ยังไม่ได้ทำ browser QA หรือ DB E2E หลายรายการในวันเดียว/ข้ามเที่ยงคืน. Next: ทดสอบ live payment สะสมถึง 200 บาทและวันถัดไปรีเซ็ต พร้อม concurrent regression ก่อนปิด F08
+
+### 2026-10-12 19:06 Asia/Bangkok — R1-D2-I/F02 + F04: test daily/monthly help reset controls
+
+- เพิ่มปุ่ม `/wallet/top-up` สำหรับรีเซ็ตสิทธิรายวันเป็น 200 บาทและรีเซ็ตยอดช่วยเหลือรายเดือนเป็น 1,000 บาท โดยแสดงเฉพาะ non-production ที่ `ENABLE_TEST_WALLET_ACTIONS=true`; Sonner แจ้งผลและปิดปุ่มระหว่างรอ
+- เพิ่ม `POST /wallets/help/reset-daily` ผ่าน web BFF/API และ Postman. รีเซ็ตรายวันใช้ BASE marker คู่บวก/ลบสุทธิศูนย์เพื่อคงยอดเดือนและ audit history แล้วนับเฉพาะ payment debit หลัง marker; reset เดือนใช้ endpoint เดิม. อัปเดต decisions/contract; ไม่มี schema/migration
+- ตรวจผ่าน: API Vitest 41/41, API lint/build, web lint/build 31 routes, Prettier write/check และ `git diff --check`. ยังไม่ได้กดปุ่มกับ DB/browser จริง. Next: เปิด test actions แล้วตรวจว่าปุ่มรายวันคืนเฉพาะ daily remaining ส่วน monthly remaining ไม่เปลี่ยน และปุ่มรายเดือนคืนยอด 1,000 บาท
+
+### 2026-10-12 19:11 Asia/Bangkok — F02/F04 reset controls visibility configuration
+
+- ตรวจพบ `apps/api/.env` ไม่มี `ENABLE_TEST_WALLET_ACTIONS`; เพิ่มค่า `true` ใน local env และ restart เฉพาะ API dev processes แล้ว. ยืนยันพอร์ต 3000 กลับมา listen และค่าคอนฟิกเป็น true; `.env` เป็น local/ignored และไม่มี secret ถูกบันทึกใน plan
+- ไม่แก้ application source เพิ่มและไม่รัน build/test ซ้ำ เพราะเป็นการเปิด feature flag ที่ผ่าน checks ใน entry ก่อนหน้า. Next: refresh `/wallet/top-up`; หากหน้าเปิดค้างอยู่ให้ hard refresh แล้วกดทดสอบ reset รายวัน/รายเดือนกับยอดจริง
+
+### 2026-10-12 19:13 Asia/Bangkok — local API port conflict cleanup
+
+- วินิจฉัย `EADDRINUSE :3000`: API background ที่เริ่มเวลา 19:11 ยัง listen อยู่ ขณะที่ terminal ผู้ใช้เริ่ม Nest watch อีกชุดเวลา 19:12. ปิดเฉพาะ process tree ชุด background และยืนยันพอร์ต 3000 ว่าง; คง Nest watcher ของ terminal ผู้ใช้ไว้
+- ไม่แก้ source/config และไม่รัน build/testเพราะเป็น local process cleanup. Next: หยุด watcher ที่ error ด้วย Ctrl+C แล้วรัน API จาก terminal เดิมอีกครั้งเพียงหนึ่งชุด

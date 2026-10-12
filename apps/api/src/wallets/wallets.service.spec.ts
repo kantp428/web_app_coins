@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   amountToCents,
+  bangkokDayRange,
   bangkokMonth,
   bangkokMonthRange,
   paymentBreakdown,
@@ -25,6 +26,19 @@ describe('wallet money rules', () => {
       month: '2026-10-01',
       startsAt: new Date('2026-09-30T17:00:00.000Z'),
       endsAt: new Date('2026-10-31T17:00:00.000Z'),
+    });
+  });
+
+  it('uses Bangkok calendar days including the UTC boundary', () => {
+    expect(bangkokDayRange(new Date('2026-10-11T16:59:59.999Z'))).toEqual({
+      day: '2026-10-11',
+      startsAt: new Date('2026-10-10T17:00:00.000Z'),
+      endsAt: new Date('2026-10-11T17:00:00.000Z'),
+    });
+    expect(bangkokDayRange(new Date('2026-10-11T17:00:00.000Z'))).toEqual({
+      day: '2026-10-12',
+      startsAt: new Date('2026-10-11T17:00:00.000Z'),
+      endsAt: new Date('2026-10-12T17:00:00.000Z'),
     });
   });
 

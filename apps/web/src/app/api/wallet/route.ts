@@ -11,6 +11,7 @@ const targets: Record<
   request: { method: "GET", path: (id) => `/payment-requests/${id}` },
   topup: { method: "POST", path: () => "/wallets/top-up" },
   reset: { method: "POST", path: () => "/wallets/help/reset" },
+  resetDaily: { method: "POST", path: () => "/wallets/help/reset-daily" },
   create: { method: "POST", path: () => "/seller/payment-requests" },
   requests: { method: "GET", path: () => "/seller/payment-requests" },
   cancel: {

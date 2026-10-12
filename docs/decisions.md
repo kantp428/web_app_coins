@@ -107,3 +107,13 @@ User defines two displayed balances: `balance` is the CASH ledger balance for CU
 Every seller payment request contains the decimal THB amount, an opaque UUID token, an owned shop, and a 15-minute expiry. The seeded demo seller therefore has an approved demo shop. It has no purchaser until a CUSTOMER opens/scans the token. A seller can list their requests and cancel a still-pending request. Expired requests are reported as EXPIRED; cancelled or expired requests cannot settle. Successful payment atomically changes PENDING to PAID, records the customer, creates the linked SUCCEEDED purchase, and serializes the request/wallet rows so the same request cannot settle twice under concurrent scans.
 
 The target government contribution is 60% of the purchase, rounded half-up to satang. Actual help is the lesser of that target and the customer's current-month available help; customer CASH pays the remaining amount. Therefore zero or insufficient help never blocks an otherwise affordable purchase—the shortfall falls back to customer balance. Reject only when customer CASH cannot cover its computed share. Credit seller CASH with 100% and append immutable linked ledger entries. History groups the two customer debits into one payment item with help/customer breakdown. QR rendering/camera decoding is presentation only; the API UUID is authoritative. Coin award and refunds remain outside this slice.
+
+## 2026-10-12 — Thai Chuai Thai daily help limit
+
+User adds a THB 200 daily help ceiling while retaining the THB 1,000 monthly allocation. A day follows the Asia/Bangkok calendar; unused daily capacity does not raise a later day's ceiling. Preview and pay use the lesser of the remaining monthly help and remaining daily help, then move any subsidy shortfall to customer CASH under the existing fallback rule.
+
+`GET /wallets/me` is authoritative for both daily and monthly limits and remaining amounts as decimal strings. The frontend displays these server values and does not derive financial eligibility from history.
+
+## 2026-10-12 — Test-only daily and monthly help resets
+
+When non-production test wallet actions are enabled, CUSTOMER may reset the current Asia/Bangkok day's THB 200 usage counter independently from the monthly balance, or restore the current month's balance to THB 1,000. Neither action deletes or rewrites payment history. A daily reset appends an auditable, net-zero BASE allocation/expiry marker pair; subsequent daily usage counts only payment debits after the latest marker while the monthly ledger balance remains unchanged. Both actions remain forbidden in production or when `ENABLE_TEST_WALLET_ACTIONS` is not `true`.

@@ -25,7 +25,7 @@ export function CustomerTopUp() {
       .catch(() => undefined);
     return () => controller.abort();
   }, []);
-  async function submit(action: "topup" | "reset") {
+  async function submit(action: "topup" | "reset" | "resetDaily") {
     setPending(true);
     try {
       await api.post("/wallet", {
@@ -35,7 +35,11 @@ export function CustomerTopUp() {
           : {}),
       });
       toast.success(
-        action === "topup" ? "เติมเงินสำเร็จ" : "รีเซ็ตวงเงินช่วยจ่ายแล้ว",
+        {
+          topup: "เติมเงินสำเร็จ",
+          resetDaily: "รีเซ็ตวงเงินช่วยเหลือรายวันแล้ว",
+          reset: "รีเซ็ตวงเงินช่วยเหลือรายเดือนแล้ว",
+        }[action],
       );
       setAmount("");
     } catch (error) {
@@ -82,15 +86,27 @@ export function CustomerTopUp() {
             </Button>
           </form>
           {testActionsEnabled && (
-            <Button
-              variant="outline"
-              className="w-full"
-              disabled={pending}
-              onClick={() => void submit("reset")}
-            >
-              <RefreshCw className="size-4" /> รีเซ็ตวงเงินช่วยจ่ายเป็น ฿1,000
-              (สำหรับทดสอบ)
-            </Button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={pending}
+                onClick={() => void submit("resetDaily")}
+              >
+                <RefreshCw className="size-4" /> รีเซ็ตรายวันเป็น ฿200
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={pending}
+                onClick={() => void submit("reset")}
+              >
+                <RefreshCw className="size-4" /> รีเซ็ตรายเดือนเป็น ฿1,000
+              </Button>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                ปุ่มรีเซ็ตใช้สำหรับทดสอบระบบเท่านั้น
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
