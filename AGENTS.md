@@ -7,8 +7,13 @@ Use the relevant project skill in `.agent/skills/` when working in that area:
 - `web-frontend/SKILL.md` for Next.js pages, forms, and UI integration.
 - `nest-api/SKILL.md` for NestJS endpoints, auth, and recommendations.
 - `prisma-data/SKILL.md` for schema, migrations, seed, and money/Coins rules.
+- `fastapi-ai/SKILL.md` for the standalone FastAPI chatbot under `ai-service/`.
 
 Keep the API contract in `docs/api-contract.md` aligned across web, API, and Postman. Backend/API changes require the matching `apps/api/postman/THAI-Please.postman_collection.json` change under `PLAN/PLAN.md`.
+
+## Service usage documentation
+
+When a service has its own README, keep installation, startup/shutdown, configuration, API testing, and automated check commands there and update it in the same task when usage changes. For `ai-service/`, use `ai-service/README.md`; do not duplicate its usage instructions in root `Test.md`. Use `Test.md` for shared testing guidance or services without their own README. Keep service documentation aligned with the API contract and Postman, and distinguish previously recorded checks from newly verified results.
 
 ## Automatic code formatting
 

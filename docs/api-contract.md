@@ -1,5 +1,19 @@
 # Authentication contract (F02)
 
+## Standalone AI service — Qwen3 4B connection (F07 preparation)
+
+Separate origin `http://127.0.0.1:8000` (`aiBaseUrl` in Postman); these routes do not belong to the NestJS business API. Local development only, no authentication yet. Requests are stateless; messages are sent to the configured Ollama model server without application-side conversation storage. Default model `qwen3:4b`, server `http://127.0.0.1:11434`, HTTP timeout 120 seconds/connect 5 seconds. Server-only OLLAMA_BASE_URL/OLLAMA_MODEL/OLLAMA_TIMEOUT_SECONDS configure the connection; load `.env` with Uvicorn `--env-file`. Retained history and authenticated integration remain pending in `docs/decisions.md`.
+
+- `GET /health`: 200 `{ "status": "ok", "service": "ai-service", "mode": "model" }`. App liveness only, not model readiness. Existing `/test` is a compatibility alias, hidden from OpenAPI.
+- `POST /chat`: JSON `{ "message": "สวัสดี" }`. Required strict string, trimmed before validating 1–2000 characters; unknown fields rejected. 200 `{ "reply": "<final assistant content>", "mode": "model", "model": "qwen3:4b" }`; model matches server configuration (`aiModel` in Postman). System prompt plus user message sent to Ollama `/api/chat` with `stream:false` and `think:false`; system prompt also requests `/no_think`. Return final `message.content`, never `message.thinking`; for templates emitting inline thinking, discard everything through the last `</think>` and reject unfinished `<think>` or an empty final answer with 502. No store IDs/Coins data, tools, Search or conversation ID implemented in this phase.
+- Provider failures use `{ "detail": "<message>" }`: 503 cannot connect to model server or server returns 404 (model/endpoint missing); 504 HTTP timeout; 502 other upstream non-success status or malformed/empty/incomplete assistant response. No raw upstream details or mock fallback returned.
+- Invalid/missing/blank/overlength/non-string message, malformed JSON or unknown fields: 422 FastAPI `{ "detail": [...] }` with error locations/types/messages. This separate service uses FastAPI validation responses rather than NestJS 400 errors.
+- `GET /docs`: 200 Swagger UI; `GET /openapi.json`: 200 generated schema.
+
+Run/test instructions: `ai-service/README.md`. Proposed reply + up-to-five genuine shop IDs workflow is discussion-only in `ai-service/DESIGN.md`; reconcile with the original `/recommendations` response before integration. F07 grounding/auth acceptance remains pending.
+
+## NestJS authentication
+
 POST /auth/login: JSON `{ "username": "0000000000000", "password": "...", "role": "CUSTOMER" }`. Roles: CUSTOMER, SELLER, GOVERNMENT. Customer username must contain exactly 13 ASCII digits; other usernames are 1–255 characters. Password 1–1024 characters.
 
 200: `{ "accessToken": "<JWT>", "expiresIn": 3600, "user": { "id": "1", "role": "CUSTOMER", "displayName": "..." } }`. 400 invalid input; 401 incorrect credentials, inactive account or role mismatch; 503 missing JWT configuration. IDs are strings. Login responses must not be cached.

@@ -1,5 +1,20 @@
 # UI prototype decisions
 
+## 2026-10-12 — Qwen3 4B connection and Service1 design scope
+
+- User selects Qwen3 4B and authorizes model connection now; full Service1 intent routing, recommendation retrieval, Tool Calling, Database Filtering and web Search remain design-only until discussed. The previous mock-only scope is superseded for chat generation.
+- User confirms Ollama on this machine. Use local Ollama native `/api/chat`, model `qwen3:4b`, configurable server URL/model/timeout. Install the selected runtime and fetch this model as part of the requested connection; actual inference verification requires the model server to be running. Report mocked transport checks separately from real-model results.
+- Current chat remains stateless and text-only. Send system and user messages, `stream: false`, `think: false` and Qwen's `/no_think` instruction; return the final assistant content only. Real inference exposed a template that puts thinking in content, so the adapter removes content through the last `</think>` and rejects unfinished thinking or an empty final answer. No mock fallback on provider failure. User content never selects server URL/model or executes a tool. No Search/DB tools or shop IDs are enabled in this connection phase.
+- Future user-facing recommendation result contains normal reply text plus at most five genuine shop IDs; frontend resolves IDs into cards. Do not expose model-written store cards, invented IDs or Coins. The proposed `reply`/`storeIds` envelope in `ai-service/DESIGN.md` is for discussion, not the implemented chat contract. Original recommendation response fields in the R1 role plan require reconciliation before F09 integration.
+- Deferred decisions: exact shop filters/ranking and eligibility, prepared-system-data source/API, tool contracts, related-topic Search scope/provider/source attribution, history retention and authenticated service boundary. Record them before implementation. Off-topic questions should receive a polite scope message; related external facts may use Search only after that tool is implemented.
+
+## 2026-10-12 — Standalone FastAPI chatbot scaffold
+
+- User requests an API-testable chatbot structure in `ai-service/` before detailed AI behavior. Add a separate Python 3.12+/FastAPI/Pydantic v2/Uvicorn service on loopback port 8000; NestJS remains the business API. Python dependencies are maintained separately from pnpm.
+- Initial `GET /health` and `POST /chat` are local development endpoints with explicit `mode: "mock"`. Chat accepts only a trimmed nonblank `message` of 1–2000 characters and echoes an acknowledgement. No provider, API key, database, conversation persistence, location collection or business recommendation is implemented.
+- Provider/model, conversation history/retention and the authenticated NestJS-to-AI boundary remain unresolved. The local mock does not accept identity/history fields or return shop/Coins claims. Decide and document these before integrating real recommendations or exposing the service beyond local development; F07 acceptance remains pending.
+- Keep prompts and the async reply adapter separate for later extension. No environment variables are needed for the mock; host/port are Uvicorn CLI options. Runtime requirements and a generated dependency lock accompany the service, with developer tooling separate. See `ai-service/README.md` and `.agent/skills/fastapi-ai/SKILL.md`.
+
 - User request on 2026-10-06 authorizes a mobile wallet UI for normal/customer and store/seller across apps/web, covering D1-A/F04 and D1-B/F05 shells with F09/F10 preview screens. No API integration, authentication, payment, or government role in this task.
 - All balances, sales, Coins, eligibility, map pins, AI replies, and approval statuses are explicitly illustrative fixtures. They do not establish business rules. Store form changes are local and reset on reload.
 - Use shadcn default neutral tokens. Customer and seller routes reuse a mobile shell; role links are preview navigation, not access control.

@@ -20,7 +20,7 @@
 | F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                 | D3                     | A               | F01/F02/F03           |
 | F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview               | D3                     | B               | F01/F02/F03           |
 | F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                     | I               | F02/F03               |
-| F07     | TODO                                                                      | D4–5                   | AI              | F03/F06               |
+| F07     | PARTIAL: Qwen3/Ollama live chat ผ่าน; retrieval/tools TODO                | D4–5                   | AI              | F03/F06               |
 | F08     | TODO                                                                      | D5                     | I               | F06                   |
 | F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                       | D5                     | A               | F07/F08               |
 | F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                     | B               | F06/F08               |
@@ -34,10 +34,10 @@
 สถานะรอบใหม่เริ่มที่ TODO; อัปเดตเป็น DOING → PR → DONE ตามผลจริง หรือ BLOCKED พร้อมลิงก์ issue. ไม่ยกสถานะ UI Preview เป็น DONE ของ Feature.
 
 | วัน          | Daily Flag                  | Feature     | สถานะ                                                                     | Dependency                                                                         | Issue / PR |
-| ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- | ------- |
 | D1 / 7 ต.ค.  | [`R1-D1-A`](APP_DEV_A.md)   | F04/F09     | DOING                                                                     | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ                | —          |
 | D1 / 7 ต.ค.  | [`R1-D1-B`](APP_DEV_B.md)   | F05/F10/F12 | DOING                                                                     | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I                                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | TODO                                                                      | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                   | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | DOING: Qwen3 adapter + Service1 design; candidate DTO pending             | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                   | —          |
 | D1 / 7 ต.ค.  | [`R1-D1-I`](INTEGRATION.md) | F00/F01     | DOING                                                                     | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้                     | —          |
 | D2 / 8 ต.ค.  | [`R1-D2-A`](APP_DEV_A.md)   | F04         | DOING                                                                     | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode                         | —          |
 | D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                       | —          |
@@ -283,3 +283,49 @@
 - เพิ่มshops.description nullableVARCHAR2000พร้อมnonemptycheck migration20261012007000_shop_description applyจริง;legacyNULLไม่backfill. RegisterSELLERบังคับtrim1–2000,textareaใต้ชื่อร้านพร้อมตัวอย่างเมนู;AuthService atomicnestedwrite และGET/storesส่งdescription:string|null. ไม่ได้เชื่อมmodel/recommendationในรอบนี้
 - ไฟล์schema/migration,auth.service+spec,stores.controller,register/page,lib/api,test-nearby-stores.mjs,contract/decisions/Postmanปรับ;invalidmissing/blank/over2000และtrimcoveredในAPItests36ผ่าน. CleanmigrationDBintegrationตรวจThai description roundtrip/legacyNULL/blankconstraintผ่านแล้วลบQA schema;Prismaformat/validate/generateผ่าน,API+weblint/buildผ่าน,Prettierwrite/checkผ่าน
 - BrowserRegisterSELLERเห็นtextareaใต้ชื่อร้าน,กรอกตัวอย่างภาษาไทยได้และmaxlength2000;ไม่ได้submitfullregistrationบนpublicDB. F03/F05ยังPARTIAL,F07ยังTODO;nextrecommendationcandidateส่งdescriptionเป็นuntrusteddataตามdecisions,ไม่ใช้เป็นmodelinstruction;owneredit/backfillตามCRUDงานถัดไป
+
+### 2026-10-12 16:19 Asia/Bangkok — Maintenance: สรุปหน้าที่ AI Dev
+
+- อ่าน AI_DEV.md, INTEGRATION.md, แผน A, CoreIdea, API contract และ decisions เพื่อสรุป F07/F13/F14, dependencies และ acceptance; แก้เฉพาะบันทึก PLAN/PLAN.md ไม่เปลี่ยนสถานะ Feature/Daily Flag จากการอ่านเอกสาร
+- ข้อมูลล่าสุด: discovery ใช้พิกัด/radius แทน area_code; description ร้านเป็น untrusted data; F06 generation/preview/rule service สำหรับ recommendation ยังต้องทำต่อ
+- ตรวจ: pnpm Prettier เรียกไม่ได้จาก PowerShell execution policy; ลอง pnpm.cmd write/check แล้วไม่คืนผล และไม่มี node_modules/Prettier ใน workspace จึงยังยืนยัน formatting ไม่ได้; ไม่รัน app tests/build เพราะสรุปเอกสารเท่านั้น ไม่มีการแก้ application code
+- ขั้นต่อไป: เริ่ม R1-D1-AI ล็อก recommendation DTO/provider/fallback และนโยบายไม่มีพิกัดร่วมกับ A/I; เตรียม retrieval/ranker tests แล้วเชื่อม F03/F06 เมื่อพร้อม
+
+### 2026-10-12 17:36 Asia/Bangkok — AI preparation / F07: FastAPI chatbot scaffold
+
+- งาน cross-cutting เตรียม AI ตามคำขอผู้ใช้ใน `ai-service/`; ไม่ตรง acceptance ของ Daily Flag recommendation เต็มชุด จึงคง Daily Flags เดิมและระบุ F07 PARTIAL เท่านั้น ไม่มี PR/review/CI gate ที่ปิดแล้ว
+- เพิ่ม [main.py](../ai-service/main.py) สำหรับ `GET /health`, `POST /chat`, `/docs`, `/openapi.json`; แยก schemas, async mock adapter และ prompt ที่ยังไม่ใช้งานจริง พร้อม runtime dependency lock, dev requirements, Python ignores, tests และ [คู่มือรัน](../ai-service/README.md)
+- ปรับ README stack, [contract](../docs/api-contract.md), [decisions](../docs/decisions.md#2026-10-12--standalone-fastapi-chatbot-scaffold), [FastAPI skill](../.agent/skills/fastapi-ai/SKILL.md) และ [Postman](../apps/api/postman/THAI-Please.postman_collection.json) หมวด AI service (local mock), ตัวแปร aiBaseUrl และ 10 requests พร้อม expected status/test scripts
+- ตรวจจริง: `.venv/Scripts/python.exe -m unittest discover -s tests -v` ผ่าน 7 tests (รวม 7 invalid-input subcases); `pip check` ผ่าน; Black write/check ผ่าน Python 5 ไฟล์; `python -X utf8 .../skill-creator/scripts/quick_validate.py .agent/skills/fastapi-ai` ผ่าน. Uvicorn จริงบน temporary loopback port รับทั้ง 10 requests จาก collection ได้ 200/422 ตามคาดและหยุด process แล้ว; ไม่ได้รัน Postman JavaScript runner
+- Formatting: pnpm --filter api exec prettier ค้าง/timeout ใน environment นี้; ใช้ Prettier 3.4.2 ตาม API package ติดตั้งแยกใน ignored ai-service/.tools แล้วเรียกผ่าน Node โดยตรง write/check Markdown/JSON ที่แก้ผ่านตาม config เดิม. Python ใช้ Black เพราะ Prettier ปัจจุบันไม่รองรับ .py. ไม่รัน web/NestJS build เพราะไม่แก้ runtime ของสองแอปนั้น
+- ข้อจำกัด/ขั้นต่อไป: mock acknowledgement แบบ stateless ยังไม่มี model/auth/history/ร้าน/Coins จริง; dependency TestClient แจ้ง deprecation ของ httpx แต่ tests ผ่าน. ตกลง provider/model, history retention และ authenticated NestJS boundary ใน decisions แล้วค่อยทำ retrieval/rule grounding ตาม F03/F06 และเชื่อม F09; ไม่มี blocker สำหรับการลอง scaffold local
+
+### 2026-10-12 17:38 Asia/Bangkok — Maintenance / AI: คำสั่ง service ใน Test.md
+
+- เพิ่ม [Test.md — AI service](../Test.md#ai-service--fastapi-chatbot): ติดตั้ง Python venv/dependencies, เปิด/หยุด Uvicorn, Swagger, PowerShell ภาษาไทย, Postman aiBaseUrl, validation/expected responses และ unit tests/Black/pip check; ผล tests ที่อ้างเป็นหลักฐานจากรอบ scaffold ไม่ใช่การรันใหม่
+- เพิ่มกติกาใน [AGENTS.md](../AGENTS.md#service-usage-documentation) และ [fastapi-ai skill](../.agent/skills/fastapi-ai/SKILL.md) ให้คอยอัปเดต Test.md ในงานที่เปลี่ยนวิธีใช้งาน service; [ai-service/README.md](../ai-service/README.md) ลิงก์กลับคู่มือกลาง
+- ตรวจ: Node เรียก Prettier 3.4.2 ที่ติดตั้งตาม API package ผ่าน `--write` และ `--check` ทั้ง 5 Markdown; `python -X utf8 .../skill-creator/scripts/quick_validate.py .agent/skills/fastapi-ai` และ `git diff --check` ผ่าน. ไม่รัน app build/runtime tests ซ้ำเพราะแก้เอกสารเท่านั้น
+- ไม่มี business decision/blocker ใหม่; Feature/Daily Flags คงเดิม. ขั้นต่อไป: ใช้คำสั่งใน Test.md ลอง service และปรับคู่มือใน task เดียวกันเมื่อเชื่อม provider/configuration/API ใหม่
+
+### 2026-10-12 17:39 Asia/Bangkok — Maintenance / AI: ใช้ README ของ service
+
+- ผู้ใช้ปรับแนวทางจาก entry ก่อนหน้า: service ที่มี README ให้เก็บและคอยอัปเดตคำสั่งใช้งานใน README ของตนเอง เอาหมวด AI service ออกจาก [Test.md](../Test.md) และคงข้อมูลทดสอบส่วนอื่นไว้
+- [ai-service/README.md](../ai-service/README.md) เป็นคู่มือหลัก เพิ่มรายละเอียดเปิด/หยุด service, Postman และ pip check ที่มีในหมวดเดิม; ปรับ [AGENTS.md](../AGENTS.md#service-usage-documentation) และ [fastapi-ai skill](../.agent/skills/fastapi-ai/SKILL.md) ให้ใช้แนวทางนี้แทนกติกาเดิม
+- ตรวจ: Prettier 3.4.2 ผ่าน Node `--write`/`--check` ทั้ง 5 Markdown; skill quick_validate และ `git diff --check` ผ่าน. ไม่รัน runtime tests/build เพราะเปลี่ยนเอกสารเท่านั้น; ไม่มี business decision/blocker ใหม่ และคง Feature/Daily Flags เดิม
+- ขั้นต่อไป: อัปเดต README ของ service ใน task เดียวกันเมื่อคำสั่ง/configuration/API เปลี่ยน โดยให้สอดคล้องกับ contract และ Postman
+
+### 2026-10-12 17:45 Asia/Bangkok — Maintenance / AI: อธิบาย built-in docs route
+
+- ตรวจ [main.py](../ai-service/main.py#L8) และ FastAPI ที่ติดตั้งใน .venv: constructor กำหนด docs_url/openapi_url โดย default; setup() เพิ่ม Swagger HTML route ผ่าน add_route อัตโนมัติ จึงไม่มี decorator /docs ในโค้ดแอป
+- ตรวจด้วย rg/Get-Content จาก source จริง; แก้เฉพาะ handoff นี้และ Prettier write/check PLAN/PLAN.md พร้อม git diff --check ผ่าน. ไม่รัน tests/build เพราะอธิบายโค้ดโดยไม่เปลี่ยน runtime; ไม่มี blocker และไม่เปลี่ยน Feature/Daily Flags
+- ขั้นต่อไป: เปิด /docs เมื่อ service รัน หรือกำหนด docs_url ใน FastAPI constructor หากต้องการเปลี่ยน path ภายหลัง
+
+### 2026-10-12 18:54 Asia/Bangkok — R1-D1-AI / F07: Qwen3 4B connection + Service1 proposal
+
+- ผู้ใช้เลือก Qwen3 4B ให้เชื่อมโมเดลก่อน และให้คุยรายละเอียด intent/recommendation/tools/filtering/Search ก่อน implement เต็มชุด; บันทึก [decisions](../docs/decisions.md#2026-10-12--qwen3-4b-connection-and-service1-design-scope) ก่อนลงมือและ [Service1 design](../ai-service/DESIGN.md) เสนอ reply/storeIds สูงสุด 5 รหัสจริง โดยยังไม่ใช้ response นี้จริง
+- ต่อยอด package ที่ผู้ใช้แยกไว้: [main.py](../ai-service/main.py), router/chat.py, schemas/chat.py, config.py, services/llm.py และ prompts/system.py; แก้ import เดิมที่ชี้ schemas.py ซึ่งถูกย้ายแล้ว. คืน /health ตาม contract และคง /test ที่ผู้ใช้เปลี่ยนไว้เป็น hidden alias
+- เชื่อม Ollama native /api/chat, default qwen3:4b; ส่ง system/user, stream:false/think:false และคืนเฉพาะ final assistant content เป็น `{reply,mode:"model",model}`. ทดสอบจริงพบ template ส่ง thinking ปนใน content จึงเพิ่ม /no_think, ตัดก่อน closing thinking tag และ reject unfinished/empty final answer พร้อม regression tests. จัดการ 502/503/504 โดยไม่คืน upstream body หรือ fallback mock; ตั้ง URL/model/timeout ผ่าน .env.example, เพิ่ม httpx/python-dotenv runtime และ regenerate lock เฉพาะ runtime 18 packages
+- [README ของ service](../ai-service/README.md) มีคำสั่งติดตั้ง Ollama/pull model/config/run/test และข้อจำกัด; ปรับ root README, FastAPI skill, API contract และ Postman หมวด AI service (Qwen3 4B): 11 standard requests + 3 provider error scenarios พร้อม aiModel/expected status. ไม่เพิ่มคำสั่งใน Test.md
+- ตรวจจริง: จาก ai-service รัน `.venv/Scripts/python.exe -m unittest discover -s tests -v` ผ่าน 17 tests รวม payload/system prompt/Thai/validation/final-content-only/inline-thinking/config/error cases ด้วย httpx MockTransport; `pip check` ผ่าน. เรียก unittest จาก root ครั้งหนึ่ง import config ไม่พบ แล้วรันจาก owning directory ตาม README ผ่าน. Uvicorn จริง + HTTP Ollama stub ผ่าน 11 standard collection requests และ missing-model503/invalidJSON502/upstream500→502; Postman JavaScript runner ไม่ได้รัน. Black write/check Python 7 ไฟล์ผ่าน โดยใช้ --workers 1 --no-cache หลัง cached workers ค้าง; Prettier 3.4.2 ผ่าน Node write/check Markdown/JSON ทั้ง 8 ไฟล์; skill quick_validate และ git diff --check ผ่าน. ไม่รัน NestJS/web build เพราะไม่แก้ runtime ของสองแอป
+- Runtime จริง: ผู้ใช้ยืนยัน local Ollama; เตรียม official Windows standalone CPU 0.40.3 ใน ignored ai-service/.tools/ollama, executable signature Valid, เปิด loopback11434 และดาวน์โหลด qwen3:4b (SHA256 verified) ไว้ใน .tools/ollama-models โดยไม่แก้ PATH. `ollama list` พบโมเดลและ `ollama ps` แสดง CPU; FastAPI/Uvicorn บน temporary port → Ollama → Qwen3 จริงตอบ /chat 200 พร้อมภาษาไทย เฉพาะ final answer ผ่านหลังแก้ inline-thinking ใช้ 69.91 วินาที. หยุด temporary Uvicorn แล้ว คง Ollama background server ไว้; README มีคำสั่งเปิดใหม่. การติดตั้งผ่าน winget ดาวน์โหลดช้าจึงหยุดและใช้ standalone ทางการแทน
+- ข้อจำกัด: live smoke เป็นคำทักทายหนึ่งกรณี ไม่ใช่ benchmark/intent/grounding evaluation; CPU อาจเกิน timeout120s สำหรับคำตอบยาว และ TestClient มี deprecation warning แต่ tests ผ่าน. ยังไม่มี auth/history/DB retrieval/tool loop/Search/storeIds ใน API; F07 PARTIAL และ R1-D1-AI DOING ไม่ใช่ acceptance DONE. ขั้นต่อไป: คุยแหล่งข้อมูลระบบ, filters/ranking, Search scope/provider/citations และ auth/history ใน DESIGN.md ก่อน implement workflow และปรับ F09 contract ร่วมกัน

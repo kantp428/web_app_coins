@@ -1,6 +1,6 @@
 # THAI Please
 
-Monorepo สำหรับเว็บแอปตาม [Flag board](PLAN/PLAN.md) และ [Core Idea](CoreIdea.md) ใช้ pnpm workspace, Next.js, NestJS, Prisma และ PostgreSQL
+Monorepo สำหรับเว็บแอปตาม [Flag board](PLAN/PLAN.md) และ [Core Idea](CoreIdea.md) ใช้ pnpm workspace, Next.js, NestJS, Prisma และ PostgreSQL พร้อม Python/FastAPI chatbot service แยกใน [ai-service](ai-service/README.md) (Qwen3 4B ผ่าน Ollama, port 8000; รันแยกจาก `pnpm dev`)
 
 เว็บใช้ Base UI/shadcn สำหรับ Alert และ Dialog และใช้ Sonner สำหรับ toast แจ้งผล โดยติดตั้ง Toaster ที่ root layout; confirmation ที่ใช้ร่วมกันอยู่ใน `apps/web/src/components/shared/confirm-dialog.tsx`
 

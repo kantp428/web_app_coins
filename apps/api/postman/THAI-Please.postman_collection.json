@@ -48,6 +48,14 @@
     {
       "value": "",
       "key": "nonCustomerToken"
+    },
+    {
+      "key": "aiBaseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "aiModel",
+      "value": "qwen3:4b"
     }
   ],
   "item": [
@@ -934,6 +942,557 @@
         "method": "POST",
         "url": "{{baseUrl}}/auth/register"
       }
+    },
+    {
+      "name": "AI service (Qwen3 4B)",
+      "description": "Standalone FastAPI calling Ollama qwen3:4b. Configure aiBaseUrl and aiModel. Chat success requires model server and weights. Stateless, local only, no auth/tools/Search/DB yet. Provider error scenarios have individual setup instructions; do not run all mutually exclusive scenarios against a single server state.",
+      "item": [
+        {
+          "name": "Health (200 app liveness)",
+          "request": {
+            "method": "GET",
+            "url": "{{aiBaseUrl}}/health",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('App available in model mode', function () { pm.expect(pm.response.json()).to.eql({status:'ok', service:'ai-service', mode:'model'}); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Model mode app liveness",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\",\n  \"service\": \"ai-service\",\n  \"mode\": \"model\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Chat Thai message (200 Qwen3)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"สวัสดี\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Requires running Ollama and configured model. Sends Thai greeting; output is generated, not a fixed mock. No shop recommendation/tools yet."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Final model answer', function () { const body=pm.response.json(); pm.expect(body.mode).to.eql('model'); pm.expect(body.model).to.eql(pm.variables.get('aiModel')); pm.expect(body.reply).to.be.a('string').and.not.empty; pm.expect(body.reply).not.to.include('<think>'); pm.expect(body.reply).not.to.include('</think>'); pm.expect(body).not.to.have.property('thinking'); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Example model answer (text varies)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"reply\": \"Hello, how can I help with THAI Please?\",\n  \"mode\": \"model\",\n  \"model\": \"qwen3:4b\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Chat missing message (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('FastAPI validation details', function () { pm.expect(pm.response.json().detail).to.be.an('array').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat blank message (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"  \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('FastAPI validation details', function () { pm.expect(pm.response.json().detail).to.be.an('array').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat non-string message (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": 123\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('FastAPI validation details', function () { pm.expect(pm.response.json().detail).to.be.an('array').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat overlong message (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"message\": \"{{aiOverlongMessage}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('aiOverlongMessage', 'a'.repeat(2001));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('FastAPI validation details', function () { pm.expect(pm.response.json().detail).to.be.an('array').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat unknown field (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"hello\",\n  \"userId\": \"untrusted\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('FastAPI validation details', function () { pm.expect(pm.response.json().detail).to.be.an('array').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat malformed JSON (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('FastAPI validation details', function () { pm.expect(pm.response.json().detail).to.be.an('array').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI schema (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{aiBaseUrl}}/openapi.json",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Chat and health documented', function () { const paths = pm.response.json().paths; pm.expect(paths['/chat']).to.have.property('post'); pm.expect(paths['/health']).to.have.property('get'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Swagger UI (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{aiBaseUrl}}/docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test health alias (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{aiBaseUrl}}/test",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Liveness alias', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('ok'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Provider errors (separate scenario setup required)",
+          "description": "See each request for setup; restore Ollama settings afterwards. Unit tests cover these using mock transport. No 401/403 or duplicate-mutation scenario applies to this local stateless service.",
+          "item": [
+            {
+              "name": "Model unavailable or missing (503)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "Stop Ollama, use an unused OLLAMA_BASE_URL, or configure a model absent from Ollama. Restart FastAPI after changing config.",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"hello\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 503', function () { pm.response.to.have.status(503); });",
+                      "pm.test('Safe error detail', function () { pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty; });"
+                    ]
+                  }
+                }
+              ],
+              "response": [
+                {
+                  "name": "Model unavailable or missing",
+                  "status": "Service Unavailable",
+                  "code": 503,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"detail\": \"Model unavailable or missing\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Model timeout (504)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "Use a controlled model stub that delays its response beyond OLLAMA_TIMEOUT_SECONDS; restart FastAPI after changing config. A real model may also exceed this timeout.",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"hello\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 504', function () { pm.response.to.have.status(504); });",
+                      "pm.test('Safe error detail', function () { pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty; });"
+                    ]
+                  }
+                }
+              ],
+              "response": [
+                {
+                  "name": "Model timeout",
+                  "status": "Gateway Timeout",
+                  "code": 504,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"detail\": \"Model timeout\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Invalid model response or upstream error (502)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "Use a controlled model stub that returns HTTP 500, invalid JSON, or an empty assistant message; configure OLLAMA_BASE_URL to that stub and restart FastAPI.",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"hello\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 502', function () { pm.response.to.have.status(502); });",
+                      "pm.test('Safe error detail', function () { pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty; });"
+                    ]
+                  }
+                }
+              ],
+              "response": [
+                {
+                  "name": "Invalid model response or upstream error",
+                  "status": "Bad Gateway",
+                  "code": 502,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"detail\": \"Invalid model response or upstream error\"\n}"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
