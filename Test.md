@@ -82,3 +82,7 @@ DB ใช้ categories + shop_categories แทน shops.category; migration 20
 ## ใช้ตำแหน่งปัจจุบันตอนสมัครร้าน
 
 /register → ร้านค้า → ใช้ตำแหน่งปัจจุบัน → อนุญาต location ใน browser. สำเร็จเปิดแผนที่ ย้ายหมุดและเติมที่อยู่จากพิกัด ตรวจว่าตรงกับร้านก่อนสมัคร. หากไม่อนุญาต/timeout จะมี Sonner alert และเลือกหมุดเองได้. ต้อง HTTPS หรือ localhost. lint/build ผ่าน แต่ยังไม่ได้ทดสอบตำแหน่งจริงบนอุปกรณ์.
+
+## วันและเวลาเปิด–ปิด — 12 ตุลาคม 2026
+
+Register ร้าน: dropdown วันเปิด เลือกหลายวันหรือเลือกทุกวัน/ยกเลิกทุกวัน; ช่องเวลาเปิด—ปิดกรอก24ชั่วโมง HH:mm เช่น08:00—18:00. เวลาเดียวกันทุกวันที่เลือก;18:00—02:00หมายถึงปิดวันถัดไป. API ส่ง openingHours {days:[MON,TUE,...],open,close,timeZone:Asia/Bangkok} เก็บ JSONเดิม ไม่ต้อง migrate;ข้อมูลเก่า{text}ยังอยู่. Tests24 และ web/API lint/buildผ่าน; browser select-all/บางวัน/overnightผ่าน ยังไม่ตรวจสมัครสำเร็จครบ flow.

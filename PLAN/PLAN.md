@@ -218,3 +218,13 @@
 - Error permission denied/timeout/unavailable/unsupported ใช้ Sonner และให้เลือกหมุดเอง/ลองใหม่; แสดงคำอธิบายขอสิทธิ์และส่งพิกัดไป Nominatim ก่อนใช้
 - Prettier write/check, web lint/build ผ่าน; ยังไม่ได้ยืนยัน geolocation จริงของอุปกรณ์/permission prompt ใน browser ไม่อ้าง end-to-end location acceptance
 - ไม่แก้ API/schema; ทำต่อทดสอบบนอุปกรณ์จริงผ่าน HTTPS/localhost และ full Register E2E ตามเดิมก่อนปิด F05
+
+### 2026-10-12 Asia/Bangkok — F03/F05: วันเปิด dropdown/select-all และแถบเวลา
+
+- R1-D3-B/R1-D3-I ยัง DOING; เพิ่ม components/maps/shop-opening-hours.tsx ใน Register: shadcn multiple Select วันจันทร์–อาทิตย์, เลือกทุกวัน/ยกเลิกทุกวัน, เลือกบางวันได้; แถวเวลาเปิด—ปิดใช้ HH:mm24h แบบข้อความเพื่อไม่ให้ locale AM/PM ถูกตัดบนมือถือ
+- API/register รับ openingHours JSON {days,open,close,timeZone:Asia/Bangkok}; validate1–7วันไม่ซ้ำ รหัสวันถูกต้อง เวลา00:00–23:59 ไม่เท่ากัน; close<open คือปิดวันถัดไป แสดงคำอธิบายใน UI. เวลาเดียวกันทุกวันที่เลือก; daily/multiple intervals/24h ยังนอก scope
+- ไม่ต้อง migration เพราะ opening_hours เดิมเป็น Json; รักษาข้อมูลเก่า {text} ไม่ rewrite. Future read API ต้องรองรับ legacy/new shapes จนกว่าจะตกลง backfill
+- ไฟล์: register/page.tsx, lib/api.ts, components/maps/shop-opening-hours.tsx; API auth.service.ts/spec; Postman + contract/decisions/Test.md
+- ตรวจผ่าน: API tests24 รวม invalidวัน/ซ้ำ/เวลา/timezone และ overnight; API lint/build, web lint/build, Prettier write/check
+- Browser: เลือกทุกวันครบ7, ยกเลิกครบ, เลือกจันทร์+ศุกร์ได้; กรอก18:00–02:00แสดงปิดวันถัดไป; viewport360ไม่มี horizontal overflow. พบ native time12hแคบบนมือถือจึงเปลี่ยนเป็น explicit24h text และทดสอบค่าทั้งสองผ่าน
+- ค้าง full HTTP/browser successful registration และ legacy-read/backfill acceptance; ทำต่อ E2E + owner CRUD ตาม dependencies ไม่ปิด F03/F05 จากงานนี้

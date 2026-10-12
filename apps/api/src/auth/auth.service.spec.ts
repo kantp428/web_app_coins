@@ -160,7 +160,12 @@ describe('registration by role', () => {
     },
     latitude: 13.75,
     longitude: 100.5,
-    openingHours: {days:['MON','TUE'],open:'08:00',close:'18:00',timeZone:'Asia/Bangkok'},
+    openingHours: {
+      days: ['MON', 'TUE'],
+      open: '08:00',
+      close: '18:00',
+      timeZone: 'Asia/Bangkok',
+    },
     sizeClass: 'SMALL',
   };
   beforeEach(() => {
@@ -217,8 +222,17 @@ describe('registration by role', () => {
     expect(create).not.toHaveBeenCalled();
   });
   it('supports closing after midnight with selected days', async () => {
-    await auth.register({...base,role:'SELLER',shop:{...shop,openingHours:{...shop.openingHours,open:'18:00',close:'02:00'}}});
-    expect(create.mock.calls[0][0].data.shops.create.opening_hours).toMatchObject({open:'18:00',close:'02:00'});
+    await auth.register({
+      ...base,
+      role: 'SELLER',
+      shop: {
+        ...shop,
+        openingHours: { ...shop.openingHours, open: '18:00', close: '02:00' },
+      },
+    });
+    expect(
+      create.mock.calls[0][0].data.shops.create.opening_hours,
+    ).toMatchObject({ open: '18:00', close: '02:00' });
   });
   it('allows government credentials without profile details', async () => {
     expect(await auth.register({ ...base, role: 'GOVERNMENT' })).toEqual({
@@ -240,12 +254,12 @@ describe('registration by role', () => {
       { ...shop, latitude: '13' },
       { ...shop, sizeClass: 'INVALID' },
       { ...shop, openingHours: '' },
-      {...shop,openingHours:{...shop.openingHours,days:[]}},
-      {...shop,openingHours:{...shop.openingHours,days:['MON','MON']}},
-      {...shop,openingHours:{...shop.openingHours,days:['INVALID']}},
-      {...shop,openingHours:{...shop.openingHours,open:'24:00'}},
-      {...shop,openingHours:{...shop.openingHours,close:'08:00'}},
-      {...shop,openingHours:{...shop.openingHours,timeZone:'UTC'}},
+      { ...shop, openingHours: { ...shop.openingHours, days: [] } },
+      { ...shop, openingHours: { ...shop.openingHours, days: ['MON', 'MON'] } },
+      { ...shop, openingHours: { ...shop.openingHours, days: ['INVALID'] } },
+      { ...shop, openingHours: { ...shop.openingHours, open: '24:00' } },
+      { ...shop, openingHours: { ...shop.openingHours, close: '08:00' } },
+      { ...shop, openingHours: { ...shop.openingHours, timeZone: 'UTC' } },
       { ...shop, name: ' ' },
       { ...shop, address: '' },
       { ...shop, address: { ...shop.address, line1: 'x'.repeat(501) } },

@@ -73,11 +73,31 @@ export function validCategoryIds(value: unknown): value is string[] {
     new Set(value).size === value.length
   );
 }
-export function validOpeningHours(value: unknown): value is {days:string[];open:string;close:string;timeZone:string} {
- if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
- const v=value as Record<string,unknown>;
- const time=(value:unknown):value is string=>typeof value==='string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
- return Object.keys(v).every(key=>['days','open','close','timeZone'].includes(key)) && Array.isArray(v.days) && v.days.length>=1 && v.days.length<=7 && v.days.every(day=>typeof day==='string' && ['MON','TUE','WED','THU','FRI','SAT','SUN'].includes(day)) && new Set(v.days).size===v.days.length && time(v.open) && time(v.close) && v.open!==v.close && v.timeZone==='Asia/Bangkok';
+export function validOpeningHours(
+  value: unknown,
+): value is { days: string[]; open: string; close: string; timeZone: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  const time = (value: unknown): value is string =>
+    typeof value === 'string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
+  return (
+    Object.keys(v).every((key) =>
+      ['days', 'open', 'close', 'timeZone'].includes(key),
+    ) &&
+    Array.isArray(v.days) &&
+    v.days.length >= 1 &&
+    v.days.length <= 7 &&
+    v.days.every(
+      (day) =>
+        typeof day === 'string' &&
+        ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].includes(day),
+    ) &&
+    new Set(v.days).size === v.days.length &&
+    time(v.open) &&
+    time(v.close) &&
+    v.open !== v.close &&
+    v.timeZone === 'Asia/Bangkok'
+  );
 }
 @Injectable()
 export class AuthService implements OnModuleDestroy {
@@ -127,7 +147,12 @@ export class AuthService implements OnModuleDestroy {
           address: Record<string, string>;
           latitude: number;
           longitude: number;
-          openingHours: {days:string[];open:string;close:string;timeZone:string};
+          openingHours: {
+            days: string[];
+            open: string;
+            close: string;
+            timeZone: string;
+          };
           sizeClass: string;
         }
       | undefined;

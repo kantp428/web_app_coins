@@ -45,7 +45,12 @@ export type RegisterPayload = LoginPayload & {
     address: ShopAddress;
     latitude: number;
     longitude: number;
-    openingHours: {days:string[];open:string;close:string;timeZone:"Asia/Bangkok"};
+    openingHours: {
+      days: string[];
+      open: string;
+      close: string;
+      timeZone: "Asia/Bangkok";
+    };
     sizeClass: "SMALL" | "MEDIUM" | "LARGE";
   };
   confirmPassword: string;

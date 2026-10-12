@@ -17,7 +17,7 @@ import type { ShopAddress } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import {ShopOpeningHours} from "@/components/maps/shop-opening-hours";
+import { ShopOpeningHours } from "@/components/maps/shop-opening-hours";
 import { useCallback } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -42,9 +42,9 @@ const schema = z
     postcode: z.string(),
     latitude: z.string(),
     longitude: z.string(),
-    openingDays:z.array(z.string()),
-    openTime:z.string(),
-    closeTime:z.string(),
+    openingDays: z.array(z.string()),
+    openTime: z.string(),
+    closeTime: z.string(),
     sizeClass: z.enum(["SMALL", "MEDIUM", "LARGE"]),
     username: z.string().trim().min(1, "กรุณากรอกชื่อผู้ใช้"),
     password: z
@@ -82,9 +82,15 @@ const schema = z
       ] as const)
         if (!v[key].trim() || v[key].trim().length > max)
           issue(key, `กรุณากรอก${label} ไม่เกิน ${max} ตัวอักษร`);
-      if (!v.openingDays.length) issue("openingDays","กรุณาเลือกวันที่ร้านเปิด");
+      if (!v.openingDays.length)
+        issue("openingDays", "กรุณาเลือกวันที่ร้านเปิด");
       const time = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
-      if (!time.test(v.openTime) || !time.test(v.closeTime) || v.openTime === v.closeTime) issue("openTime","กรุณาระบุเวลาเปิด–ปิดให้ถูกต้องและไม่เท่ากัน");
+      if (
+        !time.test(v.openTime) ||
+        !time.test(v.closeTime) ||
+        v.openTime === v.closeTime
+      )
+        issue("openTime", "กรุณาระบุเวลาเปิด–ปิดให้ถูกต้องและไม่เท่ากัน");
       if (!v.categoryIds.length || v.categoryIds.length > 10)
         issue("categoryIds", "กรุณาเลือกหมวดหมู่ร้าน 1–10 หมวด");
       for (const key of [
@@ -134,9 +140,9 @@ const defaults = {
   postcode: "",
   latitude: "",
   longitude: "",
-  openingDays:[] as string[],
-  openTime:"08:00",
-  closeTime:"18:00",
+  openingDays: [] as string[],
+  openTime: "08:00",
+  closeTime: "18:00",
   sizeClass: "SMALL" as const,
   username: "",
   password: "",
@@ -196,9 +202,9 @@ export default function RegisterPage() {
     retry: retryCategories,
   } = useCategories(role === "SELLER");
   const pending = loading || isSubmitting || geocoding;
-  const openingDays=useWatch({control,name:"openingDays"});
-  const openTime=useWatch({control,name:"openTime"});
-  const closeTime=useWatch({control,name:"closeTime"});
+  const openingDays = useWatch({ control, name: "openingDays" });
+  const openTime = useWatch({ control, name: "openTime" });
+  const closeTime = useWatch({ control, name: "closeTime" });
   const selectedCategoryIds = useWatch({ control, name: "categoryIds" });
   return (
     <main className="flex min-h-dvh items-center justify-center bg-muted/40 px-4 py-10">
@@ -292,7 +298,12 @@ export default function RegisterPage() {
                         },
                         latitude: Number(values.latitude),
                         longitude: Number(values.longitude),
-                        openingHours:{days:values.openingDays,open:values.openTime,close:values.closeTime,timeZone:"Asia/Bangkok"},
+                        openingHours: {
+                          days: values.openingDays,
+                          open: values.openTime,
+                          close: values.closeTime,
+                          timeZone: "Asia/Bangkok",
+                        },
                         sizeClass: values.sizeClass,
                       },
                     }
@@ -325,7 +336,6 @@ export default function RegisterPage() {
                 : ([
                     { name: "shopName", label: "ชื่อร้าน", max: 200 },
                     { name: "areaCode", label: "รหัสพื้นที่", max: 20 },
-
                   ] as const)
               ).map((field) => (
                 <div key={field.name} className="space-y-2">
@@ -350,7 +360,32 @@ export default function RegisterPage() {
                   />
                 </div>
               ))}
-              {role === "SELLER" && <ShopOpeningHours days={openingDays} open={openTime} close={closeTime} disabled={pending} onDaysChange={value=>setValue("openingDays",value,{shouldDirty:true,shouldValidate:true})} onOpenChange={value=>setValue("openTime",value,{shouldDirty:true,shouldValidate:true})} onCloseChange={value=>setValue("closeTime",value,{shouldDirty:true,shouldValidate:true})} />}
+              {role === "SELLER" && (
+                <ShopOpeningHours
+                  days={openingDays}
+                  open={openTime}
+                  close={closeTime}
+                  disabled={pending}
+                  onDaysChange={(value) =>
+                    setValue("openingDays", value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  onOpenChange={(value) =>
+                    setValue("openTime", value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  onCloseChange={(value) =>
+                    setValue("closeTime", value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+              )}
               {role === "SELLER" && (
                 <fieldset className="space-y-3">
                   <legend className="text-sm font-medium">
