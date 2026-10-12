@@ -989,7 +989,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1006,7 +1013,7 @@
                 }
               }
             },
-            "description": "Requires running Ollama and configured model. Sends Thai greeting; output is generated, not a fixed mock. No shop recommendation/tools yet."
+            "description": "Requires running Ollama and configured model. Sends Thai greeting; output is generated, not a fixed mock. Normal chat returns storeIds:[]. Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1015,7 +1022,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Expected 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Final model answer', function () { const body=pm.response.json(); pm.expect(body.mode).to.eql('model'); pm.expect(body.model).to.eql(pm.variables.get('aiModel')); pm.expect(body.reply).to.be.a('string').and.not.empty; pm.expect(body.reply).not.to.include('<think>'); pm.expect(body.reply).not.to.include('</think>'); pm.expect(body).not.to.have.property('thinking'); });"
+                  "pm.test('Final model answer', function () { const body=pm.response.json(); pm.expect(body.mode).to.eql('model'); pm.expect(body.model).to.eql(pm.variables.get('aiModel')); pm.expect(body.reply).to.be.a('string').and.not.empty; pm.expect(body.reply).not.to.include('<think>'); pm.expect(body.reply).not.to.include('</think>'); pm.expect(body).not.to.have.property('thinking'); });",
+                  "pm.test('No recommendations for greeting', () => pm.expect(pm.response.json().storeIds).to.eql([]));"
                 ]
               }
             }
@@ -1031,7 +1039,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"reply\": \"Hello, how can I help with THAI Please?\",\n  \"mode\": \"model\",\n  \"model\": \"qwen3:4b\"\n}"
+              "body": "{\n  \"reply\": \"Hello, how can I help with THAI Please?\",\n  \"mode\": \"model\",\n  \"model\": \"qwen3:4b\",\n  \"storeIds\": []\n}"
             }
           ]
         },
@@ -1041,7 +1049,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1057,7 +1072,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": " Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1078,7 +1094,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1094,7 +1117,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": " Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1115,7 +1139,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1131,7 +1162,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": " Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1152,7 +1184,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1168,7 +1207,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": " Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1198,7 +1238,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1214,7 +1261,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": " Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1235,7 +1283,14 @@
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "header": [
               {
@@ -1251,7 +1306,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": " Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
           },
           "event": [
             {
@@ -1340,9 +1396,16 @@
                 "method": "POST",
                 "url": "{{aiBaseUrl}}/chat",
                 "auth": {
-                  "type": "noauth"
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
                 },
-                "description": "Stop Ollama, use an unused OLLAMA_BASE_URL, or configure a model absent from Ollama. Restart FastAPI after changing config.",
+                "description": "Stop Ollama, use an unused OLLAMA_BASE_URL, or configure a model absent from Ollama. Restart FastAPI after changing config. Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call.",
                 "header": [
                   {
                     "key": "Content-Type",
@@ -1392,9 +1455,16 @@
                 "method": "POST",
                 "url": "{{aiBaseUrl}}/chat",
                 "auth": {
-                  "type": "noauth"
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
                 },
-                "description": "Use a controlled model stub that delays its response beyond OLLAMA_TIMEOUT_SECONDS; restart FastAPI after changing config. A real model may also exceed this timeout.",
+                "description": "Use a controlled model stub that delays its response beyond OLLAMA_TIMEOUT_SECONDS; restart FastAPI after changing config. A real model may also exceed this timeout. Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call.",
                 "header": [
                   {
                     "key": "Content-Type",
@@ -1444,9 +1514,16 @@
                 "method": "POST",
                 "url": "{{aiBaseUrl}}/chat",
                 "auth": {
-                  "type": "noauth"
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
                 },
-                "description": "Use a controlled model stub that returns HTTP 500, invalid JSON, or an empty assistant message; configure OLLAMA_BASE_URL to that stub and restart FastAPI.",
+                "description": "Use a controlled model stub that returns HTTP 500, invalid JSON, or an empty assistant message; configure OLLAMA_BASE_URL to that stub and restart FastAPI. Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call.",
                 "header": [
                   {
                     "key": "Content-Type",
@@ -1489,6 +1566,550 @@
                   "body": "{\n  \"detail\": \"Invalid model response or upstream error\"\n}"
                 }
               ]
+            }
+          ]
+        },
+        {
+          "name": "Recommend interpreted food or cafe (200, up to 3 new + 2 repeat)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Verified ID payload only', () => {const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(new Set(b.storeIds).size).to.eql(b.storeIds.length);b.storeIds.forEach(id=>pm.expect(id).to.match(/^[1-9][0-9]*$/));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat missing token (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"สวัสดี\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat invalid token (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"สวัสดี\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat non-customer token (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{nonCustomerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"สวัสดี\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Recommendation read tools",
+      "description": "NestJS CUSTOMER-only reads. Login CUSTOMER saves token; List shop categories saves categoryId. No financial writes. Short groups are not filled from the other quota. Context is limited to 20 recent distinct shops; candidate visits use all-time confirmed history.",
+      "item": [
+        {
+          "name": "Authenticated context and purchase summary (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/context",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Actor-scoped context',()=>{const b=pm.response.json();pm.expect(b.user.role).to.eql('CUSTOMER');pm.expect(b.categories).to.be.an('array');pm.expect(b.purchaseHistory).to.be.an('array');pm.expect(b.purchaseHistory.length).to.be.at.most(20);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Database filtered ranked candidates (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quotas, unique IDs and ranking',()=>{const s=pm.response.json().stores;pm.expect(s.length).to.be.at.most(5);pm.expect(s.filter(x=>!x.visited).length).to.be.at.most(3);pm.expect(s.filter(x=>x.visited).length).to.be.at.most(2);pm.expect(new Set(s.map(x=>x.id)).size).to.eql(s.length);s.forEach(x=>{pm.expect(x.id).to.be.a('string');pm.expect(x.visited).to.be.a('boolean');if(x.coins!==null)pm.expect(x.coins).to.be.within(1,10);});for(let i=1;i<s.length;i++)pm.expect(s[i-1].coins??-1).to.be.at.least(s[i].coins??-1);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Context missing token (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/context",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Context invalid token (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/context",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Context wrong role (403)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/context",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{nonCustomerToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Candidates missing token (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Candidates wrong role (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{nonCustomerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject empty categories (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject duplicate categories (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\",\n    \"{{categoryId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject non-ID category (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"0\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject injected actor/history (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"userId\": \"another-user\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
             }
           ]
         }

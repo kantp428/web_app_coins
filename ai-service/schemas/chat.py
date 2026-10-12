@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+    storeIds: list[str] = Field(default_factory=list, max_length=5)
     mode: Literal["model"] = "model"
     model: str
 

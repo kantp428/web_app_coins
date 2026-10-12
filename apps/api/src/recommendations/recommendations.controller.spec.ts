@@ -1,0 +1,141 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConfigService } from '@nestjs/config';
+import { UnauthorizedException } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service.js';
+const mocks = vi.hoisted(() => ({
+  query: vi.fn(),
+  categories: vi.fn(),
+  count: vi.fn(),
+}));
+vi.mock('@prisma/client', async (original) => {
+  const actual = await original<typeof import('@prisma/client')>();
+  return {
+    ...actual,
+    PrismaClient: class {
+      categories = { findMany: mocks.categories, count: mocks.count };
+      $queryRaw = mocks.query;
+      $disconnect = vi.fn();
+    },
+  };
+});
+import {
+  categoryFilter,
+  RecommendationsService,
+} from './recommendations.controller.js';
+
+describe('recommendation filtering contract', () => {
+  const me = vi.fn();
+  let service: RecommendationsService;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    me.mockResolvedValue({ id: '42', role: 'CUSTOMER', displayName: 'Test' });
+    mocks.count.mockResolvedValue(2);
+    mocks.query.mockResolvedValue([]);
+    mocks.categories.mockResolvedValue([
+      { category_id: 1n, name: 'Food', slug: 'food' },
+    ]);
+    service = new RecommendationsService(
+      new ConfigService({ DATABASE_URL: 'postgres://unused' }),
+      { me } as unknown as AuthService,
+    );
+  });
+  it('requires bounded unique positive bigint category IDs and forbids actor injection', () => {
+    for (const body of [
+      null,
+      [],
+      {},
+      { categoryIds: [] },
+      { categoryIds: ['1', '1'] },
+      { categoryIds: [1] },
+      { categoryIds: ['0'] },
+      { categoryIds: ['01'] },
+      { categoryIds: ['9223372036854775808'] },
+      { categoryIds: ['1'], userId: '43' },
+      { categoryIds: Array.from({ length: 11 }, (_, i) => String(i + 1)) },
+    ])
+      expect(() => categoryFilter(body)).toThrow();
+    expect(
+      categoryFilter({ categoryIds: ['1', '9223372036854775807'] }),
+    ).toEqual(['1', '9223372036854775807']);
+  });
+  it('authenticates before querying personal history or candidates', async () => {
+    me.mockRejectedValue(new UnauthorizedException());
+    await expect(service.context()).rejects.toThrow(UnauthorizedException);
+    await expect(
+      service.candidates({ categoryIds: ['1', '2'] }),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(mocks.query).not.toHaveBeenCalled();
+    expect(mocks.categories).not.toHaveBeenCalled();
+    expect(mocks.count).not.toHaveBeenCalled();
+  });
+  it.each(['SELLER', 'GOVERNMENT'])(
+    'forbids %s from reading customer data',
+    async (role) => {
+      me.mockResolvedValue({ id: '42', role, displayName: 'Test' });
+      await expect(service.context('Bearer actor')).rejects.toMatchObject({
+        status: 403,
+      });
+      await expect(
+        service.candidates({ categoryIds: ['1', '2'] }, 'Bearer actor'),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mocks.query).not.toHaveBeenCalled();
+    },
+  );
+  it('returns only the authenticated actor history summary; no payment amounts', async () => {
+    mocks.query.mockResolvedValue([
+      {
+        shop_id: 7n,
+        purchase_count: 2n,
+        last_purchased_at: new Date('2026-09-01T00:00:00Z'),
+        category_ids: [1n],
+      },
+    ]);
+    const result = await service.context('Bearer actor');
+    expect(me).toHaveBeenCalledWith('Bearer actor');
+    expect(result.purchaseHistory).toEqual([
+      {
+        storeId: '7',
+        purchaseCount: '2',
+        lastPurchasedAt: '2026-09-01T00:00:00.000Z',
+        categoryIds: ['1'],
+      },
+    ]);
+    expect(result.categories[0].id).toBe('1');
+    const [strings, ...values] = mocks.query.mock.calls[0];
+    expect(strings.join('?')).toContain('LIMIT 20');
+    expect(values).toEqual([42n]);
+  });
+  it('rejects unknown category before candidate query', async () => {
+    mocks.count.mockResolvedValue(1);
+    await expect(
+      service.candidates({ categoryIds: ['1', '2'] }, 'Bearer actor'),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+  it('keeps authenticated scope, OR categories, approved shops, all-time visits and 3+2 quotas in parameterized SQL', async () => {
+    mocks.query.mockResolvedValue([
+      { shop_id: 3n, visited: false, coins: 10 },
+      { shop_id: 7n, visited: true, coins: null },
+    ]);
+    expect(
+      await service.candidates({ categoryIds: ['1', '2'] }, 'Bearer actor'),
+    ).toEqual({
+      stores: [
+        { id: '3', visited: false, coins: 10 },
+        { id: '7', visited: true, coins: null },
+      ],
+    });
+    const [strings, ...values] = mocks.query.mock.calls[0];
+    const sql = strings.join('?');
+    expect(values[0]).toBe(42n);
+    expect(sql).toContain("participation_status = 'APPROVED'");
+    expect(sql).toContain("p.status IN ('SUCCEEDED', 'REFUNDED')");
+    expect(sql).toContain('PARTITION BY visited');
+    expect(sql).toContain('CASE WHEN visited THEN 2 ELSE 3 END');
+    expect(sql).toContain('ORDER BY coins DESC NULLS LAST, shop_id');
+    expect(sql).toContain('starts_at <=');
+    expect(sql).toContain('ends_at >');
+    expect(sql).not.toContain('LIMIT 20');
+    expect(sql).not.toContain('total_amount');
+  });
+});

@@ -17,8 +17,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="THAI Please AI Service",
-    description="Qwen3 4B chat connection; recommendation and Search tools pending.",
-    version="0.2.0",
+    description="Authenticated Qwen3 4B chat with database-backed shop recommendations. Internet Search pending.",
+    version="0.3.0",
     lifespan=lifespan,
 )
 app.include_router(chat_router)

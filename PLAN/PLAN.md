@@ -20,7 +20,7 @@
 | F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                 | D3                     | A               | F01/F02/F03           |
 | F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview               | D3                     | B               | F01/F02/F03           |
 | F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                     | I               | F02/F03               |
-| F07     | PARTIAL: Qwen3/Ollama live chat ผ่าน; retrieval/tools TODO                | D4–5                   | AI              | F03/F06               |
+| F07     | PARTIAL: auth + Qwen tools/DB rank 3+2; live DB/UI gates pending          | D4–5                   | AI              | F03/F06               |
 | F08     | TODO                                                                      | D5                     | I               | F06                   |
 | F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                       | D5                     | A               | F07/F08               |
 | F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                     | B               | F06/F08               |
@@ -33,36 +33,36 @@
 
 สถานะรอบใหม่เริ่มที่ TODO; อัปเดตเป็น DOING → PR → DONE ตามผลจริง หรือ BLOCKED พร้อมลิงก์ issue. ไม่ยกสถานะ UI Preview เป็น DONE ของ Feature.
 
-| วัน          | Daily Flag                  | Feature     | สถานะ                                                                     | Dependency                                                                         | Issue / PR |
+| วัน | Daily Flag | Feature | สถานะ | Dependency | Issue / PR |
 | ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- | ------- |
-| D1 / 7 ต.ค.  | [`R1-D1-A`](APP_DEV_A.md)   | F04/F09     | DOING                                                                     | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-B`](APP_DEV_B.md)   | F05/F10/F12 | DOING                                                                     | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I                                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | DOING: Qwen3 adapter + Service1 design; candidate DTO pending             | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                   | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-I`](INTEGRATION.md) | F00/F01     | DOING                                                                     | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้                     | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-A`](APP_DEV_A.md)   | F04         | DOING                                                                     | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode                         | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                       | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                 | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | DOING                                                                     | F00/F01; ยอดมาจาก ledger/DB จริง                                                   | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | TODO                                                                      | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                               | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F03; owner isolation, validation/error และสถานะ pending/approved                   | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE       | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                     | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                    | —          |
-| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                      | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                   | —          |
-| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                                                                                 | B          | F06/F08 |
-| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                     | —          |
-| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                                                                                 | I          | F02/F03 |
-| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | TODO                                                                      | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                            | —          |
-| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md)   | F10/F12     | TODO                                                                      | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน             | —          |
-| D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md)     | F07/F13     | TODO                                                                      | F07/F09; รายงานผลจริงและข้อจำกัด                                                   | —          |
-| D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08         | TODO                                                                      | F06; duplicate/concurrent, insufficient funds/budget และ month boundary tests      | —          |
-| D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md)   | F13         | TODO                                                                      | F04/F09; browser evidence และผลทดสอบจริง                                           | —          |
-| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md)   | F12/F13     | TODO                                                                      | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล                                | —          |
-| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md)     | F13         | TODO                                                                      | F07/F09; แนบ cases ที่ผ่าน/ไม่ผ่าน                                                 | —          |
-| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13     | TODO                                                                      | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | —          |
-| D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md)   | F14         | TODO                                                                      | F13 และ blocker ที่เกี่ยวปิดแล้ว                                                   | —          |
-| D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md)   | F14         | TODO                                                                      | F12/F13; ไม่มี KPI mock ใน demo integrated                                         | —          |
-| D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md)     | F14         | TODO                                                                      | F13; grounded response ตรวจซ้ำ                                                     | —          |
-| D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14         | TODO                                                                      | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน                             | —          |
+| D1 / 7 ต.ค. | [`R1-D1-A`](APP_DEV_A.md) | F04/F09 | DOING | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ | — |
+| D1 / 7 ต.ค. | [`R1-D1-B`](APP_DEV_B.md) | F05/F10/F12 | DOING | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I | — |
+| D1 / 7 ต.ค. | [`R1-D1-AI`](AI_DEV.md) | F07 | PARTIAL: DTO/auth/tool contract + user-confirmed 3+2 policy | ดู decisions 12 ต.ค.; semantic fallback/review pending | — |
+| D1 / 7 ต.ค. | [`R1-D1-I`](INTEGRATION.md) | F00/F01 | DOING | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้ | — |
+| D2 / 8 ต.ค. | [`R1-D2-A`](APP_DEV_A.md) | F04 | DOING | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode | — |
+| D2 / 8 ต.ค. | [`R1-D2-B`](APP_DEV_B.md) | F05 | DOING | F01/F02; role switch ต้นแบบไม่ใช่ auth guard | — |
+| D2 / 8 ต.ค. | [`R1-D2-AI`](AI_DEV.md) | F07 | PARTIAL: retrieval/SQL ranker implemented; live SQL test pending | ไม่มี development DATABASE_URL; unit scope/validation ผ่าน | — |
+| D2 / 8 ต.ค. | [`R1-D2-I`](INTEGRATION.md) | F02 | DOING | F00/F01; ยอดมาจาก ledger/DB จริง | — |
+| D3 / 9 ต.ค. | [`R1-D3-A`](APP_DEV_A.md) | F04 | TODO | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้ | — |
+| D3 / 9 ต.ค. | [`R1-D3-B`](APP_DEV_B.md) | F05 | DOING | F03; owner isolation, validation/error และสถานะ pending/approved | — |
+| D3 / 9 ต.ค. | [`R1-D3-AI`](AI_DEV.md) | F07 | PARTIAL: Backend context/candidates + FastAPI/Postman | ไม่มี location filter; live Backend/model E2E และ review pending | — |
+| D3 / 9 ต.ค. | [`R1-D3-I`](INTEGRATION.md) | F03 | DOING | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน | — |
+| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md) | F09 | TODO | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม | — |
+| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md) | F10 | PARTIAL: Government rules API/UI; seller transactions/rules TODO | D5 | B | F06/F08 |
+| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md) | F07 | PARTIAL: verified IDs/active-rate reads/empty state; fallback pending | อ่าน stored rates เท่านั้น; provider failure ส่ง error ไม่แต่งข้อมูล | — |
+| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06 | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4 | I | F02/F03 |
+| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md) | F09 | TODO | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ | — |
+| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md) | F10/F12 | TODO | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน | — |
+| D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md) | F07/F13 | TODO | F07/F09; รายงานผลจริงและข้อจำกัด | — |
+| D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08 | TODO | F06; duplicate/concurrent, insufficient funds/budget และ month boundary tests | — |
+| D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md) | F13 | TODO | F04/F09; browser evidence และผลทดสอบจริง | — |
+| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md) | F12/F13 | TODO | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล | — |
+| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md) | F13 | PARTIAL: 28 AI tests + real Qwen fixture smoke; DB E2E pending | F07/F09; 43 Backend unit tests ผ่าน, opt-in SQL ยังไม่มี DATABASE_URL | — |
+| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13 | TODO | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | — |
+| D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md) | F14 | TODO | F13 และ blocker ที่เกี่ยวปิดแล้ว | — |
+| D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md) | F14 | TODO | F12/F13; ไม่มี KPI mock ใน demo integrated | — |
+| D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md) | F14 | TODO | F13; grounded response ตรวจซ้ำ | — |
+| D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14 | TODO | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน | — |
 
 อัปเดตตามงานใน working tree ณ **11 ตุลาคม 2569 (Asia/Bangkok)**; งานที่เริ่มทำระบุ DOING และยังไม่มี Daily Flag ที่ปิด DONE หรือเข้า PR จากหลักฐานรอบนี้. งาน Auth/Registration ทำได้แล้วไม่ได้แปลว่า F02/F03 ผ่านครบ เพราะ wallet/Coins, store CRUD/approval และ ownership acceptance ยังเหลือ. Release F14 ยังต้องรอ F13 และ gates ตาม [Integration](INTEGRATION.md).
 
@@ -329,3 +329,56 @@
 - ตรวจจริง: จาก ai-service รัน `.venv/Scripts/python.exe -m unittest discover -s tests -v` ผ่าน 17 tests รวม payload/system prompt/Thai/validation/final-content-only/inline-thinking/config/error cases ด้วย httpx MockTransport; `pip check` ผ่าน. เรียก unittest จาก root ครั้งหนึ่ง import config ไม่พบ แล้วรันจาก owning directory ตาม README ผ่าน. Uvicorn จริง + HTTP Ollama stub ผ่าน 11 standard collection requests และ missing-model503/invalidJSON502/upstream500→502; Postman JavaScript runner ไม่ได้รัน. Black write/check Python 7 ไฟล์ผ่าน โดยใช้ --workers 1 --no-cache หลัง cached workers ค้าง; Prettier 3.4.2 ผ่าน Node write/check Markdown/JSON ทั้ง 8 ไฟล์; skill quick_validate และ git diff --check ผ่าน. ไม่รัน NestJS/web build เพราะไม่แก้ runtime ของสองแอป
 - Runtime จริง: ผู้ใช้ยืนยัน local Ollama; เตรียม official Windows standalone CPU 0.40.3 ใน ignored ai-service/.tools/ollama, executable signature Valid, เปิด loopback11434 และดาวน์โหลด qwen3:4b (SHA256 verified) ไว้ใน .tools/ollama-models โดยไม่แก้ PATH. `ollama list` พบโมเดลและ `ollama ps` แสดง CPU; FastAPI/Uvicorn บน temporary port → Ollama → Qwen3 จริงตอบ /chat 200 พร้อมภาษาไทย เฉพาะ final answer ผ่านหลังแก้ inline-thinking ใช้ 69.91 วินาที. หยุด temporary Uvicorn แล้ว คง Ollama background server ไว้; README มีคำสั่งเปิดใหม่. การติดตั้งผ่าน winget ดาวน์โหลดช้าจึงหยุดและใช้ standalone ทางการแทน
 - ข้อจำกัด: live smoke เป็นคำทักทายหนึ่งกรณี ไม่ใช่ benchmark/intent/grounding evaluation; CPU อาจเกิน timeout120s สำหรับคำตอบยาว และ TestClient มี deprecation warning แต่ tests ผ่าน. ยังไม่มี auth/history/DB retrieval/tool loop/Search/storeIds ใน API; F07 PARTIAL และ R1-D1-AI DOING ไม่ใช่ acceptance DONE. ขั้นต่อไป: คุยแหล่งข้อมูลระบบ, filters/ranking, Search scope/provider/citations และ auth/history ใน DESIGN.md ก่อน implement workflow และปรับ F09 contract ร่วมกัน
+
+### 2026-10-12 20:43 Asia/Bangkok — R1-D1-AI / F07: GPU runtime + Backend API/Auth review
+
+- ผู้ใช้ขอให้ Qwen3 ใช้ GPU และสรุป Backend API/Auth เพื่อเตรียมเชื่อมตัวตนผู้ถาม. ตรวจ `nvidia-smi --query-gpu=name,memory.total,memory.free,driver_version --format=csv,noheader` พบ RTX 3050 6GB Laptop GPU/driver617.42; เพิ่ม official Ollama 0.40.3 CUDA13 DLLs 13 ไฟล์ (ZIP CRC verified) ใน ignored ai-service/.tools/ollama/lib/ollama/cuda_v13 แล้ว restart เฉพาะ standalone server ของโปรเจกต์ด้วย CUDA_VISIBLE_DEVICES=0, context4096, parallel1. คง server ไว้ ไม่มีการแก้ global PATH/driver หรือดาวน์โหลด model weights ซ้ำ
+- ตรวจจริง: log offload36/36 layers; `ollama ps` =100% GPU และ `/api/ps` size_vram เท่ากับ model size ประมาณ3.2GB. FastAPI/Uvicorn บน temporary port → Ollama/Qwen3 จริง `/chat` 200 ใน101.55s รวม cold load/warm-up; คำทักทายเดิมผ่าน FastAPI TestClient + Ollama จริงโดยไม่มี dependency overrides หลังโหลดแล้ว200 ใน9.17s ทั้งคู่คืนภาษาไทยไม่มี thinking tags. หยุด temporary Uvicorn แล้ว; ตัวเลขเป็น smoke2ครั้งไม่ใช่ benchmark และ TestClient ยังมี deprecation warning
+- ตรวจ registered controllers/services, AuthService.me และ Next.js session handlers: พบ9 NestJS routes; `/me` ตรวจ JWT HS256/issuer/audience/expiry + ACTIVE/current role แล้วคืน id/role/displayName, `/stores` CUSTOMER, `/government/coin-rules` GOVERNMENT. สรุปใน [DESIGN.md](../ai-service/DESIGN.md#backend-apis-ที่ตรวจพบ--12-ตค-2569); wallet/Coins/history/store-by-ID/recommendation endpoints ยังไม่มี. เป็น source review ไม่ได้เรียก Backend ที่ใช้ DB จริงหรือทดสอบ login ด้วยบัญชีจริง
+- แก้ [README](../ai-service/README.md) คำสั่ง GPU/การตรวจ offload/ผลจริง, DESIGN.md และ [decisions](../docs/decisions.md#2026-10-12--gpu-runtime-and-backend-identity-review) เสนอ Next cookie → AI Bearer → Backend/me → verified context/tools โดย token ไม่เข้าโมเดล. `/chat` ยังไม่มี Auth/identity integration; ไม่เปลี่ยน HTTP contract/Backend routes จึงไม่มี Postman change. Prettier3.4.2 ผ่าน Node write/check Markdown4ไฟล์และ git diff --check ผ่าน; ไม่รัน unit tests/build ซ้ำเพราะไม่แก้ Python/TS source โดยใช้ real GPU smoke ตรวจ runtime ที่เปลี่ยน
+- F07 คง PARTIAL, R1-D1-AI คง DOING. ขั้นต่อไป: ตกลงและ implement Auth boundary ผ่าน `/me` ก่อนเชื่อมข้อมูลส่วนบุคคล; กำหนด customer-readable system rules/candidate/card APIs และ test 401/403/expired token/account-role changes ร่วมกับ A/I. ยังไม่เปิด Tool Calling/DB filtering/Search ในรอบนี้
+
+### 2026-10-12 20:45 Asia/Bangkok — Maintenance / AI: CUDA กับ Python requirements
+
+- ตรวจ requirements.txt/requirements-dev.txt และ services/llm.py: FastAPI ใช้ httpx เรียก Ollama ผ่าน HTTP ไม่ได้โหลดโมเดลด้วย Python; CUDA libraries อยู่กับ Ollama runtime จึงไม่เพิ่ม CUDA/torch ลง requirements ปัจจุบัน. หากเปลี่ยนเป็นรันโมเดลผ่าน Python โดยตรง ต้องทบทวน dependencies/backend GPU ของ framework นั้นก่อน
+- แก้เฉพาะ handoff; Feature/Daily Flags คงเดิม. Prettier ผ่าน Node write/check PLAN/PLAN.md และ git diff --check ผ่าน; ไม่รัน tests/build เพราะไม่มี runtime/config change. ขั้นต่อไปคงเชื่อม identity ผ่าน /me ตามแบบที่บันทึกไว้
+
+### 2026-10-12 20:47 Asia/Bangkok — Maintenance / AI: ตำแหน่ง GPU configuration
+
+- ตรวจ README คำสั่งเปิด Ollama: CUDA_VISIBLE_DEVICES=0 ถูกตั้งเป็น environment ของ server process ก่อน serve พร้อม CUDA13 libraries ใน .tools/ollama/lib/ollama/cuda_v13; ไม่ใช่ setting ใน llm.py หรือ .env ของ FastAPI และไม่ใช่ persistent global environment. ใช้คำสั่ง README เมื่อเปิด server ใหม่
+- อ่าน server log ยืนยัน CUDA/RTX3050 และ `offloaded 37/37 layers to GPU`; แก้จำนวนใน README เป็น37/37ตาม log (entry GPU ก่อนหน้าระบุ36จากการนับ repeating/output layers). ไม่เปลี่ยน runtime/API/สถานะ Flag. Prettier ผ่าน Node write/check README/PLAN และ git diff --check ผ่าน; ไม่รัน inference/tests/build ซ้ำเพราะตอบตำแหน่ง config และแก้เอกสารเท่านั้น. ขั้นต่อไปคง identity integration ตาม DESIGN.md
+
+### 2026-10-12 20:52 Asia/Bangkok — Maintenance / AI: คู่มือติดตั้ง GPU libraries
+
+- ตรวจเอกสาร Ollama Windows/GPU ทางการแล้วเพิ่ม [README](../ai-service/README.md#ติดตั้ง-gpu-libraries-ใหม่): Windows installer รวม NVIDIA support หรือ standalone0.40.3 ZIP ที่มี GPU dependencies; ขั้นตอนหยุด server, แตก ZIP/copy CUDA13 DLLs จาก release เดียวกัน, เปิดใหม่และตรวจ offload พร้อม PowerShell ตัวอย่าง. ไม่ใช้ pip/CUDA Toolkit สำหรับ prebuilt Ollama ชุดนี้; ระบุว่าบนเครื่องติดตั้งแล้วและไม่รัน download/install ซ้ำ
+- แก้ README/PLAN เท่านั้น คง Feature/Daily Flags. ตรวจ syntax ของ PowerShell blocks ด้วย Parser โดยไม่ execute, Prettier ผ่าน Node write/check ทั้ง2ไฟล์ และ git diff --check ผ่าน; ไม่รัน app tests/build/inference เพราะเป็นคู่มือติดตั้ง ไม่มี runtime/API change. ขั้นต่อไปใช้คู่มือเมื่อติดตั้งเครื่องใหม่ และทำ identity integration ตาม DESIGN.md
+
+### 2026-10-12 20:59 Asia/Bangkok — Maintenance / AI: ชี้แจง automatic GPU support
+
+- ผู้ใช้ทักว่าติดตั้ง Ollama ปกติควรมี GPU acceleration อัตโนมัติ; ตรวจเอกสาร Windows ทางการยืนยัน installer/standalone ZIP รวม NVIDIA GPU dependencies. แก้ README ให้ชัดว่าการเติม CUDA ครั้งนี้เกิดจากผมเลือกดึงเฉพาะไฟล์ CPU จาก ZIP ในรอบแรกเพื่อลด download ไม่ใช่ข้อกำหนดติดตั้งปกติ; CUDA_VISIBLE_DEVICES=0 เป็นตัวเลือกจำกัด GPU ไม่ใช่สวิตช์ที่ต้องใส่เสมอ
+- แก้ README/PLAN เท่านั้น คง flags/runtime/API. Prettier ผ่าน Node write/check ทั้ง2ไฟล์และ git diff --check ผ่าน; ไม่รัน tests/build/inference เพราะชี้แจงเอกสาร ไม่มีโค้ดหรือ runtime เปลี่ยน. ขั้นต่อไปใช้ installer/ZIP ครบชุดสำหรับเครื่องใหม่และคง identity integration ตาม DESIGN.md
+
+### 2026-10-12 21:09 Asia/Bangkok — Maintenance / AI: Token จากหน้าบ้านสำหรับ tools
+
+- ตรวจ Next login/stores handlers และ FastAPI chat router เทียบกับ DESIGN.md: เว็บมี HttpOnly session cookie; เสนอให้ Next route อ่าน cookie แล้วส่ง Bearer ไป AI, AI ตรวจ /me และใช้ token เดิมเรียก protected read APIs ตามสิทธิ์ของผู้ถาม. โมเดลเลือก tool ส่วน server เป็นผู้เรียก API/แนบ credential; ส่งเฉพาะ verified context ที่จำเป็นให้โมเดล. ปัจจุบัน /chat ยังไม่ได้ตรวจหรือส่งต่อ token และยังไม่มี Next chat proxy
+- แก้ handoff เท่านั้น ไม่เปลี่ยน flags/API/Auth policy หรือ implement workflow. Prettier ผ่าน Node write/check PLAN และ git diff --check ผ่าน; ไม่รัน tests/build เพราะอธิบาย flow เดิมโดยไม่เปลี่ยน source. ขั้นต่อไป implement/test cookie-to-AI-to-/me boundary ก่อนใช้ข้อมูลส่วนบุคคล ตามข้อเสนอใน DESIGN.md
+
+### 2026-10-12 21:16 Asia/Bangkok — Maintenance / AI: เว็บและ AI บนเครื่องเดียวกัน
+
+- ผู้ใช้ยกเลิกข้อสมมติเว็บเพื่อน/AI tunnel ระหว่างการอธิบาย แล้วให้เว็บกับ AI รันเครื่องนี้ทั้งคู่; ปรับ README, DESIGN และ decisions เป็น Next.js → loopback8000 FastAPI → loopback11434 Ollama พร้อมคงข้อเสนอ cookie/Bearer → Backend/me ก่อน personal-data tools. Backend URL อิงที่ NestJS รันจริง ไม่สมมติ host/port เพิ่ม; ไม่มีการเปิด tunnel/เริ่มเว็บหรือ Backend หรือ implement Auth ในการชี้แจงนี้
+- คง Feature/Daily Flags; แก้เอกสาร4ไฟล์เท่านั้น. Prettier ผ่าน Node write/check README/DESIGN/decisions/PLAN และ git diff --check ผ่าน; ไม่รัน app tests/build เพราะไม่มี runtime/API change. ขั้นต่อไป implement/test local Next chat proxy และ AI identity boundary ตาม DESIGN.md เมื่อตกลง workflow
+
+### 2026-10-12 22:18 Asia/Bangkok — R1-D2-AI / F07 (+ D1/D3/D4, F13): authenticated recommendations 3+2
+
+- ผู้ใช้อนุมัติ implement และยืนยันขาดโควตาคืนเท่าที่มี; บันทึก [decision](../docs/decisions.md#2026-10-12--recommendation-implementation-three-new-two-repeat) ก่อน coding แทน unvisited-only เดิม. ร้าน APPROVED ตรง category แบบ OR; ใหม่สูงสุด3/เคยซื้อสูงสุด2 ไม่เติมข้ามกลุ่ม. Visit ใช้ประวัติ confirmed SUCCEEDED/REFUNDED ทุกเดือน; อ่าน stored new/repeat Coins ใน active period ไม่คิดอัตราหรือ award ขึ้นใหม่
+- เพิ่ม [NestJS read APIs](../apps/api/src/recommendations/recommendations.controller.ts): GET `/recommendations/context`, POST `/recommendations/candidates` (200), CUSTOMER Bearer/ownership ผ่าน AuthService.me. SQL กรอง/แบ่งโควตา/จัดอันดับ Coins ที่ทราบก่อน, unknownท้าย, numeric ID tie; ไม่มี schema/migration/ledger writes. ลงทะเบียน AppModule และเพิ่ม unit/opt-in PostgreSQL TEMP-table tests
+- [FastAPI /chat](../ai-service/router/chat.py) ต้องแนบ token และตรวจ context ก่อน inference. เพิ่ม Backend settings/adapter, Qwen native tool search_system_shops ที่ตรวจ master IDs/arguments และจำกัดหนึ่ง read/two inference calls. Model ได้ history summary20ร้านล่าสุด ไม่มี token/profile; ส่ง public reply + storeIds จาก Backend เท่านั้น พร้อม mode/model เดิม. อัปเดต main.py/OpenAPI metadata เป็น0.3.0 และ descriptions รวม Backend errors. ข้อมูลไม่มี purchased item lines; รู้เฉพาะร้าน/ประเภท ไม่อ้างสินค้าที่ซื้อจริง
+- อัปเดต [README](../ai-service/README.md), DESIGN, API contract, decisions และ shared [Postman](../apps/api/postman/THAI-Please.postman_collection.json) ทั้ง chat auth/recommend/validation/provider และ context/candidates 401/403/400. คำสั่ง service อยู่ README ไม่เพิ่ม Test.md
+- Checks: `.venv/Scripts/python.exe -m unittest discover -s tests -q` ใน ai-service ผ่าน28; `pip check` ผ่าน; Black write/check (`--workers 1 --no-cache`) ไฟล์ Python ที่แก้ผ่าน. Backend direct installed `.bin/vitest.cmd run` ผ่าน43/skip1 opt-in, `.bin/oxlint.cmd --type-aware src/ test/` และ `.bin/nest.cmd build` ผ่าน (cwd apps/api; เรียก oxlint ตรงจาก root หา tsgolint ไม่เจอ แก้โดยใช้ cwd package แล้วผ่านไม่มี warning). Initial missing generated client แก้ด้วย `.bin/prisma.cmd generate` โดยไม่ migrate. Prettier package API write/check ทุก TS/Markdown/JSON ที่แก้, Postman JSON/test-script syntax และ git diff --check ผ่าน
+- Real Qwen/GPU fixture smoke `python -X utf8 tests/smoke_ollama.py` ผ่าน greeting/no tool, food+cafe/two real interpreted categories/5 verified fixture IDs, off-topic/no tool; ล่าสุด5.02s/55.75s/9.73s ตามลำดับ เป็น smoke ไม่ใช่ benchmark. แก้ prompt หลังพบโมเดลเรียกร้านเคยซื้อว่าเคยแนะนำ; รอบสุดท้ายใช้เคยซื้อถูกต้อง. `ollama ps` ยืนยัน100% GPU/context4096. Backend ใน smoke เป็น fixture ไม่ใช่ live DB
+- Blocker/limits: opt-in PostgreSQL test ลองแล้วไม่ผ่านเพราะไม่มี development DATABASE_URL (normal suite จึง skip1); Docker daemon ไม่ทำงาน จึงยังไม่ยืนยัน SQL/live Backend + model E2E. ไม่มี Next chat proxy/UI/card-by-ID/Search/location/price/product filtering/conversation memory/semantic fallback. คง F07/F13 PARTIAL ไม่มี PR/DONE. ขั้นต่อไปตั้ง Backend DATABASE_URL/JWT_SECRET/ข้อมูล master แล้วรัน opt-in SQL + authenticated live smoke ก่อนเชื่อม Next HttpOnly-cookie chat proxy และทำ broader grounding/review
+
+### 2026-10-12 22:44 Asia/Bangkok — Maintenance / AI: อธิบาย recommendation read APIs
+
+- ตรวจ [Backend controllers/service](../apps/api/src/recommendations/recommendations.controller.ts) และ [FastAPI chat](../ai-service/router/chat.py) เพื่ออธิบาย GET `/recommendations/context` (ตรวจบัญชี/หมวดหมู่/สรุปประวัติ20ร้านล่าสุด) เทียบกับ POST `/recommendations/candidates` (รับ categoryIds, DB กรอง APPROVED/ประวัติทุกเดือน/โควตา3+2 และจัดอันดับ stored Coins). ทั้งคู่ CUSTOMER Bearer; AI server เป็นผู้เรียก ไม่ใช่โมเดลส่ง token เอง; public chat คืน storeIds แยกจาก internal candidate DTO
+- แก้ PLAN handoff เท่านั้น คง flags/source/contracts. Prettier package API write/check PLAN และ git diff --check ผ่าน; ไม่รัน tests/build เพราะอธิบายโค้ดเดิม ไม่มี runtime change. ข้อจำกัด/ขั้นต่อไปคงเดิม: ตั้ง development DATABASE_URL แล้วตรวจ live SQL/Backend integration ก่อนเชื่อมหน้าเว็บ

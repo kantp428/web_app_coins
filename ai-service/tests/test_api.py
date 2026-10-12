@@ -11,6 +11,7 @@ from config import Settings
 from main import app
 from prompts.system import SYSTEM_PROMPT
 from services.llm import LLMService, get_llm_service
+from services.backend import BackendService, get_backend_service
 
 
 class ChatAPITests(unittest.TestCase):
@@ -18,11 +19,44 @@ class ChatAPITests(unittest.TestCase):
         self.upstream_response = None
         self.upstream_error = None
         self.payloads = []
+        self.backend_requests = []
+        self.backend_status = 200
+        self.context = {
+            "user": {"id": "1", "role": "CUSTOMER", "displayName": "Test"},
+            "categories": [],
+            "purchaseHistory": [],
+        }
+        self.candidates = {"stores": []}
+        self.model_responses = []
+
+        def backend_handler(request: httpx.Request) -> httpx.Response:
+            self.backend_requests.append(request)
+            self.assertEqual(
+                request.headers["Authorization"], "Bearer test-customer-token"
+            )
+            if self.backend_status != 200:
+                return httpx.Response(
+                    self.backend_status, json={"message": "private backend error"}
+                )
+            if request.method == "GET":
+                self.assertEqual(request.url.path, "/recommendations/context")
+                return httpx.Response(200, json=self.context)
+            self.assertEqual(request.url.path, "/recommendations/candidates")
+            return httpx.Response(201, json=self.candidates)
+
+        async def override_backend():
+            async with httpx.AsyncClient(
+                base_url="http://backend.test/",
+                transport=httpx.MockTransport(backend_handler),
+            ) as client:
+                yield BackendService(client)
 
         def handler(request: httpx.Request) -> httpx.Response:
             self.assertEqual(str(request.url), "http://model.test/api/chat")
             payload = json.loads(request.content)
             self.payloads.append(payload)
+            if self.model_responses:
+                return httpx.Response(200, json=self.model_responses.pop(0))
             if self.upstream_error is not None:
                 raise self.upstream_error("test failure", request=request)
             if self.upstream_response is not None:
@@ -46,8 +80,11 @@ class ChatAPITests(unittest.TestCase):
                 yield LLMService(client, "qwen3:4b")
 
         app.dependency_overrides[get_llm_service] = override_service
+        app.dependency_overrides[get_backend_service] = override_backend
         self.addCleanup(app.dependency_overrides.pop, get_llm_service)
+        self.addCleanup(app.dependency_overrides.pop, get_backend_service)
         self.client = self.enterContext(TestClient(app))
+        self.client.headers["Authorization"] = "Bearer test-customer-token"
 
     def test_health_is_liveness_without_model_call(self) -> None:
         response = self.client.get("/health")
@@ -62,29 +99,25 @@ class ChatAPITests(unittest.TestCase):
         self.assertEqual(self.client.get("/test").status_code, 200)
 
     def test_chat_returns_only_final_model_answer(self) -> None:
-        message = "สวัสดี ช่วยแนะนำร้านอาหารหน่อย"
+        message = "สวัสดี"
         response = self.client.post("/chat", json={"message": message})
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertEqual(body["mode"], "model")
         self.assertEqual(body["model"], "qwen3:4b")
         self.assertIn(message, body["reply"])
-        self.assertEqual(set(body), {"reply", "mode", "model"})
+        self.assertEqual(set(body), {"reply", "storeIds", "mode", "model"})
+        self.assertEqual(body["storeIds"], [])
         self.assertNotIn("internal trace", response.text)
         self.assertEqual(
-            self.payloads,
-            [
-                {
-                    "model": "qwen3:4b",
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": message},
-                    ],
-                    "stream": False,
-                    "think": False,
-                }
-            ],
+            self.payloads[0]["messages"][0],
+            {"role": "system", "content": SYSTEM_PROMPT},
         )
+        self.assertEqual(
+            self.payloads[0]["messages"][-1], {"role": "user", "content": message}
+        )
+        self.assertFalse(self.payloads[0]["think"])
+        self.assertNotIn("test-customer-token", json.dumps(self.payloads))
 
     def test_chat_trims_message(self) -> None:
         response = self.client.post("/chat", json={"message": "  สวัสดี \n"})

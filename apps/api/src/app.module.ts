@@ -1,5 +1,9 @@
 import { StoresController, StoresService } from './stores/stores.controller.js';
 import {
+  RecommendationsController,
+  RecommendationsService,
+} from './recommendations/recommendations.controller.js';
+import {
   CoinRulesController,
   CoinRulesService,
 } from './coin-rules/coin-rules.controller.js';
@@ -21,6 +25,7 @@ import { AppService } from './app.service.js';
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
   controllers: [
+    RecommendationsController,
     StoresController,
     CoinRulesController,
     AppController,
@@ -29,6 +34,7 @@ import { AppService } from './app.service.js';
     CategoriesController,
   ],
   providers: [
+    RecommendationsService,
     StoresService,
     AppService,
     AuthService,

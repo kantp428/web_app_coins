@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class Settings(BaseModel):
+    backend_base_url: HttpUrl = HttpUrl("http://127.0.0.1:3000")
+    backend_timeout_seconds: float = Field(
+        default=15, gt=0, le=120, allow_inf_nan=False
+    )
     ollama_base_url: HttpUrl = HttpUrl("http://127.0.0.1:11434")
     ollama_model: str = Field(default="qwen3:4b", min_length=1, max_length=200)
     ollama_timeout_seconds: float = Field(
@@ -17,6 +21,8 @@ class Settings(BaseModel):
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
+        backend_base_url=os.getenv("BACKEND_BASE_URL", "http://127.0.0.1:3000"),
+        backend_timeout_seconds=os.getenv("BACKEND_TIMEOUT_SECONDS", "15"),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
         ollama_model=os.getenv("OLLAMA_MODEL", "qwen3:4b").strip(),
         ollama_timeout_seconds=os.getenv("OLLAMA_TIMEOUT_SECONDS", "120"),

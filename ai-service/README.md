@@ -1,6 +1,6 @@
 # AI chatbot service
 
-FastAPI chatbot ใช้ Python 3.12+ เชื่อม **Qwen3 4B ผ่าน Ollama native API** แยกจาก NestJS และ pnpm workspace การเรียก `/chat` ใช้โมเดลจริง ไม่มี mock fallback ส่วนแนะนำร้าน/Tool Calling/Database Filtering/Search ยังเป็น [แบบสำหรับคุยก่อน implement](DESIGN.md)
+FastAPI chatbot ใช้ Python 3.12+ เชื่อม **Qwen3 4B ผ่าน Ollama native API** พร้อม Tool Calling และ Backend Database Filtering สำหรับแนะนำร้าน ดู [workflow](DESIGN.md) การเรียก `/chat` ต้องแนบ CUSTOMER Bearer token; ประวัติมาจาก Backend ตามบัญชีที่ยืนยันแล้ว ไม่มี mock fallback ส่วน Search และการเชื่อมหน้าเว็บยังรอทำเพิ่มเติม
 
 คู่มือนี้เป็นที่เก็บคำสั่งใช้งานของ service ให้คอยอัปเดตเมื่อวิธีติดตั้ง รัน ตั้งค่า หรือทดสอบเปลี่ยน
 
@@ -23,7 +23,38 @@ Ollama model tag คือ [`qwen3:4b`](https://ollama.com/library/qwen3:4b) ด
 
 ### Ollama ที่เตรียมไว้บนเครื่องนี้
 
-รอบนี้เตรียม [Ollama standalone สำหรับ Windows](https://docs.ollama.com/windows) เวอร์ชัน 0.40.3 แบบ CPU ไว้ใน `ai-service/.tools/ollama/` และเก็บ weights ใน `ai-service/.tools/ollama-models/` ทั้งสองอยู่ใน ignored directory และไม่ได้เพิ่ม executable เข้า PATH จึงใช้คำสั่งเต็มด้านล่างแทน `ollama` บนเครื่องนี้ ไฟล์เหล่านี้ไม่ติดไปกับการ clone repository
+เครื่องนี้ใช้ [Ollama standalone สำหรับ Windows](https://docs.ollama.com/windows) เวอร์ชัน 0.40.3 ใน `ai-service/.tools/ollama/` พร้อม CUDA 13 libraries ใน `lib/ollama/cuda_v13/` สำหรับ NVIDIA GeForce RTX 3050 6GB Laptop GPU และเก็บ weights ใน `ai-service/.tools/ollama-models/` ทั้งสองอยู่ใน ignored directory และไม่ได้เพิ่ม executable เข้า PATH จึงใช้คำสั่งเต็มด้านล่างแทน `ollama` บนเครื่องนี้ ไฟล์เหล่านี้ไม่ติดไปกับการ clone repository
+
+#### ติดตั้ง GPU libraries ใหม่
+
+การติดตั้ง Ollama แบบปกติด้วย Windows installer หรือแตก standalone ZIP ครบชุด มี NVIDIA GPU libraries มาแล้ว และ Ollama เลือกใช้ GPU ที่รองรับได้อัตโนมัติเมื่อ driver/VRAM พร้อม. เหตุที่โปรเจกต์นี้ต้องเพิ่ม DLL ภายหลังคือ ตอนแรกผมเลือกดาวน์โหลด/แตกเฉพาะไฟล์ CPU จาก ZIP เพื่อลดขนาด download จึงยังไม่ได้เอา CUDA libraries มาด้วย เป็นผลจากวิธีเตรียม runtime ครั้งนั้น ไม่ใช่ขั้นตอนที่ทุกการติดตั้ง Ollama ต้องทำ
+
+เครื่องนี้ติดตั้งส่วนนี้แล้ว ไม่ต้องดาวน์โหลดซ้ำ. สำหรับเครื่องใหม่ วิธีสะดวกคือใช้ [Ollama Windows installer](https://ollama.com/download/windows) ซึ่งรวม NVIDIA GPU support แล้ว และมี NVIDIA driver ที่รองรับ ตรวจการ์ด/driver ด้วย `nvidia-smi` ก่อน; ไม่ต้องติดตั้ง CUDA ผ่าน pip หรือ CUDA Toolkit เพื่อใช้ Ollama binary นี้
+
+ขั้นตอนด้านล่างใช้เฉพาะกรณีชุด standalone 0.40.3 ของโปรเจกต์ที่ตอนแรกดึงมาเฉพาะไฟล์ CPU แล้วต้องเติม CUDA ให้ครบ:
+
+1. หยุด Ollama server ก่อนคัดลอก DLL ให้ executable กับ libraries เป็น release เดียวกัน
+2. ดาวน์โหลด [ollama-windows-amd64.zip เวอร์ชัน 0.40.3](https://github.com/ollama/ollama/releases/download/v0.40.3/ollama-windows-amd64.zip) จาก release ทางการ ZIP มี CLI และ NVIDIA GPU libraries อยู่แล้ว
+3. แตก ZIP ลงโฟลเดอร์ชั่วคราว แล้วคัดลอกไฟล์ทั้งหมดจาก `lib/ollama/cuda_v13/` ไปที่ `ai-service/.tools/ollama/lib/ollama/cuda_v13/` โดยคงโครงสร้าง directory ไม่วาง DLL รวมกับ main.py หรือใน .venv. CUDA13 นี้เป็นชุดที่ทดสอบกับ RTX3050/driver617.42 บนเครื่องนี้ เครื่องอื่นต้องเลือก runtime/driver ที่เข้ากันตาม [GPU support](https://docs.ollama.com/gpu)
+4. เปิด Ollama ใหม่ด้วย environment ตามคำสั่งด้านล่าง เรียก `/chat` ให้โหลดโมเดล แล้วตรวจ `ollama ps` ว่า PROCESSOR เป็น GPU
+
+ตัวอย่าง PowerShell สำหรับข้อ 2–3 จาก repo root (ใช้เฉพาะกรณีต้องติดตั้ง libraries ใหม่):
+
+```powershell
+$ollamaPackageUrl = "https://github.com/ollama/ollama/releases/download/v0.40.3/ollama-windows-amd64.zip"
+$ollamaZipPath = Join-Path (Get-Location) "ai-service/.tools/ollama-windows-amd64-0.40.3.zip"
+$ollamaExtractPath = Join-Path (Get-Location) "ai-service/.tools/ollama-package-0.40.3"
+$ollamaCudaPath = Join-Path (Get-Location) "ai-service/.tools/ollama/lib/ollama/cuda_v13"
+Invoke-WebRequest -Uri $ollamaPackageUrl -OutFile $ollamaZipPath
+Expand-Archive -LiteralPath $ollamaZipPath -DestinationPath $ollamaExtractPath
+New-Item -ItemType Directory -Path $ollamaCudaPath -Force | Out-Null
+Get-ChildItem -LiteralPath (Join-Path $ollamaExtractPath "lib/ollama/cuda_v13") -File |
+    Copy-Item -Destination $ollamaCudaPath -Force
+```
+
+ถ้าติดตั้ง standalone ใหม่ทั้งชุด ให้แตก ZIP ทั้งหมดเพื่อให้ ollama.exe และ libraries อยู่ release เดียวกัน; เก็บ weights แยกตาม OLLAMA_MODELS เดิม
+
+#### เปิด Ollama
 
 จาก repo root ตรวจ server และโมเดลก่อน:
 
@@ -38,10 +69,21 @@ Invoke-RestMethod http://127.0.0.1:11434/api/tags
 $env:OLLAMA_MODELS = Join-Path (Get-Location) "ai-service/.tools/ollama-models"
 $env:OLLAMA_HOST = "127.0.0.1:11434"
 $env:OLLAMA_NUM_PARALLEL = "1"
+$env:OLLAMA_CONTEXT_LENGTH = "4096"
+$env:CUDA_VISIBLE_DEVICES = "0"
 & .\ai-service\.tools\ollama\ollama.exe serve
 ```
 
 คง terminal นี้ไว้ระหว่างใช้งานและกด `Ctrl+C` เพื่อหยุด ห้ามเปิด `serve` ซ้ำเมื่อ port 11434 มี server อยู่แล้ว หากยังไม่มีโมเดล ใช้ `& .\ai-service\.tools\ollama\ollama.exe pull qwen3:4b` หลังเปิด server
+
+GPU ถูกเลือกโดย Ollama server; ไม่ต้องแก้ FastAPI หรือส่งตัวเลือก GPU ใน message. ต้อง restart Ollama หลังเปลี่ยน environment นี้ และต้องมี CUDA libraries/driver ที่รองรับ การตั้ง `CUDA_VISIBLE_DEVICES=0` ใช้จำกัดให้เห็นการ์ดหมายเลข 0 เป็นตัวเลือกเสริม ไม่ใช่สวิตช์ที่ต้องตั้งเพื่อเปิด GPU acceleration ตามปกติ และไม่ได้ยืนยันว่าโมเดลถูก offload แล้ว ตรวจหลังเรียก `/chat` ขณะที่โมเดลยังโหลดอยู่:
+
+```powershell
+& .\ai-service\.tools\ollama\ollama.exe ps
+nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv
+```
+
+คอลัมน์ PROCESSOR ของ `ollama ps` ควรแสดง `100% GPU` สำหรับโมเดลนี้ ถ้าแสดง CPU ให้ตรวจ CUDA libraries และ server log ที่ `ai-service/.tools/ollama-server.stderr.log` การใช้ GPU ขึ้นอยู่กับ driver/VRAM ที่ว่าง ดู [Ollama GPU support](https://docs.ollama.com/gpu)
 
 ### เปิด FastAPI
 
@@ -55,21 +97,31 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 หากมี `.venv` แล้ว ข้ามคำสั่งสร้าง environment ได้ ใช้ Python จาก `.venv` โดยตรงโดยไม่ต้อง activate คง terminal ที่รัน Uvicorn ไว้ระหว่างทดสอบ และกด `Ctrl+C` เพื่อหยุด service
 
-| Environment              | ค่าเริ่มต้น              | ความหมาย                                                               |
-| ------------------------ | ------------------------ | ---------------------------------------------------------------------- |
-| `OLLAMA_BASE_URL`        | `http://127.0.0.1:11434` | URL server Ollama ไม่รวม `/api`                                        |
-| `OLLAMA_MODEL`           | `qwen3:4b`               | ชื่อ model tag ที่ server มี                                           |
-| `OLLAMA_TIMEOUT_SECONDS` | `120`                    | HTTP timeout มากกว่า 0 และไม่เกิน 600 วินาที; connect timeout 5 วินาที |
+| Environment               | ค่าเริ่มต้น              | ความหมาย                                                               |
+| ------------------------- | ------------------------ | ---------------------------------------------------------------------- |
+| `OLLAMA_BASE_URL`         | `http://127.0.0.1:11434` | URL server Ollama ไม่รวม `/api`                                        |
+| `OLLAMA_MODEL`            | `qwen3:4b`               | ชื่อ model tag ที่ server มี                                           |
+| `OLLAMA_TIMEOUT_SECONDS`  | `120`                    | HTTP timeout มากกว่า 0 และไม่เกิน 600 วินาที; connect timeout 5 วินาที |
+| `BACKEND_BASE_URL`        | `http://127.0.0.1:3000`  | URL NestJS ที่มี recommendation routes ไม่ใช่ URL Next.js              |
+| `BACKEND_TIMEOUT_SECONDS` | `15`                     | Backend HTTP timeout มากกว่า 0 และไม่เกิน 120 วินาที                   |
 
 ต้อง restart service หลังเปลี่ยน environment การใช้ `.env` ต้องมี `--env-file .env` ตามคำสั่งด้านบน ค่าที่ตั้งใน process environment มีลำดับก่อน `.env` ตัว service ใช้ local server เป็นค่าเริ่มต้นและไม่มี API key ในการตั้งค่าปัจจุบัน
 
-เปิด [Swagger UI](http://127.0.0.1:8000/docs) แล้วเลือก `POST /chat` → **Try it out** → **Execute** หรือทดสอบจาก PowerShell อีกหน้าต่าง:
+ต้องรัน NestJS รุ่นที่มี `GET /recommendations/context` และ `POST /recommendations/candidates` ก่อน พร้อมตั้ง `DATABASE_URL`/`JWT_SECRET` และข้อมูลร้าน/หมวดหมู่ตามคู่มือ Backend ใน `Test.md`. หากยังไม่ได้ generate Prisma Client ใช้ `pnpm --filter api exec prisma generate` จาก repo root; ไม่ต้องเพิ่ม migration สำหรับงานนี้. หากมี `.env` ของ AI อยู่แล้ว ให้เพิ่ม BACKEND_BASE_URL เองตาม port ที่ใช้จริง (การ copy แบบมีเงื่อนไขไม่เขียนทับไฟล์เดิม)
+
+เปิด [Swagger UI](http://127.0.0.1:8000/docs) กด **Authorize** แล้ววาง accessToken จาก Backend login (ช่องนี้ใส่เฉพาะ token ไม่ต้องพิมพ์ Bearer). จากนั้นเลือก `POST /chat` → **Try it out** → **Execute** หรือทดสอบจาก PowerShell อีกหน้าต่าง:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/health
 
+# Login ผ่าน Backend/Postman แล้วนำ accessToken มาใช้ เฉพาะ CUSTOMER
+$accessToken = Read-Host "CUSTOMER accessToken"
+$headers = @{ Authorization = "Bearer $accessToken" }
 $body = @{ message = "สวัสดี คุณช่วยเรื่องอะไรได้บ้าง" } | ConvertTo-Json
-Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+
+$body = @{ message = "ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```
 
 ตัวอย่างรูปแบบคำตอบ (ข้อความจริงขึ้นอยู่กับโมเดล):
@@ -77,42 +129,53 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -ContentType "app
 ```json
 {
   "reply": "สวัสดีครับ ผมช่วยตอบคำถามเกี่ยวกับ THAI Please และการใช้จ่ายได้ครับ",
+  "storeIds": [],
   "mode": "model",
   "model": "qwen3:4b"
 }
 ```
 
-| Route               | ผลลัพธ์                                                                |
-| ------------------- | ---------------------------------------------------------------------- |
-| `GET /health`       | 200 พร้อม `status`, `service`, `mode`                                  |
-| `POST /chat`        | 200 พร้อม `reply`, `mode`, `model`; 422 เมื่อ input ไม่ผ่าน validation |
-| `GET /docs`         | Swagger UI                                                             |
-| `GET /openapi.json` | API schema                                                             |
+| Route               | ผลลัพธ์                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `GET /health`       | 200 พร้อม `status`, `service`, `mode`                                                    |
+| `POST /chat`        | CUSTOMER Bearer; 200 พร้อม `reply`, `storeIds`, `mode`, `model`; 401/403 auth; 422 input |
+| `GET /docs`         | Swagger UI                                                                               |
+| `GET /openapi.json` | API schema                                                                               |
 
 `/health` ตรวจเฉพาะ app liveness; `mode: "model"` หมายถึงโหมดที่ตั้งไว้ ไม่ยืนยันว่า Ollama หรือโมเดลพร้อมใช้งาน คง `/test` เป็น alias ของ health ตามโค้ดล่าสุด โดยไม่แสดงซ้ำใน Swagger
 
-ข้อผิดพลาดจากโมเดลตอบเป็น `{ "detail": "..." }`: 503 เชื่อมต่อ Ollama ไม่ได้/ไม่พบโมเดลหรือ endpoint, 504 model timeout, 502 upstream error/คำตอบผิดรูปแบบหรือว่าง ไม่มีการเปลี่ยนเป็นคำตอบ mock เมื่อโมเดลล่ม
+ข้อผิดพลาดตอบเป็น `{ "detail": "..." }`: 401 token หาย/ผิด/หมดอายุ, 403 ไม่ใช่ CUSTOMER, 503 เชื่อมต่อ Backend/Ollama ไม่ได้หรือไม่พบโมเดล, 504 timeout, 502 upstream error/ข้อมูลหรือ tool call ผิดรูปแบบ ไม่มีการแต่งประวัติหรือร้านทดแทนเมื่อระบบล่ม
+
+การแนะนำคืน `storeIds` อย่างเดียวสำหรับข้อมูลการ์ด: สูงสุด **ร้านใหม่ 3 + ร้านที่เคยซื้อ 2**, ไม่ครบคืนเท่าที่มี ไม่เติมข้ามกลุ่ม ทั้งสองกลุ่มต้องตรงประเภทที่ตีความได้ (หลายประเภทใช้ OR). จัดอันดับตาม Coins ที่ทราบจากอัตรารอบปัจจุบัน สูงไปต่ำ; ไม่ทราบอยู่ท้าย; เสมอกันใช้รหัสร้านตามตัวเลข. ถ้าไม่มีอัตราเลยใช้รหัสร้านเรียงตามตัวเลข ไม่คำนวณ Coins ขึ้นใหม่ เช่น `{ "reply":"พบร้านใหม่ 2 ร้านและร้านที่เคยซื้อ 1 ร้านครับ", "storeIds":["101","205","310"], "mode":"model", "model":"qwen3:4b" }` เป็นตัวอย่างรูปแบบเท่านั้น
 
 `message` ต้องเป็น string หลัง trim ยาว 1–2000 ตัวอักษร; ไม่รับฟิลด์อื่น ข้อผิดพลาดใช้ FastAPI `detail` ตาม [contract](../docs/api-contract.md) Postman อยู่ใน `apps/api/postman/THAI-Please.postman_collection.json` หมวด **AI service (Qwen3 4B)** ใช้ตัวแปร `aiBaseUrl` แยกจาก NestJS
 
-ใน Postman ให้ import collection แล้วตั้ง collection variable `aiBaseUrl` เป็น `http://127.0.0.1:8000` และ `aiModel` ให้ตรงกับ OLLAMA_MODEL มี requests สำหรับ health/chat/docs/schema, validation และ provider error กรณี success ต้องมี model server ที่พร้อม; error scenarios ให้ตั้ง server จำลองตามคำอธิบายแต่ละ request และส่งเฉพาะ request นั้น ทดสอบทุก error แบบอัตโนมัติได้ผ่าน unit tests
+ใน Postman ตั้ง `baseUrl` เป็น NestJS, `aiBaseUrl` เป็น `http://127.0.0.1:8000`, `aiModel` ให้ตรงกับ OLLAMA_MODEL แล้ว Login CUSTOMER เพื่อบันทึกตัวแปร `token`. หมวด AI มี chat/recommend/auth/validation/provider cases; หมวด Recommendation read tools มี context/candidates/auth/filter cases ใช้ `categoryId` จาก List shop categories. Provider error scenarios ต้องมี Backend/context ที่พร้อมและตั้ง model server ตามคำอธิบายแต่ละ request
 
 ## ไฟล์และจุดต่อยอด
 
 - `main.py`: app, lifespan, health และ router registration
 - `router/chat.py`: POST /chat และการแปลง provider error เป็น HTTP status
 - `schemas/chat.py`: request/response validation
-- `config.py` / `.env.example`: model server, model tag และ timeout
+- `config.py` / `.env.example`: model/Backend URLs และ timeouts
+- `services/backend.py`: ตรวจ DTO และส่ง token ให้ Backend read APIs; ไม่ส่ง credential เข้า prompt
 - `services/llm.py`: async HTTP adapter เรียก Ollama `/api/chat` ด้วย `stream:false`, `think:false` และคืนข้อความคำตอบสุดท้ายจาก `message.content`; แยก inline thinking ของบาง template และปฏิเสธคำตอบที่ยังคิดไม่จบ/ไม่มีข้อความสุดท้าย
 - `prompts/system.py`: system prompt ที่ส่งให้โมเดลทุก request
-- `tests/test_api.py`: ตรวจ HTTP contract และ adapter ด้วย mock transport; ไม่ต้องมี model server
+- `tests/test_api.py`, `tests/test_recommendations.py`: HTTP/provider/auth/tool regression ด้วย mock transports
+- `tests/smoke_ollama.py`: smoke กับโมเดลจริงและ Backend fixture; ไม่ใช่ live DB E2E
 - `requirements.txt`: ขอบเขตเวอร์ชัน runtime; `requirements.lock.txt`: เวอร์ชัน dependencies ที่ทดสอบจริง
 
-แต่ละ request ทำงานอิสระ ไม่มี memory/history/auth/ข้อมูลร้าน/Coins และยังไม่เรียก Search หรือ DB tools ข้อความจะส่งไปยัง model server ที่ตั้งค่าไว้ prompt กำหนดขอบเขตเรื่องระบบ/การใช้จ่ายและให้แจ้งเมื่อไม่มีข้อมูล แต่การทำงานตาม prompt ยังต้องประเมินกับโมเดลจริง การต่อเว็บ/NestJS และสิทธิ์เข้าถึง service ต้องกำหนดก่อน integration ตาม [decisions](../docs/decisions.md)
+แต่ละ request ยังไม่มีประวัติบทสนทนา แต่มีประวัติซื้อจาก Backend สูงสุด 20 ร้านล่าสุดสำหรับบริบทโมเดล การตรวจเคยซื้อใช้ประวัติทุกเดือนรวมร้านที่ซื้อสำเร็จแล้วคืนเงิน ไม่ขึ้นกับข้อจำกัด 20 ร้านนี้. ไม่มีรายละเอียดสินค้าใน purchase schema จึงรู้เฉพาะร้าน/ประเภท/จำนวนครั้ง/วันที่ ไม่รู้ว่าซื้อสินค้าชิ้นใด. ยังไม่กรองระยะทาง ราคา หรือสินค้าเฉพาะ และไม่เรียก Search
 
 System prompt มี `/no_think` ตาม [คำแนะนำของ Qwen3](https://huggingface.co/Qwen/Qwen3-4B) ร่วมกับ `think:false` เนื่องจาก template ที่ดาวน์โหลดอาจยังส่ง thinking ปนใน content ตัว adapter จึงตัดส่วนก่อน `</think>` ออกด้วยและไม่คืน `message.thinking` ให้ frontend
 
-ผลทดสอบบนเครื่องนี้วันที่ 12 ต.ค. 2569: Ollama 0.40.3 + `qwen3:4b` ทำงานแบบ CPU ผ่าน FastAPI `/chat` ได้ 200 พร้อมข้อความภาษาไทยและไม่มี thinking tags ใช้เวลาประมาณ 70 วินาทีสำหรับคำทักทายหนึ่งครั้ง เวลานี้เป็นตัวอย่างการรันจริง ไม่ใช่ผล benchmark; timeout เริ่มต้น 120 วินาทีอาจไม่พอสำหรับคำตอบยาว ยังไม่ได้ประเมิน intent/recommendation หรือความถูกต้องของข้อมูลระบบครบชุด
+ผลทดสอบก่อนเพิ่ม CUDA บนเครื่องนี้วันที่ 12 ต.ค. 2569: Ollama 0.40.3 + `qwen3:4b` ทำงานแบบ CPU ผ่าน FastAPI `/chat` ได้ 200 พร้อมข้อความภาษาไทยและไม่มี thinking tags ใช้เวลาประมาณ 70 วินาทีสำหรับคำทักทายหนึ่งครั้ง เวลานี้เป็นตัวอย่างการรันจริง ไม่ใช่ผล benchmark; timeout เริ่มต้น 120 วินาทีอาจไม่พอสำหรับคำตอบยาว ยังไม่ได้ประเมิน intent/recommendation หรือความถูกต้องของข้อมูลระบบครบชุด
+
+ผลล่าสุดหลังเพิ่ม CUDA 13: Qwen3 4B offload 37/37 layers ตาม server log ไป RTX 3050; `ollama ps` แสดง `100% GPU`, `/api/ps` รายงาน model size/size_vram เท่ากันประมาณ 3.2 GB. ทดสอบ FastAPI/Uvicorn `/chat` จริงได้ 200 ใน 101.55 วินาทีรวมโหลดและ warm-up ครั้งแรก; ส่งคำทักทายเดิมผ่าน FastAPI TestClient โดยใช้ Ollama จริงและไม่ override dependency หลังโมเดลโหลดแล้วได้ 200 ใน 9.17 วินาที ทั้งสองครั้งตอบภาษาไทย ไม่มี thinking tags. เป็น smoke tests สองคำขอ ไม่ใช่ benchmark หรือการรับประกันเวลา; GPU warm-up ครั้งแรกอาจใช้เวลานาน คง Ollama background server ไว้และหยุดเฉพาะ Uvicorn ชั่วคราวที่ใช้ทดสอบแล้ว
+
+สรุป Backend API/Token/Auth อยู่ใน [DESIGN.md](DESIGN.md). `/chat` ตรวจ token ผ่าน authenticated context ซึ่ง Backend เรียก AuthService.me ก่อนอ่านประวัติ ไม่ต้องเรียก `/me` ซ้ำอีกครั้ง
+
+เว็บและ AI รันบนเครื่องนี้ทั้งคู่ แต่ Next chat proxy/UI ยังไม่ได้ต่อ. ขั้นต่อไปให้ Next.js อ่าน HttpOnly cookie ฝั่ง server แล้วส่ง Bearer ไป AI ผ่าน loopback8000; AI เรียก Ollama loopback11434 และ Backend ตาม BACKEND_BASE_URL. ห้ามให้โมเดลหรือ request body ระบุ URL/actor เอง
 
 ## ตรวจงาน
 
@@ -122,8 +185,12 @@ System prompt มี `/no_think` ตาม [คำแนะนำของ Qwen3
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m black --workers 1 --no-cache main.py config.py router/chat.py schemas/chat.py services/llm.py prompts/system.py tests/test_api.py
-.\.venv\Scripts\python.exe -m black --workers 1 --no-cache --check main.py config.py router/chat.py schemas/chat.py services/llm.py prompts/system.py tests/test_api.py
+.\.venv\Scripts\python.exe -m black --workers 1 --no-cache main.py config.py router schemas services prompts tests
+.\.venv\Scripts\python.exe -m black --workers 1 --no-cache --check main.py config.py router schemas services prompts tests
+# ต้องมี Ollama จริง; Backend เป็น fixture ไม่ใช้ประวัติผู้ใช้จริง
+.\.venv\Scripts\python.exe -X utf8 tests/smoke_ollama.py
 ```
+
+จาก repo root ตรวจ Backend ด้วย `pnpm --filter api lint`, `pnpm --filter api test`, `pnpm --filter api build`. SQL integration opt-in ใช้ development DATABASE_URL ที่มี master categories อย่างน้อยสองประเภท: `cd apps/api`, ตั้ง `$env:RECOMMENDATION_DB_TEST="1"` แล้ว `pnpm exec vitest run src/recommendations/recommendations.database.spec.ts`. Test สร้างเฉพาะ TEMP tables ใน transaction ไม่แก้ business tables จริง. รอบนี้ tests ปกติและ Qwen smoke ใช้ fixtures; live SQL/E2E ต้องรอ DATABASE_URL ที่พร้อม
 
 Prettier ไม่รองรับ Python ในการตั้งค่าปัจจุบัน จึงใช้ Black สำหรับ `.py` และ Prettier ของ package API สำหรับ Markdown/JSON ที่แก้ เอกสารอ้างอิง: [Ollama chat API](https://docs.ollama.com/api/chat), [Thinking controls](https://docs.ollama.com/capabilities/thinking), [TestClient](https://fastapi.tiangolo.com/tutorial/testing/)
