@@ -84,3 +84,50 @@ export type ShopCategory = { id: string; name: string; slug: string };
 export async function getCategories(signal: AbortSignal) {
   return (await api.get<ShopCategory[]>("/categories", { signal })).data;
 }
+export type CoinRuleInput = {
+  minimumPurchase: string;
+  lowSalesThreshold: string;
+  salesWindowDays: number;
+  repeatCoins: number;
+  newLowSalesCoins: number;
+  newOtherCoins: number;
+};
+export type CoinRule = {
+  rule_id: string;
+  version: number;
+  effective_from: string;
+  effective_to: string | null;
+  minimum_purchase: string;
+  low_sales_threshold: string;
+  sales_window_days: number;
+  repeat_coins: number;
+  new_low_sales_coins: number;
+  new_other_coins: number;
+};
+export type CoinRulesData = {
+  rules: CoinRule[];
+  serverTime: string;
+  nextEffectiveAt: string;
+  periods: {
+    period_id: string;
+    starts_at: string;
+    ends_at: string;
+    _count: { shop_coin_rates: number };
+    shop_coin_rates: {
+      shop_coin_rate_id: string;
+      shop_id: string;
+      rule_id: string;
+      new_customer_coins: number;
+      repeat_customer_coins: number;
+      sales_total_snapshot: string;
+      shops: { name: string };
+    }[];
+  }[];
+};
+export async function getCoinRules(signal?: AbortSignal) {
+  return (await api.get<CoinRulesData>("/government/coin-rules", { signal }))
+    .data;
+}
+export async function createCoinRule(body: CoinRuleInput) {
+  return (await api.post<CoinRule>("/government/coin-rules", body)).data;
+}

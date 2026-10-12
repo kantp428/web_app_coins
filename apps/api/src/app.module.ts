@@ -1,4 +1,8 @@
 import {
+  CoinRulesController,
+  CoinRulesService,
+} from './coin-rules/coin-rules.controller.js';
+import {
   CategoriesController,
   CategoriesService,
 } from './categories/categories.controller.js';
@@ -16,11 +20,18 @@ import { AppService } from './app.service.js';
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
   controllers: [
+    CoinRulesController,
     AppController,
     AuthController,
     GeocodingController,
     CategoriesController,
   ],
-  providers: [AppService, AuthService, GeocodingService, CategoriesService],
+  providers: [
+    AppService,
+    AuthService,
+    GeocodingService,
+    CategoriesService,
+    CoinRulesService,
+  ],
 })
 export class AppModule {}

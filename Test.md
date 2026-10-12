@@ -86,3 +86,9 @@ DB ใช้ categories + shop_categories แทน shops.category; migration 20
 ## วันและเวลาเปิด–ปิด — 12 ตุลาคม 2026
 
 Register ร้าน: dropdown วันเปิด เลือกหลายวันหรือเลือกทุกวัน/ยกเลิกทุกวัน; ช่องเวลาเปิด—ปิดกรอก24ชั่วโมง HH:mm เช่น08:00—18:00. เวลาเดียวกันทุกวันที่เลือก;18:00—02:00หมายถึงปิดวันถัดไป. API ส่ง openingHours {days:[MON,TUE,...],open,close,timeZone:Asia/Bangkok} เก็บ JSONเดิม ไม่ต้อง migrate;ข้อมูลเก่า{text}ยังอยู่. Tests24 และ web/API lint/buildผ่าน; browser select-all/บางวัน/overnightผ่าน ยังไม่ตรวจสมัครสำเร็จครบ flow.
+
+## Mock historical Coin rules
+
+Run pnpm --filter api seed:coin-rules after seed:demo. Adds expired versions1–3 (1 Sep–1 Oct2026, Asia/Bangkok) to Government /government/coin-rules history. Idempotent; refuses conflicting versions/windows and production. Values are demo only; no active/pending rule or shop rates created.
+
+Current mock rule: pnpm --filter api seed:coin-rules:current. Creates an active version if none exists; minimum50บาท, threshold10000บาท/7days, new-low10/new-other5/repeat1. Existing active rule retained, pending rule refused.

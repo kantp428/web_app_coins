@@ -2,7 +2,7 @@
   "info": {
     "name": "THAI Please",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Coin rate schema 2026-10-12: shared coin_rate_periods + per-shop shop_coin_rates added. Storage only; no rate endpoints or changed request bodies. F06/F08 generation and award linkage pending."
+    "description": "Government Coin Rules supports versioned GET/POST; shared period/rate storage remains read-only. Automatic rate generation/awards pending F06/F08."
   },
   "variable": [
     {
@@ -40,6 +40,10 @@
     {
       "key": "registerGovernmentUsername",
       "value": "register_government"
+    },
+    {
+      "key": "nonGovernmentToken",
+      "value": ""
     }
   ],
   "item": [
@@ -590,6 +594,207 @@
           }
         }
       ]
+    },
+    {
+      "item": [
+        {
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expected HTTP 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules"
+          },
+          "name": "List rules/periods"
+        },
+        {
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expected HTTP 201', function () { pm.response.to.have.status(201); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules",
+            "body": {
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw",
+              "raw": "{\r\n  \"minimumPurchase\": \"50.00\",\r\n  \"repeatCoins\": 1,\r\n  \"lowSalesThreshold\": \"10000.00\",\r\n  \"salesWindowDays\": 7,\r\n  \"newLowSalesCoins\": 10,\r\n  \"newOtherCoins\": 5\r\n}"
+            }
+          },
+          "name": "Create rule version"
+        },
+        {
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expected HTTP 401', function () { pm.response.to.have.status(401); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": ""
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules"
+          },
+          "name": "Reject unauthenticated"
+        },
+        {
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expected HTTP 403', function () { pm.response.to.have.status(403); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{nonGovernmentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules"
+          },
+          "name": "Reject non-government token"
+        },
+        {
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expected HTTP 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules",
+            "body": {
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw",
+              "raw": "{\r\n  \"minimumPurchase\": \"50.00\",\r\n  \"repeatCoins\": 2,\r\n  \"lowSalesThreshold\": \"10000.00\",\r\n  \"salesWindowDays\": 7,\r\n  \"newLowSalesCoins\": 10,\r\n  \"newOtherCoins\": 5\r\n}"
+            }
+          },
+          "name": "Reject invalid rule"
+        },
+        {
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expected HTTP 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules",
+            "body": {
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw",
+              "raw": "{\r\n  \"minimumPurchase\": \"50.00\",\r\n  \"repeatCoins\": 1,\r\n  \"lowSalesThreshold\": \"10000.00\",\r\n  \"salesWindowDays\": 7,\r\n  \"newLowSalesCoins\": 10,\r\n  \"newOtherCoins\": 5\r\n}"
+            }
+          },
+          "name": "Reject second pending rule"
+        }
+      ],
+      "name": "Government Coin Rules",
+      "description": "Use government token. Set nonGovernmentToken from customer/seller login. 201 creates a pending rule; run 409 immediately after. No delete endpoint."
     }
   ]
 }

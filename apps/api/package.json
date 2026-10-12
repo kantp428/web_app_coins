@@ -20,7 +20,9 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "seed:demo": "node prisma/seed-demo.mjs"
+    "seed:demo": "node prisma/seed-demo.mjs",
+    "seed:coin-rules": "node prisma/seed-coin-rules.mjs",
+    "seed:coin-rules:current": "node prisma/seed-current-coin-rule.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
