@@ -398,3 +398,13 @@
 
 - ปรับ fixture และ `/wallet/quests` ให้สิทธิ์ Main Quest ใช้ได้เฉพาะเดือนที่ได้รับ: สิทธิ์ที่ไม่ได้ใช้เมื่อข้ามเดือนแสดง “หมดอายุ” พร้อมเวลาหมดอายุ และรอบเก่าที่สะสมไม่ครบแสดง “จบรอบแล้ว” โดยไม่มีปุ่มกลับไปสะสม; `/wallet/history` แสดง badge “หมดอายุ” แทน “พร้อมใช้” สำหรับสิทธิ์รอบก่อน
 - ไม่เพิ่มหรือแก้ Database/API; เป็น UI Preview ตามกติกา Main Quest เดิม. ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA. Next: ให้ backend ส่งสถานะ/เวลา expiry จริงเมื่อ F08 เชื่อม quest API
+
+### 2026-10-13 04:23 Asia/Bangkok — cross-cutting maintenance: dev terminal investigation
+
+- ตรวจ root/apps package scripts: `pnpm dev` ใช้ concurrently รวม web/API ใน terminal เดียว; scripts แยกคือ `dev:web` และ `dev:api`. ตรวจเอกสาร Microsoft Windows Terminal เพื่อแนะนำ split-pane จาก PowerShell; ไม่แก้ runtime scripts และไม่เปลี่ยน Feature/Daily Flag
+- เปลี่ยนเฉพาะ `PLAN/PLAN.md`; ไม่รัน dev/build/test เพราะเป็นการตรวจ scripts และให้คำแนะนำ ไม่ได้ทดสอบเปิด terminal จริง. ตรวจ Markdown ด้วย `pnpm --filter web exec prettier --write ../../PLAN/PLAN.md` และ `--check` ตามผลคำสั่งในรอบนี้. Next: ใช้คำสั่ง Windows Terminal จาก repo root เพื่อเปิด web/API คนละ pane
+
+### 2026-10-13 04:25 Asia/Bangkok — cross-cutting maintenance: VS Code split dev task
+
+- เพิ่ม `.vscode/tasks.json`: `Dev: Front + Back` เรียก `dev:web`/`dev:api` พร้อมกันจาก workspace root และใช้ presentation group เดียวเพื่อ split terminal; ตั้ง default build task สำหรับ Ctrl+Shift+B, dedicated panels และ instance limit 1. เพิ่ม exception ใน `.gitignore` เพื่อให้แชร์ tasks ได้; ไม่เปลี่ยน Feature/Daily Flag
+- ตรวจ JSON parse และอ้างอิง scripts กับ root package ด้วย PowerShell; ตรวจ `pnpm --filter web exec prettier --write ../../.vscode/tasks.json ../../PLAN/PLAN.md`, `--check` และ `git diff --check`. ไม่รัน app build/test เพราะเปลี่ยน editor configuration เท่านั้น และยังไม่ได้ทดสอบ VS Code UI จริง. ไม่มี business decision/blocker ใหม่. Next: เปิด repo root ใน VS Code แล้วกด Ctrl+Shift+B เพื่อยืนยัน front/back แสดงคนละ pane

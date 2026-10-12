@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: Front + Back",
+      "dependsOn": ["Dev: Frontend", "Dev: Backend"],
+      "dependsOrder": "parallel",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": [],
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Dev: Frontend",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev:web"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "group": "coins-dev",
+        "clear": true
+      },
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Dev: Backend",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev:api"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "group": "coins-dev",
+        "clear": true
+      },
+      "runOptions": { "instanceLimit": 1 }
+    }
+  ]
+}
