@@ -934,6 +934,97 @@
         "method": "POST",
         "url": "{{baseUrl}}/auth/register"
       }
+    },
+    {
+      "name": "Wallet and one-time payment flow",
+      "description": "Run CUSTOMER and SELLER login requests first. Top-up and help reset are prototype operations; payment request UUID can settle once.",
+      "item": [
+        {
+          "name": "Customer wallet summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/wallets/me"
+          }
+        },
+        {
+          "name": "Customer top-up",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"amount\":\"500.00\"}" },
+            "url": "{{baseUrl}}/wallets/top-up"
+          }
+        },
+        {
+          "name": "Reset customer help (test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/wallets/help/reset"
+          }
+        },
+        {
+          "name": "Seller creates payment request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{sellerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"amount\":\"100.00\"}" },
+            "url": "{{baseUrl}}/seller/payment-requests"
+          }
+        },
+        {
+          "name": "Customer pays request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}/pay"
+          }
+        },
+        {
+          "name": "Customer pays same request again — 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}/pay"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Used QR rejected', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wallet history",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/wallets/history"
+          }
+        }
+      ]
     }
   ]
 }

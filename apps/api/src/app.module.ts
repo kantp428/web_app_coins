@@ -17,6 +17,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import {
+  WalletsController,
+  WalletsService,
+} from './wallets/wallets.controller.js';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
@@ -27,6 +31,7 @@ import { AppService } from './app.service.js';
     AuthController,
     GeocodingController,
     CategoriesController,
+    WalletsController,
   ],
   providers: [
     StoresService,
@@ -35,6 +40,7 @@ import { AppService } from './app.service.js';
     GeocodingService,
     CategoriesService,
     CoinRulesService,
+    WalletsService,
   ],
 })
 export class AppModule {}

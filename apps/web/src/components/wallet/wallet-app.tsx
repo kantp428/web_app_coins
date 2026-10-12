@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NearbyStores } from "@/components/wallet/nearby-stores";
+import { LiveWallet } from "@/components/wallet/live-wallet";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
@@ -135,7 +136,15 @@ export function WalletApp({
 }: {
   role?: "normal" | "store";
   section?:
-    "home" | "explore" | "quest" | "history" | "receive" | "manage" | "profile";
+    | "home"
+    | "scan"
+    | "topup"
+    | "explore"
+    | "quest"
+    | "history"
+    | "receive"
+    | "manage"
+    | "profile";
 }) {
   const { user } = useAuth();
   const seller = role === "store";
@@ -277,6 +286,14 @@ export function WalletApp({
           </div>
         </header>
         <main className="space-y-7 px-5 pb-28">
+          {(
+            ["home", "scan", "topup", "history", "receive"] as string[]
+          ).includes(tab) && (
+            <LiveWallet
+              role={seller ? "SELLER" : "CUSTOMER"}
+              section={tab as "home" | "scan" | "topup" | "history" | "receive"}
+            />
+          )}
           {notice && (
             <div
               role="status"
@@ -293,7 +310,7 @@ export function WalletApp({
               </Button>
             </div>
           )}
-          {tab === "home" && (
+          {false && tab === "home" && (
             <>
               <Card className="border-primary bg-primary text-primary-foreground">
                 <CardContent className="p-6">
@@ -486,8 +503,8 @@ export function WalletApp({
               </p>
             </Section>
           )}
-          {tab === "history" && history()}
-          {tab === "receive" && (
+          {false && tab === "history" && history()}
+          {false && tab === "receive" && (
             <Section
               title="รับเงินจากลูกค้า"
               subtitle="สร้างหน้ารับเงินตัวอย่างสำหรับร้านของคุณ"
