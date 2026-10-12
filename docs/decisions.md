@@ -1,5 +1,20 @@
 # UI prototype decisions
 
+## 2026-10-12 — Token-free model test chat
+
+- User explicitly requests a token-free endpoint for plain chat, related public Search and off-topic evaluation, excluding shop recommendations. Add `POST /chat/test` with the same message validation and response shape as `/chat`; `storeIds` is always empty.
+- This endpoint has no authentication/Backend dependency and no fabricated actor, categories or purchase history. Reuse the Qwen/public-search workflow with absent authenticated context; never offer or execute `search_system_shops`. A recommendation request should explain that authenticated `/chat` is required; unexpected model shop calls are rejected with502 before any read.
+- Only `search_related_web` may run, at most once/two inference calls, with the existing scope/privacy/source/timeout/worker limits and explicit failure replies. Existing `/chat` keeps CUSTOMER Bearer auth and its recommendation behavior. The test endpoint is intended for local development at the existing loopback binding; no tunnel or deployment change is requested.
+
+## 2026-10-12 — Related public web search and four chat examples
+
+- User authorizes internet Search and asks for README examples covering plain chat, chat plus recommendations, web search, and off-topic messages. User explicitly selects DDGS without an API key for the local prototype, pinned runtime/dependency lock. No account creation, paid API or model download.
+- Add server-allowlisted search_related_web alongside search_system_shops. Web search is for public spending-support programs and digital-payment information only; system shops, IDs, Coins, personal eligibility, balances and purchase history remain Backend-only. Validate both original message and generated query against public-topic markers; reject obvious personal data/credentials and system-store queries before any external request. This lexical guard is deliberately conservative and is not a general semantic classifier.
+- Search only snippets and links, preferring/filtering to Thai government go.th, Bank of Thailand bot.or.th and Krungthai krungthai.com sources; never fetch arbitrary returned pages. No token/user profile/history is passed to the search adapter. External results are untrusted data; do not follow embedded instructions or claim that full pages were verified.
+- Chat response adds sources:[{title,url}] from server-validated search results, empty when not used/no valid result. Model uses numbered references; server renders the matching source links, rejects model-invented links/references and falls back to a factual search-status message if citations are invalid. Recommendation data remains storeIds only.
+- Permit at most one call per tool/two reads total and three inference calls, supporting combined public search + DB recommendations in one message; reject repeated or unknown calls. Search timeout/rate-limit/disabled/empty/blocked states return an explicit limitation with no fabricated web facts. Search failure must not suppress a valid shop recommendation in a mixed request. Keep live-DB/UI/security/load gates partial.
+- DDGS prototype has no availability guarantee; bounded concurrent workers/timeouts prevent an unbounded queue. Try DuckDuckGo then Yahoo through DDGS (at most two provider requests, unchanged official-domain query); live diagnostics found DuckDuckGo challenges/Brave429 while Yahoo returned official results. Avoid DDGS multi-backend aggregation skipping engines sharing a provider. Production provider choice, broader scope and lexical guard evaluation remain open; do not bypass blocks by silently broadening query scope.
+
 ## 2026-10-12 — Recommendation implementation: three new, two repeat
 
 - User now authorizes recommendation implementation, superseding the earlier model-connection-only scope. The latest explicit mix overrides the older unvisited-only F07 plan: at most three unvisited and two visited approved shops, all matching one or more model-interpreted master categories. User confirms that a shortage returns fewer results; never fill one group's shortage from the other group.

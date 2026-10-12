@@ -945,7 +945,7 @@
     },
     {
       "name": "AI service (Qwen3 4B)",
-      "description": "Standalone FastAPI calling Ollama qwen3:4b. Configure aiBaseUrl and aiModel. Chat success requires model server and weights. Stateless, local only, no auth/tools/Search/DB yet. Provider error scenarios have individual setup instructions; do not run all mutually exclusive scenarios against a single server state.",
+      "description": "Authenticated standalone FastAPI /chat: Qwen3 4B, Backend 3+2 recommendations and DDGS public Search (no API key). Configure aiBaseUrl/aiModel; login CUSTOMER to set token and run Backend with DB. Sources are official HTTPS links; shops only from Backend. DDGS can be rate-limited or return old snippets. Search failure is valid200 with an explicit limitation and sources:[]. Web proxy/UI and live-DB E2E remain pending. Mutually exclusive provider/disabled scenarios require separate setup. Token-free POST /chat/test runs plain chat/public Search/off-topic without Backend; recommendations remain authenticated /chat only.",
       "item": [
         {
           "name": "Health (200 app liveness)",
@@ -1006,7 +1006,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"สวัสดี\"\n}",
+              "raw": "{\n  \"message\": \"สวัสดี คุณช่วยเรื่องอะไรในระบบ THAI Please ได้บ้าง\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1023,7 +1023,8 @@
                 "exec": [
                   "pm.test('Expected 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('Final model answer', function () { const body=pm.response.json(); pm.expect(body.mode).to.eql('model'); pm.expect(body.model).to.eql(pm.variables.get('aiModel')); pm.expect(body.reply).to.be.a('string').and.not.empty; pm.expect(body.reply).not.to.include('<think>'); pm.expect(body.reply).not.to.include('</think>'); pm.expect(body).not.to.have.property('thinking'); });",
-                  "pm.test('No recommendations for greeting', () => pm.expect(pm.response.json().storeIds).to.eql([]));"
+                  "pm.test('No recommendations for greeting', () => pm.expect(pm.response.json().storeIds).to.eql([]));",
+                  "pm.test('No web sources for plain chat', () => pm.expect(pm.response.json().sources).to.eql([]));"
                 ]
               }
             }
@@ -1039,7 +1040,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"reply\": \"Hello, how can I help with THAI Please?\",\n  \"mode\": \"model\",\n  \"model\": \"qwen3:4b\",\n  \"storeIds\": []\n}"
+              "body": "{\n  \"reply\": \"Hello, how can I help with THAI Please?\",\n  \"mode\": \"model\",\n  \"model\": \"qwen3:4b\",\n  \"storeIds\": [],\n  \"sources\": []\n}"
             }
           ]
         },
@@ -1589,7 +1590,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย\"\n}",
+              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1604,7 +1605,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Expected 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Verified ID payload only', () => {const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(new Set(b.storeIds).size).to.eql(b.storeIds.length);b.storeIds.forEach(id=>pm.expect(id).to.match(/^[1-9][0-9]*$/));});"
+                  "pm.test('Verified ID payload only', () => {const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(new Set(b.storeIds).size).to.eql(b.storeIds.length);b.storeIds.forEach(id=>pm.expect(id).to.match(/^[1-9][0-9]*$/));});",
+                  "pm.test('No web sources for shop-only question', () => pm.expect(pm.response.json().sources).to.eql([]));"
                 ]
               }
             }
@@ -1723,6 +1725,445 @@
                   "pm.test('Expected 403', () => pm.response.to.have.status(403));"
                 ]
               }
+            }
+          ]
+        },
+        {
+          "name": "Public Search and off-topic routing (200)",
+          "description": "Together with plain-chat and recommendation requests above, these cover all four README cases. Internet/Ollama/Backend required for live Search. Source-free responses must state limitations. Inspect model wording separately; tests do not prove freshness or semantic accuracy.",
+          "item": [
+            {
+              "name": "Public program Search (official sources or explicit limitation)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"ช่วยค้นข้อมูลโครงการคนละครึ่งจากแหล่งข้อมูลทางการหน่อย\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Uses search_related_web. On success sources hold official links, storeIds empty. Search unavailable/empty/disabled is valid200 with a limitation; not a passing availability gate."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Chat response contract', () => { const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(b.sources).to.be.an('array');pm.expect(b.sources.length).to.be.at.most(5);pm.expect(b.reply).not.to.include('<think>'); });",
+                      "pm.test('Only official HTTPS sources with numbered links', () => {const b=pm.response.json();b.sources.forEach((s,i)=>{const u=new URL(s.url);const h=u.hostname.toLowerCase();pm.expect(s.title).to.be.a('string').and.not.empty;pm.expect(u.protocol).to.eql('https:');pm.expect(h.endsWith('.go.th')||['bot.or.th','krungthai.com'].some(d=>h===d||h.endsWith('.'+d))).to.eql(true);pm.expect(b.reply).to.include('['+(i+1)+']');pm.expect(b.reply).to.include(s.url);});});",
+                      "pm.test('No stores for public-only question', () => pm.expect(pm.response.json().storeIds).to.eql([]));",
+                      "if(pm.response.json().sources.length===0){pm.test('Search limitation is explicit',()=>pm.expect(pm.response.json().reply).to.match(/ค้น.*ไม่สำเร็จ|ยังไม่พบ|ปิดการค้น|ยืนยัน.*ไม่ได้|ข้อมูลสาธารณะ/));pm.test.skip('Live Search unavailable: verify again with official sources');}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Public Search plus food recommendations",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"ช่วยค้นข้อมูลโครงการคนละครึ่งจากเว็บทางการ แล้วแนะนำร้านอาหารในระบบด้วย\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Two distinct tools, at most one call each. storeIds from Backend only, max3 new/max2 repeat, fewer when unavailable. Search failures keep valid IDs and use sources:[]. Requires approved food shops for a nonempty shop response."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Chat response contract', () => { const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(b.sources).to.be.an('array');pm.expect(b.sources.length).to.be.at.most(5);pm.expect(b.reply).not.to.include('<think>'); });",
+                      "pm.test('Only official HTTPS sources with numbered links', () => {const b=pm.response.json();b.sources.forEach((s,i)=>{const u=new URL(s.url);const h=u.hostname.toLowerCase();pm.expect(s.title).to.be.a('string').and.not.empty;pm.expect(u.protocol).to.eql('https:');pm.expect(h.endsWith('.go.th')||['bot.or.th','krungthai.com'].some(d=>h===d||h.endsWith('.'+d))).to.eql(true);pm.expect(b.reply).to.include('['+(i+1)+']');pm.expect(b.reply).to.include(s.url);});});",
+                      "pm.test('Unique canonical store IDs',()=>{const ids=pm.response.json().storeIds;pm.expect(new Set(ids).size).to.eql(ids.length);ids.forEach(id=>pm.expect(id).to.match(/^[1-9][0-9]*$/));});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Off-topic politely states scope",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"หมาผมน่ารักไหม\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Politely states THAI Please scope. No store recommendation and no web Search."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Chat response contract', () => { const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(b.sources).to.be.an('array');pm.expect(b.sources.length).to.be.at.most(5);pm.expect(b.reply).not.to.include('<think>'); });",
+                      "pm.test('Only official HTTPS sources with numbered links', () => {const b=pm.response.json();b.sources.forEach((s,i)=>{const u=new URL(s.url);const h=u.hostname.toLowerCase();pm.expect(s.title).to.be.a('string').and.not.empty;pm.expect(u.protocol).to.eql('https:');pm.expect(h.endsWith('.go.th')||['bot.or.th','krungthai.com'].some(d=>h===d||h.endsWith('.'+d))).to.eql(true);pm.expect(b.reply).to.include('['+(i+1)+']');pm.expect(b.reply).to.include(s.url);});});",
+                      "pm.test('No IDs or sources for off-topic message',()=>{const b=pm.response.json();pm.expect(b.storeIds).to.eql([]);pm.expect(b.sources).to.eql([]);});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Disabled Search (manual setup only)",
+              "description": "Set WEB_SEARCH_ENABLED=false and restart AI first. Restore true afterwards; do not run as an enabled-server success case.",
+              "item": [
+                {
+                  "name": "Disabled Search returns limitation and empty sources",
+                  "request": {
+                    "method": "POST",
+                    "url": "{{aiBaseUrl}}/chat",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"message\": \"ช่วยค้นข้อมูลโครงการคนละครึ่งจากแหล่งข้อมูลทางการหน่อย\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "description": "Manual precondition: WEB_SEARCH_ENABLED=false and restart service. No external provider call. Backend authentication and Ollama still required."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                          "pm.test('Chat response contract', () => { const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.be.an('array');pm.expect(b.storeIds.length).to.be.at.most(5);pm.expect(b.sources).to.be.an('array');pm.expect(b.sources.length).to.be.at.most(5);pm.expect(b.reply).not.to.include('<think>'); });",
+                          "pm.test('Only official HTTPS sources with numbered links', () => {const b=pm.response.json();b.sources.forEach((s,i)=>{const u=new URL(s.url);const h=u.hostname.toLowerCase();pm.expect(s.title).to.be.a('string').and.not.empty;pm.expect(u.protocol).to.eql('https:');pm.expect(h.endsWith('.go.th')||['bot.or.th','krungthai.com'].some(d=>h===d||h.endsWith('.'+d))).to.eql(true);pm.expect(b.reply).to.include('['+(i+1)+']');pm.expect(b.reply).to.include(s.url);});});",
+                          "pm.test('Disabled limitation',()=>{const b=pm.response.json();pm.expect(b.sources).to.eql([]);pm.expect(b.storeIds).to.eql([]);pm.expect(b.reply).to.include('ปิดการค้น');});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Token-free model test (/chat/test)",
+          "description": "Local evaluation only. All requests explicitly No Auth and use aiBaseUrl; no Backend or database required. Restart AI to load the route. Use authenticated /chat for recommendations.",
+          "item": [
+            {
+              "name": "Plain chat without token (200)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat/test",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"สวัสดี คุณช่วยเรื่องอะไรได้บ้าง\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "No token/login/Backend needed. Ollama/qwen3:4b required. Plain scoped response, empty storeIds/sources."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Model reply with no store IDs',()=>{const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.eql([]);pm.expect(b.sources).to.be.an('array');pm.expect(b.reply).not.to.include('<think>');});",
+                      "pm.test('No web sources',()=>pm.expect(pm.response.json().sources).to.eql([]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Public Search without token (200)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat/test",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"ช่วยค้นข้อมูลโครงการคนละครึ่งจากแหล่งข้อมูลทางการหน่อย\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "No token/Backend. Ollama + internet/DDGS required. Valid Search failure is200 with limitation and empty sources; inspect freshness separately."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Model reply with no store IDs',()=>{const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.eql([]);pm.expect(b.sources).to.be.an('array');pm.expect(b.reply).not.to.include('<think>');});",
+                      "pm.test('Official HTTPS source links',()=>{const b=pm.response.json();pm.expect(b.sources.length).to.be.at.most(5);b.sources.forEach(s=>{const u=new URL(s.url),h=u.hostname;pm.expect(u.protocol).to.eql('https:');pm.expect(h.endsWith('.go.th')||['bot.or.th','krungthai.com'].some(d=>h===d||h.endsWith('.'+d))).to.eql(true);pm.expect(b.reply).to.include(s.url);});});",
+                      "if(pm.response.json().sources.length===0){pm.test('Explicit Search limitation',()=>pm.expect(pm.response.json().reply).to.match(/ค้น.*ไม่สำเร็จ|ยังไม่พบ|ปิดการค้น|ยืนยัน.*ไม่ได้|ข้อมูลสาธารณะ/));pm.test.skip('Live Search unavailable: recheck provider');}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Off-topic without token (200)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat/test",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"หมาผมน่ารักไหม\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Politely explain system scope, no Search/shop tools or Backend."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Model reply with no store IDs',()=>{const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.eql([]);pm.expect(b.sources).to.be.an('array');pm.expect(b.reply).not.to.include('<think>');});",
+                      "pm.test('No web sources',()=>pm.expect(pm.response.json().sources).to.eql([]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Recommendation redirects to authenticated chat (200)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat/test",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"ช่วยแนะนำร้านอาหารหน่อย\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "No recommendation tool or Backend read. Ask user to use /chat with CUSTOMER token; no IDs."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Model reply with no store IDs',()=>{const b=pm.response.json();pm.expect(b.reply).to.be.a('string').and.not.empty;pm.expect(b.mode).to.eql('model');pm.expect(b.model).to.eql(pm.variables.get('aiModel'));pm.expect(b.storeIds).to.eql([]);pm.expect(b.sources).to.be.an('array');pm.expect(b.reply).not.to.include('<think>');});",
+                      "pm.test('No web sources',()=>pm.expect(pm.response.json().sources).to.eql([]));",
+                      "pm.test('Authenticated route required',()=>pm.expect(pm.response.json().reply).to.match(/token|\\/chat/i));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Blank message (422)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat/test",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \" \"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Same message validation as /chat; no token."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 422',()=>pm.response.to.have.status(422));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Client identity rejected (422)",
+              "request": {
+                "method": "POST",
+                "url": "{{aiBaseUrl}}/chat/test",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"สวัสดี\",\n  \"userId\": \"1\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "No client-supplied actor/history accepted in token-free test mode."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Expected 422',()=>pm.response.to.have.status(422));"
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

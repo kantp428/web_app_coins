@@ -20,7 +20,7 @@
 | F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                 | D3                     | A               | F01/F02/F03           |
 | F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview               | D3                     | B               | F01/F02/F03           |
 | F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                     | I               | F02/F03               |
-| F07     | PARTIAL: auth + Qwen tools/DB rank 3+2; live DB/UI gates pending          | D4–5                   | AI              | F03/F06               |
+| F07     | PARTIAL: auth + Qwen tools/DB rank 3+2 + DDGS Search; DB/UI gates pending | D4–5                   | AI              | F03/F06               |
 | F08     | TODO                                                                      | D5                     | I               | F06                   |
 | F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                       | D5                     | A               | F07/F08               |
 | F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                     | B               | F06/F08               |
@@ -37,7 +37,7 @@
 | ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- | ------- |
 | D1 / 7 ต.ค. | [`R1-D1-A`](APP_DEV_A.md) | F04/F09 | DOING | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ | — |
 | D1 / 7 ต.ค. | [`R1-D1-B`](APP_DEV_B.md) | F05/F10/F12 | DOING | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I | — |
-| D1 / 7 ต.ค. | [`R1-D1-AI`](AI_DEV.md) | F07 | PARTIAL: DTO/auth/tool contract + user-confirmed 3+2 policy | ดู decisions 12 ต.ค.; semantic fallback/review pending | — |
+| D1 / 7 ต.ค. | [`R1-D1-AI`](AI_DEV.md) | F07 | PARTIAL: auth/3+2 + user-confirmed DDGS Search/sources contract | ดู decisions 12 ต.ค.; semantic fallback/review pending | — |
 | D1 / 7 ต.ค. | [`R1-D1-I`](INTEGRATION.md) | F00/F01 | DOING | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้ | — |
 | D2 / 8 ต.ค. | [`R1-D2-A`](APP_DEV_A.md) | F04 | DOING | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode | — |
 | D2 / 8 ต.ค. | [`R1-D2-B`](APP_DEV_B.md) | F05 | DOING | F01/F02; role switch ต้นแบบไม่ใช่ auth guard | — |
@@ -49,7 +49,7 @@
 | D3 / 9 ต.ค. | [`R1-D3-I`](INTEGRATION.md) | F03 | DOING | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน | — |
 | D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md) | F09 | TODO | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม | — |
 | D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md) | F10 | PARTIAL: Government rules API/UI; seller transactions/rules TODO | D5 | B | F06/F08 |
-| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md) | F07 | PARTIAL: verified IDs/active-rate reads/empty state; fallback pending | อ่าน stored rates เท่านั้น; provider failure ส่ง error ไม่แต่งข้อมูล | — |
+| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md) | F07 | PARTIAL: verified IDs/active rates + public Search/citations/limits | อ่าน stored rates เท่านั้น; Search ล่มแจ้งข้อจำกัด; broader grounding pending | — |
 | D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06 | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4 | I | F02/F03 |
 | D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md) | F09 | TODO | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ | — |
 | D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md) | F10/F12 | TODO | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน | — |
@@ -57,7 +57,7 @@
 | D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08 | TODO | F06; duplicate/concurrent, insufficient funds/budget และ month boundary tests | — |
 | D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md) | F13 | TODO | F04/F09; browser evidence และผลทดสอบจริง | — |
 | D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md) | F12/F13 | TODO | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล | — |
-| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md) | F13 | PARTIAL: 28 AI tests + real Qwen fixture smoke; DB E2E pending | F07/F09; 43 Backend unit tests ผ่าน, opt-in SQL ยังไม่มี DATABASE_URL | — |
+| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md) | F13 | PARTIAL: 50 AI tests + token-free HTTP/Qwen/DDGS smoke; DB E2E pending | F07/F09; prior 43 Backend tests ผ่าน, opt-in SQL ยังไม่มี DATABASE_URL | — |
 | D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13 | TODO | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | — |
 | D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md) | F14 | TODO | F13 และ blocker ที่เกี่ยวปิดแล้ว | — |
 | D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md) | F14 | TODO | F12/F13; ไม่มี KPI mock ใน demo integrated | — |
@@ -382,3 +382,25 @@
 
 - ตรวจ [Backend controllers/service](../apps/api/src/recommendations/recommendations.controller.ts) และ [FastAPI chat](../ai-service/router/chat.py) เพื่ออธิบาย GET `/recommendations/context` (ตรวจบัญชี/หมวดหมู่/สรุปประวัติ20ร้านล่าสุด) เทียบกับ POST `/recommendations/candidates` (รับ categoryIds, DB กรอง APPROVED/ประวัติทุกเดือน/โควตา3+2 และจัดอันดับ stored Coins). ทั้งคู่ CUSTOMER Bearer; AI server เป็นผู้เรียก ไม่ใช่โมเดลส่ง token เอง; public chat คืน storeIds แยกจาก internal candidate DTO
 - แก้ PLAN handoff เท่านั้น คง flags/source/contracts. Prettier package API write/check PLAN และ git diff --check ผ่าน; ไม่รัน tests/build เพราะอธิบายโค้ดเดิม ไม่มี runtime change. ข้อจำกัด/ขั้นต่อไปคงเดิม: ตั้ง development DATABASE_URL แล้วตรวจ live SQL/Backend integration ก่อนเชื่อมหน้าเว็บ
+
+### 2026-10-12 23:36 Asia/Bangkok — R1-D1/D4/D6-AI / F07/F13: DDGS public Search + four README cases
+
+- ผู้ใช้อนุมัติ Search และเลือก DDGS ไม่ใช้ API key พร้อมขอ README ครบ 4 รูปแบบ; บันทึก [decision](../docs/decisions.md#2026-10-12--related-public-web-search-and-four-chat-examples) ก่อน coding. เพิ่ม [web_search.py](../ai-service/services/web_search.py), settings/.env.example และ pin ddgs9.16.0/lxml6.1.3/primp2.0.1 ใน runtime lock; ติดตั้ง local venv สำเร็จ ไม่เพิ่ม CUDA/weights/API key
+- [POST /chat](../ai-service/router/chat.py) v0.4.0 ใช้ tool search_related_web เพิ่มจาก search_system_shops; อย่างละ1 read/รวม2 reads/3 inference calls. Public-topic/obvious-PII guards, official HTTPS sources/snippets only, no arbitrary page fetch, timeout/2 bounded workers. ส่ง sources:[{title,url}] แยก storeIds; server ตรวจ/render citation links และกำกับประกาศเก่า. Search disabled/blocked/empty/busy/failure แจ้งข้อจำกัด ไม่ทิ้ง IDs ที่ได้จาก DB ใน mixed request. Token/profile/history object ไม่ส่ง provider
+- อัปเดต [README](../ai-service/README.md#ตัวอย่างคำถามครบ-4-รูปแบบ) ด้วยคำถาม/body/ผลที่คาดหวัง: plain chat, ถาม+ร้าน, public Search, นอกเรื่อง และ mixed/empty/short-quota/disabled/auth cases. ปรับ DESIGN/[API contract](../docs/api-contract.md)/[Postman](../apps/api/postman/THAI-Please.postman_collection.json) ให้ตรง sources/tool budget; Postman เพิ่ม public/mixed/off-topic/manual-disabled requests. ไม่แก้ Test.md หรือ NestJS runtime
+- ตรวจจริงจาก ai-service: `.venv/Scripts/python.exe -m unittest discover -s tests -q` PASS42 และ `-m pip check` PASS. เริ่มเพิ่ม fallback test แล้วพบ missing mock import แก้แล้ว PASS. `python -X utf8 tests/smoke_ollama.py` กับ Qwen จริง+Backend fixture PASS greeting12.47s/food+cafe33.68s/off-topic8.67s. `python -X utf8 tests/smoke_web_search.py --model` กับ Qwen+DDGS จริง PASS3 official sources/no storeIds รอบสุดท้าย23.86s; เป็น connectivity/contract smoke ไม่ใช่ benchmark/full factual evaluation
+- DDGS ช่วงแรกไม่คืนผล: diagnostics พบ HTTP202 challenge/Brave429, Yahoo ค้นผลทางการได้; multi-backend aggregation ข้าม engines ที่ provider ซ้ำ จึงใช้ DuckDuckGo→Yahoo แยก attempts คำค้นเดิม. ไม่มีการลด TLS หรือเปิด arbitrary URL. พบผลต่างปี/เฟส จึงเพิ่ม prompt แยกช่วงและ server กำกับ freshness. Search ยังไม่รับประกัน availability/accuracy; lexical guard ไม่ใช่ semantic classifier/DLP สมบูรณ์
+- Black write/check Python ที่แก้, API Prettier write/check Markdown/JSON และ git diff --check PASS; JSON +65 Postman scripts syntax PASS (ไม่ได้รัน collection runner กับ Backend จริง). ไม่รัน web/Nest builds เพราะไม่แก้ runtime สองแอป. คง F07/F13 PARTIAL; live DB ยังไม่มี development DATABASE_URL และ Next chat proxy/UI/card-by-ID ยังไม่ต่อ. ขั้นต่อไปตั้ง DB แล้วรัน opt-in SQL/authenticated live E2E ก่อนต่อเว็บ พร้อมขยาย grounding/date/scope evaluation และตัดสินใจ production Search provider
+
+### 2026-10-12 23:45 Asia/Bangkok — Maintenance / AI, related R1-D6-AI / F07/F13: token-free model test API
+
+- ผู้ใช้ขอเส้นทดสอบแชท/Search/นอกเรื่องโดยไม่แนบ token และไม่ทำ recommendation; บันทึก [decision](../docs/decisions.md#2026-10-12--token-free-model-test-chat) ก่อน coding. เพิ่ม [POST /chat/test](../ai-service/router/chat.py), response แบบ /chat โดย storeIds ว่างเสมอ ไม่มี Auth/Backend dependency. [LLM workflow](../ai-service/services/llm.py) รองรับ absent context โดยไม่สร้าง actor/history/categories สมมติ; อนุญาตเพียง public Search ครั้งเดียว/สอง inference calls ปฏิเสธ shop/repeated/invalid calls ก่อน read. /chat เดิมยัง CUSTOMER Bearer; ไม่แก้ NestJS/runtime/dependencies
+- OpenAPI v0.4.1 และ [README](../ai-service/README.md#ทดสอบโมเดลโดยไม่แนบ-token) มี PowerShell/Swagger ไม่ใช้ Authorization, สามกรณีทดสอบและขอร้านแล้วใช้ /chat+token. ปรับ DESIGN/[contract](../docs/api-contract.md) และ [Postman](../apps/api/postman/THAI-Please.postman_collection.json) เพิ่ม6 requests explicit No Auth รวม validation; ไม่เพิ่มคำสั่งใน Test.md
+- ตรวจจริง: จาก ai-service `.venv/Scripts/python.exe -m unittest discover -s tests -q` PASS50 รวม8ใหม่ใน [test_chat_test.py](../ai-service/tests/test_chat_test.py) ตรวจว่า Backend dependency ห้าม resolve, ไม่มี shop tools/context, public Search/errors/validation, OpenAPI security แยก /chat. แก้ test แรกที่ใช้ Backend-forbidden override ไปเรียก /chat จน override ขัดกับ dependency เดิม; เอา assertionซ้ำออกและคง auth suite เดิมผ่านครบ
+- `.venv/Scripts/python.exe -X utf8 tests/smoke_chat_test.py` ผ่าน HTTP TestClient→Qwen/DDGS จริง ไม่มี token/Backend: plain47.99s, Search59.72s/3 official sources, off-topic10.53s, recommendation-denial20.37s ทั้งหมด200/storeIdsว่าง. เป็น local smoke ไม่ใช่ benchmark/grounding acceptance. Black write/check Python6ไฟล์รวม ignored helper, API Prettier write/check Markdown/JSON6ไฟล์, git diff --check และ Postman JSON/71 scripts syntax/6 No Auth routes PASS; ไม่รัน collection runner หรือ web/Nest build เพราะไม่มี runtime change ในสองแอป
+- ไม่มี blocker สำหรับเส้นทดสอบนี้. F07/F13 ยัง PARTIAL เนื่องจาก DB/UI/E2E/review gates เดิม; DDGS freshness/availability และ lexical scope evaluation ยังเป็นข้อจำกัดเดิม. ขั้นต่อไป restart FastAPI แล้วใช้ /docs→POST /chat/test ทดสอบข้อความ; งาน recommendation ให้ตั้ง development DATABASE_URL และตรวจ authenticated live E2E ก่อนต่อ Next UI
+
+### 2026-10-12 23:46 Asia/Bangkok — Maintenance / AI: อธิบาย smoke test scripts
+
+- ตรวจ [smoke_ollama.py](../ai-service/tests/smoke_ollama.py), [smoke_web_search.py](../ai-service/tests/smoke_web_search.py) และ [smoke_chat_test.py](../ai-service/tests/smoke_chat_test.py) เพื่ออธิบายการตรวจเส้นทางหลักกับ Ollama/DDGS จริง, fixture context และ HTTP TestClient แบบไม่ใช้ token/Backend. เป็น opt-in scripts ไม่รันตอนเปิด service หรือ unittest discovery แบบ test_*.py; ไม่ใช่ full DB E2E
+- แก้เฉพาะ handoff นี้ คง Feature/Daily Flags/runtime/contracts. ตรวจ source ด้วย rg/Get-Content; Prettier package API write/check PLAN และ git diff --check ผ่าน. ไม่รัน smoke/tests/build ซ้ำเพราะเป็นการอธิบายโค้ดเดิม. ไม่มี blocker; ขั้นต่อไปใช้คำสั่ง smoke_chat_test จาก README เมื่อต้องการตรวจโมเดลและ Search จริงหลังเปลี่ยนโค้ด

@@ -1,39 +1,49 @@
 # Service1 — Chat และ Recommendation
 
-สถานะ: implement FastAPI → Qwen3 4B/Ollama native Tool Calling → authenticated NestJS Database Filtering แล้ว. Search, conversation memory และการเชื่อมหน้าเว็บยังรอทำเพิ่มเติม. กติกาล่าสุดแทนแบบ unvisited-only เดิม ดู [decisions](../docs/decisions.md#2026-10-12--recommendation-implementation-three-new-two-repeat)
+สถานะ: implement FastAPI → Qwen3 4B/Ollama native Tool Calling → authenticated NestJS Database Filtering และ DDGS public Search แล้ว. Conversation memory และการเชื่อมหน้าเว็บยังรอทำเพิ่มเติม. กติกาล่าสุดแทนแบบ unvisited-only เดิม ดู [recommendation decisions](../docs/decisions.md#2026-10-12--recommendation-implementation-three-new-two-repeat) และ [Search decisions](../docs/decisions.md#2026-10-12--related-public-web-search-and-four-chat-examples)
 
 ## พฤติกรรม
 
-| ข้อความ                             | การทำงาน                                                                              | ผลลัพธ์                      |
-| ----------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------- |
-| ทักทาย/ถามเกี่ยวกับระบบโดยไม่ขอร้าน | โมเดลตอบในขอบเขตและแจ้งเมื่อไม่มีข้อมูล                                               | reply, storeIds ว่าง         |
-| ขอแนะนำร้าน                         | โมเดลตีความหนึ่งหรือหลาย categoryIds จาก master → read tool → Backend คัดและจัดอันดับ | reply และ storeIds ไม่เกิน 5 |
-| ขอร้านโดยไม่บอกประเภท               | ใช้ประเภทจากประวัติได้ ถ้ายังไม่ชัดให้ถามเพิ่ม                                        | ไม่มีการค้นแบบสุ่มประเภท     |
-| ข้อมูลภายนอกที่ต้องตรวจล่าสุด       | แจ้งว่าต้องตรวจแหล่งข้อมูล ยังไม่มี Search tool                                       | reply, storeIds ว่าง         |
-| นอกเรื่อง เช่น “หมาผมน่ารักไหม”     | แจ้งขอบเขตอย่างสุภาพ                                                                  | reply, storeIds ว่าง         |
+| ข้อความ                                      | การทำงาน                                                                              | ผลลัพธ์                       |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------- |
+| ทักทาย/ถามเกี่ยวกับระบบโดยไม่ขอร้าน          | โมเดลตอบในขอบเขตและแจ้งเมื่อไม่มีข้อมูล                                               | reply, storeIds ว่าง          |
+| ขอแนะนำร้าน                                  | โมเดลตีความหนึ่งหรือหลาย categoryIds จาก master → read tool → Backend คัดและจัดอันดับ | reply และ storeIds ไม่เกิน 5  |
+| ขอร้านโดยไม่บอกประเภท                        | ใช้ประเภทจากประวัติได้ ถ้ายังไม่ชัดให้ถามเพิ่ม                                        | ไม่มีการค้นแบบสุ่มประเภท      |
+| ข้อมูลสาธารณะเรื่องโครงการช่วยจ่าย/พร้อมเพย์ | search_related_web ผ่าน DDGS แล้วสรุปพร้อมอ้างอิง                                     | reply, sources, storeIds ว่าง |
+| ถามข้อมูลสาธารณะพร้อมขอร้าน                  | ใช้ Search และ DB tools อย่างละหนึ่งครั้ง                                             | reply, sources, storeIds      |
+| นอกเรื่อง เช่น “หมาผมน่ารักไหม”              | แจ้งขอบเขตอย่างสุภาพ                                                                  | reply, storeIds ว่าง          |
 
 ทุก `/chat` ต้องใช้ CUSTOMER Bearer token. ไม่มีการรับ userId, role, ประวัติที่ผู้ใช้ส่งเอง หรือ arbitrary URL/SQL ใน body/tool. Request มีเฉพาะ `message`; Backend อ่านตัวตนและประวัติจาก token
+
+## Token-free model test
+
+`POST /chat/test` ใช้ request/response เดียวกับ `/chat` แต่ไม่ต้องแนบ token และไม่มี Backend dependency. สำหรับทดลอง plain chat/public Search/off-topic โดยไม่ต้องเปิด Backend/DB. ไม่สร้าง actor/history/categories สมมติ; ส่ง system instruction ว่าไม่มี authenticated context. มีเพียง search_related_web ตาม scope เดิม อย่างละหนึ่ง call/รวมสอง inference calls; ไม่มี search_system_shops ใน tools และ reject หากโมเดลพยายามเรียกด้วย502. ขอร้านให้แจ้งว่าใช้ `/chat` พร้อม CUSTOMER token. Response `storeIds: []` เสมอ; `sources` เป็นผลค้นที่ผ่านการตรวจเดิม. ไม่เปลี่ยน auth ของ `/chat` หรือเปิด tunnel. คำสั่งและตัวอย่างอยู่ใน [README](README.md#ทดสอบโมเดลโดยไม่แนบ-token)
 
 ## Workflow ที่ implement
 
 1. FastAPI เรียก `GET /recommendations/context` ด้วย token. NestJS ตรวจ JWT และ ACTIVE account ผ่าน AuthService.me รวมทั้ง CUSTOMER role **ก่อน** อ่านข้อมูล. ถ้าตรวจไม่ได้ หยุดก่อน inference
 2. Context ประกอบด้วย category masters และประวัติ 20 ร้านล่าสุดแบบสรุป (storeId/categoryIds/count/date). ไม่ส่ง credential หรือ user profile เข้า prompt. Purchase schema ไม่มีสินค้าเป็นรายการ จึงรู้ว่าเคยซื้อจากร้าน/ประเภทใด แต่ระบุสินค้าที่ซื้อจริงไม่ได้
-3. Qwen3 ตีความ message; ถ้าขอร้าน เรียกได้เพียง `search_system_shops({categoryIds})` หนึ่งครั้ง. Server ตรวจ allowlist, รูปแบบ, ความซ้ำ และรหัสประเภทจริงสูงสุด 10 ประเภท. ไม่อนุญาต parallel/recursive tools
+3. Qwen3 ตีความ message; ถ้าขอร้าน ใช้ `search_system_shops({categoryIds})`. คำถามที่มี public-topic marker จะมี `search_related_web({query})` ให้เลือกเพิ่ม. Server ตรวจ allowlist/arguments/ประเภทจริงสูงสุด 10 ประเภท; ไม่รับ actor/URL/SQL. ใช้แต่ละ tool ได้หนึ่งครั้ง รวมสอง read calls และสาม inference calls. เรียกต่าง tool ใน batch เดียวหรือสองรอบได้; ปฏิเสธการเรียกซ้ำ/ไม่รู้จัก/เกินงบ
 4. Tool ส่ง `POST /recommendations/candidates` ด้วย token เดิม. Backend คัดร้าน APPROVED ที่มีประเภทตรงอย่างน้อยหนึ่งประเภท (OR). SQL ตรวจประวัติทุกเดือน แบ่งใหม่/เคยซื้อ แล้วเลือก **ใหม่ไม่เกิน 3 + เคยซื้อไม่เกิน 2**. ขาดโควตาใดไม่เติมจากอีกกลุ่ม
 5. “เคยซื้อ” สำหรับ recommendation คือรายการ SUCCEEDED/REFUNDED ที่มี confirmed_at; PENDING/FAILED ไม่ใช่การเคยซื้อ. เป็นนิยามการเคยไปร้าน ไม่เปลี่ยนกฎ award/reversal ของ Coins
 6. อ่าน new_customer_coins หรือ repeat_customer_coins จาก shop_coin_rates ในรอบ active แบบ `[starts_at, ends_at)`. จัดอันดับ Coins ที่ทราบสูงก่อน, ไม่ทราบท้าย, เสมอเรียง numeric shop ID. เลือกภายในแต่ละกลุ่มแล้วเรียงผลรวมด้วยหลักเดียวกัน. ไม่มี rate ไม่คำนวณหรือรับประกัน Coins ขึ้นเอง
-7. FastAPI ตรวจ candidate DTO/โควตา/IDs ไม่ซ้ำ. รหัสตอบกลับมาจาก Backend เท่านั้น. ส่งเฉพาะจำนวนร้านใหม่/ร้านเดิมให้โมเดลเรียบเรียงข้อความรอบสุดท้าย โดยไม่ให้ tool รอบใหม่; รวมสูงสุดสอง inference calls. ไม่มีร้านคืน empty พร้อมข้อความจาก server โดยไม่เรียกโมเดลรอบสอง
+7. FastAPI ตรวจ candidate DTO/โควตา/IDs ไม่ซ้ำ. รหัสตอบกลับมาจาก Backend เท่านั้น. ส่งเฉพาะจำนวนร้านใหม่/ร้านเดิมให้โมเดลเรียบเรียง ไม่ส่งชื่อ/รหัสร้านจาก candidates. ถ้าไม่มีร้านและไม่ได้ถามข้อมูลภายนอก คืน empty จาก server; ถ้าถามข้อมูลภายนอกด้วย ให้ทำ tool ที่เหลือได้
+8. Search ตรวจข้อความต้นฉบับและคำค้นด้วย lexical public-topic/obvious-personal-data guards. ไม่ส่ง token/profile/history object ไป provider. DDGS ลอง DuckDuckGo แล้ว Yahoo ด้วยคำค้นเดิมจำกัด go.th/bot.or.th/krungthai.com สูงสุดสอง upstream attempts. ใช้ snippets ไม่ fetch arbitrary URLs; เก็บเฉพาะ HTTPS official links ที่ตรวจแล้ว จำกัดแหล่ง 3 (ตั้งได้1–5), timeout15s (1–30), workers2 ต่อ process ไม่มี queue ไม่จำกัด
+9. โมเดลได้ title/snippet/reference เพื่อสรุปพร้อม [1] [2]. Server ตรวจเลขอ้างอิงและไม่ให้โมเดลสร้าง URL เอง แล้วแนบลิงก์จริงและ sources. Citation validation ตรวจ link/reference ไม่ใช่ full factual verification; กำกับว่าผลค้นอาจเก่า. ถ้าผิดรูปแบบคืนข้อความให้อ่านแหล่งแทน; ถ้า Search ปิด/blocked/timeout/empty คืนข้อจำกัด ไม่แต่งข้อมูล และไม่ทิ้ง storeIds ที่ได้แล้ว
 
 ```json
 {
   "reply": "พบร้านใหม่ 2 ร้านและร้านที่เคยซื้อ 1 ร้านครับ",
   "storeIds": ["101", "205", "310"],
+  "sources": [],
   "mode": "model",
   "model": "qwen3:4b"
 }
 ```
 
 ตัวอย่าง IDs เป็นเพียงรูปแบบ. ข้อมูล recommendation มีแค่ string IDs ให้ frontend สร้าง card เอง ไม่คืนชื่อ/รายละเอียดร้าน/Coins ใน card payload. คง mode/model สำหรับ compatibility. ยังไม่มี store-by-ID/card API
+
+Search คืน `sources: [{title,url}]` จากผลจริง; plain chat/recommendation/off-topic ไม่ค้นเว็บใช้ `sources: []`. ไม่มี `/search` endpoint แยก. ตัวอย่างคำถามทั้งสี่แบบและ combined/empty/error cases อยู่ใน [README](README.md#ตัวอย่างคำถามครบ-4-รูปแบบ)
 
 ## Backend APIs ที่ตรวจพบ — 12 ต.ค. 2569
 
@@ -63,13 +73,15 @@ flowchart LR
     Web -.->|chat proxy pending: Bearer token| AI[FastAPI loopback8000]
     AI -->|context / candidates + Bearer| Backend[NestJS BACKEND_BASE_URL]
     AI -->|prompt / allowlisted tool| Model[Ollama loopback11434]
+    AI -->|public query only: snippets| Search[DDGS: official sources]
 ```
 
 BACKEND_BASE_URL implement แล้วและเป็น server-only; ต้องชี้ NestJS ตาม PORT จริง ไม่ใช่ Next.js. ถ้าอยู่เครื่องนี้ใช้ loopbackและพอร์ตแยกจากเว็บ/AI. เว็บต้องเพิ่ม Next chat proxy อ่าน HttpOnly session แล้วแนบ Bearer ตามแนวเดียวกับ `/api/stores`; AI_SERVICE_URL ฝั่งเว็บยังเป็นข้อเสนอ ไม่มี tunnel
 
 ## ข้อจำกัดและงานต่อ
 
-- ไม่มีบทสนทนาต่อเนื่อง, Search, project-information tools, พิกัด/ระยะทาง, ราคา หรือ product-level filtering. Prompt ต้องไม่อ้างว่าได้ตรวจเงื่อนไขเหล่านี้
+- ไม่มีบทสนทนาต่อเนื่อง, project-information tools, พิกัด/ระยะทาง, ราคา หรือ product-level filtering. Prompt ต้องไม่อ้างว่าได้ตรวจเงื่อนไขเหล่านี้
+- DDGS no-key prototype อาจเจอ challenge/rate limit/ข้อมูลเก่า ไม่รับประกัน availability. Lexical scope/privacy guard จำกัดคำที่รองรับและไม่ใช่ semantic classifier/DLP สมบูรณ์; production provider/evaluation ยังต้องตัดสินใจ ผลค้นทางการอาจต่างปี/เฟส ไม่ใช่การยืนยันสิทธิ์หรือกติกาปัจจุบัน
 - ผลตอบกลับเป็นภาษาธรรมชาติจากโมเดล ต้องประเมินข้อความกำกวม/ปนหลายเจตนา/คำสั่งแฝงเพิ่ม. ข้อมูลร้าน/ประเภท/ประวัติเป็น untrusted values ไม่ใช่คำสั่ง
 - Backend/tool error หยุดคำขอ; โมเดลล่มไม่แต่ง reply/history/IDs ทดแทน. ยังไม่มี semantic deterministic fallback เมื่อ provider ตีความประเภทไม่ได้
 - Unit transport/auth/SQL-scope tests และ real-Qwen fixture smoke มีแล้ว. Live PostgreSQL test เป็น opt-in ใช้ TEMP tables แต่รอบนี้ยังไม่ผ่านการรันเพราะไม่มี development DATABASE_URL; live Backend + model + web E2E/review/load gates ยังไม่ผ่าน จึงคง F07/F13 PARTIAL

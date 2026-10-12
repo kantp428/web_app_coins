@@ -106,7 +106,7 @@ class ChatAPITests(unittest.TestCase):
         self.assertEqual(body["mode"], "model")
         self.assertEqual(body["model"], "qwen3:4b")
         self.assertIn(message, body["reply"])
-        self.assertEqual(set(body), {"reply", "storeIds", "mode", "model"})
+        self.assertEqual(set(body), {"reply", "storeIds", "sources", "mode", "model"})
         self.assertEqual(body["storeIds"], [])
         self.assertNotIn("internal trace", response.text)
         self.assertEqual(

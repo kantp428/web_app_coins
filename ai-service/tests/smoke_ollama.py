@@ -63,7 +63,8 @@ async def main():
                 )
 
             start = perf_counter()
-            reply, ids = await service.generate_chat(message, context, search)
+            reply, ids, sources = await service.generate_chat(message, context, search)
+            assert sources == []
             assert "<think>" not in reply and "</think>" not in reply
             if expected is None:
                 assert searches == [] and ids == [], (searches, ids)

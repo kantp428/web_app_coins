@@ -68,7 +68,9 @@ class RecommendationTests(unittest.TestCase):
         self.assertIn("purchaseHistory", model_data)
         self.assertNotIn("test-customer-token", model_data)
         self.assertNotIn("displayName", model_data)
-        self.assertEqual(set(response.json()), {"reply", "storeIds", "mode", "model"})
+        self.assertEqual(
+            set(response.json()), {"reply", "storeIds", "sources", "mode", "model"}
+        )
 
     def test_shortage_does_not_fill_other_quota(self):
         self.candidates = {"stores": [{"id": "3", "visited": False, "coins": None}]}

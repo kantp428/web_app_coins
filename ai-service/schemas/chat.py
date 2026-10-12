@@ -17,9 +17,15 @@ class ChatRequest(BaseModel):
     )
 
 
+class Source(BaseModel):
+    title: str
+    url: str
+
+
 class ChatResponse(BaseModel):
     reply: str
     storeIds: list[str] = Field(default_factory=list, max_length=5)
+    sources: list[Source] = Field(default_factory=list, max_length=5)
     mode: Literal["model"] = "model"
     model: str
 
