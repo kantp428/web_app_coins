@@ -48,6 +48,10 @@
     {
       "value": "",
       "key": "nonCustomerToken"
+    },
+    {
+      "value": "1",
+      "key": "shopId"
     }
   ],
   "item": [
@@ -799,6 +803,113 @@
       ],
       "name": "Government Coin Rules",
       "description": "Use government token. Set nonGovernmentToken from customer/seller login. 201 creates a pending rule; run 409 immediately after. No delete endpoint."
+    },
+    {
+      "name": "Government store approval",
+      "description": "Use a GOVERNMENT token. Set shopId to a real PENDING shop before approving. Suspension requires a nonblank reason.",
+      "item": [
+        {
+          "name": "List pending stores — 200",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/government/stores?status=PENDING"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get store detail — 200",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/government/stores/{{shopId}}"
+          }
+        },
+        {
+          "name": "Approve pending store — 200",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"APPROVED\"}" },
+            "url": "{{baseUrl}}/government/stores/{{shopId}}"
+          }
+        },
+        {
+          "name": "Suspend store with reason — 200",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"SUSPENDED\",\"reason\":\"ข้อมูลร้านไม่เป็นไปตามเงื่อนไข\"}"
+            },
+            "url": "{{baseUrl}}/government/stores/{{shopId}}"
+          }
+        },
+        {
+          "name": "Reject non-government — 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{nonGovernmentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/government/stores?status=PENDING"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspend without reason — 400",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"SUSPENDED\"}" },
+            "url": "{{baseUrl}}/government/stores/{{shopId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "item": [

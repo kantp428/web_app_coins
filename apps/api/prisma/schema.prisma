@@ -153,6 +153,9 @@ model shops {
   longitude            Decimal            @db.Decimal(9, 6)
   opening_hours        Json               @default("{}")
   participation_status String             @default("PENDING") @db.VarChar(16)
+  reviewed_by          BigInt?
+  reviewed_at          DateTime?          @db.Timestamptz(6)
+  review_reason        String?            @db.VarChar(500)
   size_class           String             @db.VarChar(16)
   purchases            purchases[]
   payment_requests     payment_requests[]

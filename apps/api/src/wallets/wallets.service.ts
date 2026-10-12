@@ -410,11 +410,16 @@ export class WalletsService {
       throw new ForbiddenException('เฉพาะบัญชีร้านค้า');
     const cents = amountToCents((body as { amount?: unknown })?.amount);
     const shop = await this.db.shops.findFirst({
-      where: { owner_id: BigInt(user.id) },
+      where: {
+        owner_id: BigInt(user.id),
+        participation_status: 'APPROVED',
+      },
       orderBy: { shop_id: 'asc' },
     });
     if (!shop)
-      throw new NotFoundException('บัญชีร้านค้ายังไม่มีร้านสำหรับรับชำระเงิน');
+      throw new NotFoundException(
+        'บัญชีร้านค้ายังไม่มีร้านที่อนุมัติแล้วสำหรับรับชำระเงิน',
+      );
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     const request = await this.db.payment_requests.create({
       data: {
@@ -569,8 +574,14 @@ export class WalletsService {
             throw new ConflictException('ยอดเงินใน wallet ไม่เพียงพอ');
           const shop = await tx.shops.findUniqueOrThrow({
             where: { shop_id: request.shop_id },
-            select: { shop_id: true, size_class: true },
+            select: {
+              shop_id: true,
+              size_class: true,
+              participation_status: true,
+            },
           });
+          if (shop.participation_status !== 'APPROVED')
+            throw new ConflictException('ร้านค้านี้ไม่ได้อยู่ในสถานะอนุมัติ');
           const now = new Date();
           const rule = await tx.coin_rule_versions.findFirst({
             where: {

@@ -11,23 +11,23 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                                  | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ---------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                             | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth + wallet help รายวัน/เดือน/top-up/history จริง; Coins ยังไม่มี | D2                     | I               | F01                   |
-| F03     | PARTIAL: สมัครร้านสร้าง PENDING; CRUD/approval/search ยังไม่มี               | D3                     | I               | F02                   |
-| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                    | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview                  | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO    | D4                     | I               | F02/F03               |
-| F07     | TODO                                                                         | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: QR + help 60%/เพดานวันละ200/cash fallback; Coins/refund ค้าง        | D5                     | I               | F06                   |
-| F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                          | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO             | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                    | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                         | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                     | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                         | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                                   | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | ----------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                 | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                              | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth + wallet help รายวัน/เดือน/top-up/history จริง; Coins ยังไม่มี  | D2                     | I               | F01                   |
+| F03     | PARTIAL: สมัคร PENDING + government approval/search จริง; owner CRUD ยังไม่มี | D3                     | I               | F02                   |
+| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                     | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้าน + government approval จริง; owner จัดการร้านยัง preview    | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO     | D4                     | I               | F02/F03               |
+| F07     | TODO                                                                          | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: QR + help 60%/เพดานวันละ200/cash fallback; Coins/refund ค้าง         | D5                     | I               | F06                   |
+| F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                           | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO              | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                                     | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                          | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                      | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                          | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
@@ -370,3 +370,10 @@
 
 - เพิ่ม helper แปลง QR SVG เป็น PNG512x512พื้นขาวบน browser; `/store/receive` แสดงปุ่มคัดลอก UUID/scan payload เป็นข้อความผ่าน Clipboard API และบันทึกไฟล์ชื่อ `thai-please-qr-<amount>.png`, พร้อม Sonner success/fallback และปุ่ม type=button
 - ตรวจ web ESLint/build31routesผ่าน; browserจริงสร้าง QR9.99และเห็น UUID/expiry/ปุ่มคัดลอก+บันทึกครบ. การทดสอบ download ถูก browserปฏิเสธ permission จึงยังไม่ยืนยันไฟล์/clipboardจริง; มี request9.99 PENDING จาก QA. Next: ผู้ใช้กดอนุญาต download แล้วตรวจ PNGและวาง clipboardในแอปรูปภาพ; F10คงPARTIAL
+
+### 2026-10-12 21:40 Asia/Bangkok — R1-D3-I/R1-D3-B, F03/F05: government store approval
+
+- เปลี่ยน `/government/stores` จาก placeholder เป็นรายการร้านจริง กรองรอตรวจ/อนุมัติ/ระงับ/ทั้งหมด แสดง owner/หมวด/คำอธิบาย/ที่อยู่/พิกัด/ผลตรวจ และมี confirm อนุมัติหรือระงับพร้อมเหตุผลผ่าน Sonner/pending state
+- เพิ่ม GOVERNMENT-only `GET /government/stores`, `GET /government/stores/:id`, `PATCH /government/stores/:id`; validate BigInt ID/filter/body/transition และบันทึก `reviewed_by/reviewed_at/review_reason`. Migration `20261012011000_shop_approval_audit` apply บน configured Neon สำเร็จ. ร้านต้อง APPROVED จึงสร้าง QR ได้ และถ้าถูกระงับ QR ที่ค้างชำระจะ settle ไม่ได้
+- เพิ่ม Next BFF/Axios hook/types, API validation tests, Postman cases 200/400/403 และอัปเดต contract/decisions. รอบสุดท้ายหลัง enforcement: Prisma format/validate ผ่าน; API Vitest44/44 + lint/build และ web lint/build32 routes ผ่าน; `git diff --check` ผ่าน
+- F03/F05 คง PARTIAL เพราะ seller owner CRUD/multi-store edit และ browser E2E การอนุมัติจริงยังไม่ครบ. การคืนสถานะ SUSPENDED→APPROVED และ immutable approval-event ledger ยังไม่อยู่ใน policy. Next: ทดสอบ browser GOVERNMENT อนุมัติร้าน PENDING → seller สร้าง QR → customer เห็นร้าน; ต่อ owner CRUD

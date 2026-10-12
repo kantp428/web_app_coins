@@ -37,6 +37,12 @@ GET /stores?latitude=13.75&longitude=100.5&radiusKm=5 (CUSTOMER Bearer only):200
 
 Shop description (2026-10-12): SELLER POST /auth/register requires shop.description:string, trimmed nonblank1–2000characters;missing/blank/too-long400. Persist shops.description VARCHAR(2000), nullable for legacy rows without fabricated backfill, via migration20261012007000_shop_description. GET /stores returns description:string|null. Merchant descriptions are untrusted data for future recommendation context, not executable model instructions;recommendation integration remains pending.
 
+## Government store approval
+
+- `GET /government/stores?status=PENDING|APPROVED|SUSPENDED|REJECTED|ALL` (GOVERNMENT) returns up to 200 shops with owner, categories, address, coordinates, opening hours, status and latest review audit. Without `status`, all statuses are returned. `GET /government/stores/:id` returns one shop.
+- `PATCH /government/stores/:id` (GOVERNMENT) accepts exactly `{ "status": "APPROVED" }` for a PENDING shop, or `{ "status": "SUSPENDED", "reason": "..." }` for a PENDING/APPROVED shop. Suspension reason is trimmed, required and at most 500 characters. The server stores reviewer ID and timestamp. APPROVED shops are discoverable through `GET /stores` and may create/settle seller payment requests; suspended shops are excluded and outstanding QR requests cannot settle.
+- 400 invalid ID/filter/body, 401 missing/invalid authentication, 403 non-government role, 404 unknown shop, 409 invalid/already-applied transition. IDs are decimal strings. Web uses same-origin `/api/government/stores` proxies; mutations require same-origin `Origin`.
+
 ## Wallet and one-time payment requests
 
 - `GET /wallets/me` (CUSTOMER/SELLER): returns `{role,balance,help,helpDailyRemaining,helpDailyLimit,helpMonthlyLimit,month,testActionsEnabled}`. CUSTOMER access lazily creates CASH/BASE wallets and the idempotent THB 1,000 allocation for the current Asia/Bangkok month; `help` is the remaining monthly amount and `helpDailyRemaining` is the lesser of that amount and the remaining THB 200 Asia/Bangkok daily allowance. Unused prior-month help does not carry forward and unused daily allowance does not increase another day's limit. SELLER gets CASH only and help fields are null. Money values are decimal strings.

@@ -119,3 +119,7 @@ User adds a THB 200 daily help ceiling while retaining the THB 1,000 monthly all
 ## 2026-10-12 — Test-only daily and monthly help resets
 
 When non-production test wallet actions are enabled, CUSTOMER may reset the current Asia/Bangkok day's THB 200 usage counter independently from the monthly balance, or restore the current month's balance to THB 1,000. Neither action deletes or rewrites payment history. A daily reset appends an auditable, net-zero BASE allocation/expiry marker pair; subsequent daily usage counts only payment debits after the latest marker while the monthly ledger balance remains unchanged. Both actions remain forbidden in production or when `ENABLE_TEST_WALLET_ACTIONS` is not `true`.
+
+## 2026-10-12 — Government shop approval transitions and audit
+
+Government officers may approve only a PENDING shop. They may suspend a PENDING or APPROVED shop, and suspension requires a trimmed reason of at most 500 characters. Re-approval of a suspended shop is excluded until a reinstatement policy is agreed. Every change records the government reviewer, review time and latest reason on the shop; this is latest-state metadata rather than a full immutable review-event ledger. Public nearby search and seller payment requests require APPROVED status. Suspending a shop prevents creating new QR requests and settling its outstanding QR requests.

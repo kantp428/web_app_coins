@@ -155,3 +155,41 @@ export async function getNearbyStores(
     })
   ).data;
 }
+
+export type GovernmentStoreStatus =
+  "PENDING" | "APPROVED" | "SUSPENDED" | "REJECTED";
+export type GovernmentStore = {
+  shop_id: string;
+  owner_id: string;
+  name: string;
+  description: string | null;
+  address: ShopAddress | null;
+  latitude: string;
+  longitude: string;
+  opening_hours: { days?: string[]; open?: string; close?: string } | null;
+  participation_status: GovernmentStoreStatus;
+  size_class: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  users: { user_id: string; display_name: string };
+  shop_categories: { categories: ShopCategory }[];
+};
+export async function getGovernmentStores(
+  status: GovernmentStoreStatus | "ALL",
+  signal?: AbortSignal,
+) {
+  return (
+    await api.get<{ stores: GovernmentStore[] }>("/government/stores", {
+      params: { status },
+      signal,
+    })
+  ).data;
+}
+export async function updateGovernmentStore(
+  id: string,
+  body: { status: "APPROVED" | "SUSPENDED"; reason?: string },
+) {
+  return (await api.patch<GovernmentStore>(`/government/stores/${id}`, body))
+    .data;
+}

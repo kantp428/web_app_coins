@@ -15,6 +15,8 @@ import { AppService } from './app.service.js';
 import { WalletsController } from './wallets/wallets.controller.js';
 import { WalletsService } from './wallets/wallets.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { GovernmentStoresController } from './government-stores/government-stores.controller.js';
+import { GovernmentStoresService } from './government-stores/government-stores.service.js';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule],
@@ -26,6 +28,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     GeocodingController,
     CategoriesController,
     WalletsController,
+    GovernmentStoresController,
   ],
   providers: [
     StoresService,
@@ -35,6 +38,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     CategoriesService,
     CoinRulesService,
     WalletsService,
+    GovernmentStoresService,
   ],
 })
 export class AppModule {}
