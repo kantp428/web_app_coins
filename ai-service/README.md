@@ -317,6 +317,4 @@ System prompt มี `/no_think` ตาม [คำแนะนำของ Qwen3
 
 ผลตรวจ Search วันที่ 12 ต.ค. 2569: unit tests 42 กรณีผ่าน (รวม mixed tools, failure/privacy/citations/worker bounds), `pip check` ผ่าน. Real Qwen smoke ผ่านทักทาย/ร้านอาหารหรือคาเฟ่/นอกเรื่อง; Qwen + DDGS จริงคืน 3 แหล่งทางการและไม่มี storeIds ในคำถามค้นเว็บ ผ่านรอบสุดท้ายประมาณ 24 วินาที. ช่วงแรกพบ challenge202/rate-limit429 และ DDGS multi-backend ไม่คืนผล จึงใช้ DuckDuckGo แล้ว Yahoo แยก attempts. ผลค้นมีประกาศหลายปี จึงเพิ่มข้อกำกับวันที่; smoke ยืนยันการเชื่อมต่อและรูปแบบ ไม่ใช่ full factual/freshness evaluation หรือ live Backend DB E2E. Postman ตรวจ JSON/scripts syntax; ยังไม่ได้รัน collection runner กับ Backend จริง
 
-ผลตรวจ `/chat/test` เพิ่มเติมวันที่ 12 ต.ค. 2569: unit tests รวม50ผ่าน. `tests/smoke_chat_test.py` เรียก HTTP ผ่าน FastAPI TestClient กับ Qwen/DDGS จริง โดยไม่แนบ Authorization และไม่ใช้ Backend ผ่านทั้ง plain chat, Search (3 sources), นอกเรื่อง และขอร้านแล้วแจ้งให้ใช้ authenticated `/chat`. การทดสอบนี้ไม่ใช่ live recommendation DB E2E
-
 Prettier ไม่รองรับ Python ในการตั้งค่าปัจจุบัน จึงใช้ Black สำหรับ `.py` และ Prettier ของ package API สำหรับ Markdown/JSON ที่แก้ เอกสารอ้างอิง: [Ollama chat API](https://docs.ollama.com/api/chat), [Thinking controls](https://docs.ollama.com/capabilities/thinking), [TestClient](https://fastapi.tiangolo.com/tutorial/testing/)
