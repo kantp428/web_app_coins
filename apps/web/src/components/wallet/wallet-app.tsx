@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { NearbyStores } from "@/components/wallet/nearby-stores";
 import { LiveWallet } from "@/components/wallet/live-wallet";
+import {
+  CustomerMainQuest,
+  CustomerMonthlyHistory,
+} from "@/components/wallet/customer-rewards-preview";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { customerRoutes, sellerRoutes } from "@/lib/role-routes";
 import {
-  ArrowDownLeft,
   ArrowUpRight,
   ChevronRight,
   Coins,
@@ -65,32 +68,6 @@ const shops = [
     coins: 9,
     icon: "🛍️",
     description: "ของใช้ประจำวัน • สามย่าน",
-  },
-];
-const purchases = [
-  {
-    name: "ครัวป้าเล็ก",
-    amount: "80.00",
-    coins: 10,
-    time: "วันนี้ • 12:30",
-    own: "40.00",
-    benefit: "40.00",
-  },
-  {
-    name: "ละมุนคอฟฟี่",
-    amount: "60.00",
-    coins: 8,
-    time: "เมื่อวาน • 09:15",
-    own: "30.00",
-    benefit: "30.00",
-  },
-  {
-    name: "ร้านชุมชนของชำ",
-    amount: "120.00",
-    coins: 9,
-    time: "4 ต.ค. • 17:42",
-    own: "60.00",
-    benefit: "60.00",
   },
 ];
 const tabs: { id: string; label: string; icon: LucideIcon }[] = [
@@ -199,55 +176,6 @@ export function WalletApp({
       </div>
     );
   }
-  function history() {
-    return (
-      <Section
-        title={seller ? "รายการขาย" : "ประวัติการใช้จ่าย"}
-        subtitle="ข้อมูลตัวอย่าง • ตุลาคม 2569"
-      >
-        <div className="flex items-center justify-between rounded-xl bg-muted p-4 text-sm">
-          <span>เดือนตุลาคม 2569</span>
-          <Badge variant="outline">3 รายการตัวอย่าง</Badge>
-        </div>
-        {purchases.map((p, i) => (
-          <Card key={p.name}>
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-muted p-2">
-                  {seller ? (
-                    <ArrowDownLeft className="size-5" />
-                  ) : (
-                    <ArrowUpRight className="size-5" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">
-                    {seller ? `ลูกค้า • รายการ 00${i + 1}` : p.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{p.time}</p>
-                </div>
-                <p className="font-semibold">
-                  {seller ? "+" : "−"}฿{p.amount}
-                </p>
-              </div>
-              <div className="flex justify-between text-xs">
-                <Badge variant="secondary">สำเร็จ</Badge>
-                <span>
-                  {seller
-                    ? `ลูกค้าจ่าย ฿${p.own} · ช่วยจ่าย ฿${p.benefit}`
-                    : `ได้รับ ${p.coins} Coins`}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Main Quest ใช้ ฿0.00 • รหัส DEMO-00{i + 1}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </Section>
-    );
-  }
-
   return (
     <div className="min-h-dvh bg-muted/40">
       <div className="mx-auto min-h-dvh max-w-lg bg-background sm:border-x">
@@ -286,9 +214,8 @@ export function WalletApp({
           </div>
         </header>
         <main className="space-y-7 px-5 pb-28">
-          {(
-            ["home", "scan", "topup", "history", "receive"] as string[]
-          ).includes(tab) && (
+          {(["home", "scan", "topup", "receive"].includes(tab) ||
+            (seller && tab === "history")) && (
             <LiveWallet
               role={seller ? "SELLER" : "CUSTOMER"}
               section={tab as "home" | "scan" | "topup" | "history" | "receive"}
@@ -455,55 +382,10 @@ export function WalletApp({
             </>
           )}
           {tab === "explore" && <NearbyStores />}
-          {tab === "quest" && (
-            <Section
-              title="ภารกิจประจำเดือน"
-              subtitle="ตุลาคม 2569 • เริ่มใหม่ทุกเดือน"
-            >
-              <Card>
-                <CardContent className="space-y-5 p-6">
-                  <Gift className="size-9" />
-                  <h3 className="text-xl font-semibold">
-                    ออกไปลอง แล้วรับสิทธิ์เพิ่ม
-                  </h3>
-                  <p className="text-4xl font-semibold">
-                    64{" "}
-                    <span className="text-base font-normal text-muted-foreground">
-                      / 100 Coins
-                    </span>
-                  </p>
-                  <Progress value={64} />
-                  <p className="text-sm text-muted-foreground">
-                    สะสมครบ 100 Coins รับวงเงินช่วยจ่าย ฿100 ครั้งเดียวต่อเดือน
-                    ใช้ได้ภายในเดือนที่ได้รับ
-                  </p>
-                  <Button
-                    className="w-full"
-                    onClick={() => navigate("explore")}
-                  >
-                    ค้นหาร้านใหม่
-                    <ArrowUpRight className="size-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-              <div className="grid grid-cols-3 gap-2">
-                {["มอบแล้ว", "ใช้แล้ว", "คงเหลือ"].map((label) => (
-                  <div
-                    key={label}
-                    className="rounded-xl border p-4 text-center"
-                  >
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="mt-2 font-semibold">฿0.00</p>
-                  </div>
-                ))}
-              </div>
-              <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">
-                Coins เป็นคะแนนภารกิจ ใช้ชำระแทนเงินบาทไม่ได้
-                ได้รับเมื่อซื้อสำเร็จตามเงื่อนไขเท่านั้น
-              </p>
-            </Section>
+          {tab === "quest" && !seller && (
+            <CustomerMainQuest onExplore={() => navigate("explore")} />
           )}
-          {false && tab === "history" && history()}
+          {tab === "history" && !seller && <CustomerMonthlyHistory />}
           {false && tab === "receive" && (
             <Section
               title="รับเงินจากลูกค้า"

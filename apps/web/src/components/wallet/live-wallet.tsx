@@ -431,7 +431,7 @@ export function LiveWallet({
               onClick={() => router.push("/wallet/top-up")}
             >
               <Wallet className="size-5" />
-              <span className="text-xs">QR เติมเงิน</span>
+              <span className="text-xs">เติมเงิน</span>
             </Button>
             <Button
               variant="outline"
