@@ -81,8 +81,9 @@ export function CustomerTopUp() {
                 required
               />
             </label>
-            <Button disabled={pending} className="h-12 w-full">
-              <Plus className="size-4" /> เติมเงิน
+            <Button type="submit" disabled={pending} className="h-12 w-full">
+              <Plus className="size-4" />
+              {pending ? "กำลังเติมเงิน..." : "เติมเงิน"}
             </Button>
           </form>
           {testActionsEnabled && (
