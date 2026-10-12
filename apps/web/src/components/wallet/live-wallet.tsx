@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Coins,
+  Copy,
+  Download,
   History,
   MapPin,
   MessageCircle,
@@ -51,6 +53,34 @@ type RequestData = {
   purchaseId?: string | null;
 };
 
+async function qrPngBlob(svg: SVGSVGElement) {
+  const source = new XMLSerializer().serializeToString(svg);
+  const sourceUrl = URL.createObjectURL(
+    new Blob([source], { type: "image/svg+xml;charset=utf-8" }),
+  );
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = sourceUrl;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("canvas unavailable");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/png"),
+    );
+    if (!blob) throw new Error("PNG unavailable");
+    return blob;
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 export function LiveWallet({
   role,
   section,
@@ -64,6 +94,7 @@ export function LiveWallet({
   const [payment, setPayment] = useState<RequestData | null>(null);
   const [sellerRequests, setSellerRequests] = useState<RequestData[]>([]);
   const [pending, setPending] = useState(false);
+  const qr = useRef<SVGSVGElement>(null);
   const router = useRouter();
   const formatMoney = (value: string | null | undefined) =>
     value == null
@@ -143,6 +174,30 @@ export function LiveWallet({
       return null;
     } finally {
       setPending(false);
+    }
+  }
+  async function copyQrCode() {
+    if (!payment) return;
+    try {
+      await navigator.clipboard.writeText(payment.scanPayload ?? payment.id);
+      toast.success("คัดลอกโค้ด QR แล้ว");
+    } catch {
+      toast.error("คัดลอกโค้ด QR ไม่ได้ กรุณาเลือกโค้ดด้านบนแทน");
+    }
+  }
+  async function saveQr() {
+    if (!qr.current || !payment) return;
+    try {
+      const blob = await qrPngBlob(qr.current);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `thai-please-qr-${payment.amount.replace(".", "-")}.png`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success("บันทึกรูป QR แล้ว");
+    } catch {
+      toast.error("บันทึกรูป QR ไม่สำเร็จ กรุณาลองใหม่");
     }
   }
   if (section === "history")
@@ -226,6 +281,7 @@ export function LiveWallet({
             <CardContent className="space-y-3 p-6 text-center">
               <div className="mx-auto w-fit rounded-xl border bg-white p-4">
                 <QRCodeSVG
+                  ref={qr}
                   value={payment.scanPayload ?? payment.id}
                   size={192}
                   level="M"
@@ -244,6 +300,22 @@ export function LiveWallet({
                   ? new Date(payment.expiresAt).toLocaleTimeString("th-TH")
                   : "—"}
               </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void copyQrCode()}
+                >
+                  <Copy className="size-4" /> คัดลอกโค้ด QR
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void saveQr()}
+                >
+                  <Download className="size-4" /> บันทึกรูป QR
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

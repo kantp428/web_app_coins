@@ -359,3 +359,14 @@
 
 - วินิจฉัย `EADDRINUSE :3000`: API background ที่เริ่มเวลา 19:11 ยัง listen อยู่ ขณะที่ terminal ผู้ใช้เริ่ม Nest watch อีกชุดเวลา 19:12. ปิดเฉพาะ process tree ชุด background และยืนยันพอร์ต 3000 ว่าง; คง Nest watcher ของ terminal ผู้ใช้ไว้
 - ไม่แก้ source/config และไม่รัน build/testเพราะเป็น local process cleanup. Next: หยุด watcher ที่ error ด้วย Ctrl+C แล้วรัน API จาก terminal เดิมอีกครั้งเพียงหนึ่งชุด
+
+### 2026-10-12 Asia/Bangkok — F04/F09: top-up submit and ZXing QR image fallback
+
+- แก้ `/wallet/top-up` กดเติมเงินแล้วเงียบด้วย `type="submit"` บน Base UI Button และ pending label; proxy/idempotency เดิมไม่เปลี่ยน
+- เพิ่ม `@zxing/browser` และเปลี่ยน `/wallet/scan` จาก BarcodeDetector เป็น BrowserQRCodeReader สำหรับกล้อง; เพิ่มเลือกไฟล์ image/* ขนาดไม่เกิน10MB, decode ผ่าน object URL ใน browserและไม่ upload, คง manual UUID fallback/preview/pay เดิม
+- ตรวจ web Prettier, ESLint และ production build31routesผ่าน. Browser QA หลัง loginถูก redirectกลับ `/login` จึงยังไม่ยืนยัน camera permission/รูปจริง; Next: ให้ API+web dev ทำงาน, login CUSTOMER แล้วทดสอบ QRรูปชัด/ไม่มีQR/ไฟล์เกิน10MBและกล้องมือถือ. F04/F09คงPARTIAL
+
+### 2026-10-12 Asia/Bangkok — F10: copy QR code and save seller QR image
+
+- เพิ่ม helper แปลง QR SVG เป็น PNG512x512พื้นขาวบน browser; `/store/receive` แสดงปุ่มคัดลอก UUID/scan payload เป็นข้อความผ่าน Clipboard API และบันทึกไฟล์ชื่อ `thai-please-qr-<amount>.png`, พร้อม Sonner success/fallback และปุ่ม type=button
+- ตรวจ web ESLint/build31routesผ่าน; browserจริงสร้าง QR9.99และเห็น UUID/expiry/ปุ่มคัดลอก+บันทึกครบ. การทดสอบ download ถูก browserปฏิเสธ permission จึงยังไม่ยืนยันไฟล์/clipboardจริง; มี request9.99 PENDING จาก QA. Next: ผู้ใช้กดอนุญาต download แล้วตรวจ PNGและวาง clipboardในแอปรูปภาพ; F10คงPARTIAL

@@ -108,6 +108,8 @@ Every seller payment request contains the decimal THB amount, an opaque UUID tok
 
 The target government contribution is 60% of the purchase, rounded half-up to satang. Actual help is the lesser of that target and the customer's current-month available help; customer CASH pays the remaining amount. Therefore zero or insufficient help never blocks an otherwise affordable purchase—the shortfall falls back to customer balance. Reject only when customer CASH cannot cover its computed share. Credit seller CASH with 100% and append immutable linked ledger entries. History groups the two customer debits into one payment item with help/customer breakdown. QR rendering/camera decoding is presentation only; the API UUID is authoritative. Coin award and refunds remain outside this slice.
 
+Customer QR decoding uses `@zxing/browser` for both live camera frames and a user-selected image fallback instead of the browser-specific BarcodeDetector API. Selected images are decoded locally in the browser from an object URL, are limited to image MIME types and 10 MB, and are not uploaded to the API. The extracted UUID still goes through the authenticated payment-request preview before payment; manual UUID entry remains available.
+
 ## 2026-10-12 — Thai Chuai Thai daily help limit
 
 User adds a THB 200 daily help ceiling while retaining the THB 1,000 monthly allocation. A day follows the Asia/Bangkok calendar; unused daily capacity does not raise a later day's ceiling. Preview and pay use the lesser of the remaining monthly help and remaining daily help, then move any subsidy shortfall to customer CASH under the existing fallback rule.

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { QrCode } from "lucide-react";
+import { BrowserQRCodeReader } from "@zxing/browser";
+import { ImageUp, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { api, getApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,6 @@ type Payment = {
   targetHelpAmount?: string;
   canPay?: boolean;
 };
-type Detector = {
-  detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]>;
-};
-type DetectorConstructor = new (options: { formats: string[] }) => Detector;
 const idPattern =
   /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 
@@ -31,22 +28,15 @@ export function CustomerQrScanner() {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [manualCode, setManualCode] = useState("");
   const video = useRef<HTMLVideoElement>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const run = useRef(0);
+  const upload = useRef<HTMLInputElement>(null);
+  const controls = useRef<{ stop(): void } | null>(null);
   const stop = useCallback(() => {
-    run.current += 1;
-    stream.current?.getTracks().forEach((track) => track.stop());
-    stream.current = null;
+    controls.current?.stop();
+    controls.current = null;
     if (video.current) video.current.srcObject = null;
     setScanning(false);
   }, []);
-  useEffect(
-    () => () => {
-      run.current += 1;
-      stream.current?.getTracks().forEach((track) => track.stop());
-    },
-    [],
-  );
+  useEffect(() => () => stop(), [stop]);
   async function inspect(id: string) {
     try {
       setPayment(
@@ -62,50 +52,62 @@ export function CustomerQrScanner() {
     }
   }
   async function start() {
-    const DetectorApi = (
-      globalThis as typeof globalThis & {
-        BarcodeDetector?: DetectorConstructor;
-      }
-    ).BarcodeDetector;
-    if (!DetectorApi || !navigator.mediaDevices?.getUserMedia) {
-      toast.error(
-        "เบราว์เซอร์นี้ไม่รองรับการสแกน QR กรุณาใช้ Chrome หรือ Edge รุ่นล่าสุด",
-      );
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("เบราว์เซอร์นี้ไม่รองรับกล้อง กรุณาอัปโหลดรูป QR แทน");
       return;
     }
     stop();
     try {
-      const media = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
-      stream.current = media;
       if (!video.current) return;
-      video.current.srcObject = media;
-      await video.current.play();
       setScanning(true);
-      const detector = new DetectorApi({ formats: ["qr_code"] });
-      const current = ++run.current;
-      const detect = async () => {
-        if (current !== run.current || !video.current) return;
-        try {
-          const id = (await detector.detect(video.current))[0]?.rawValue.match(
-            idPattern,
-          )?.[0];
+      const reader = new BrowserQRCodeReader();
+      controls.current = await reader.decodeFromConstraints(
+        {
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        },
+        video.current,
+        (result, _error, scannerControls) => {
+          const id = result?.getText().match(idPattern)?.[0];
           if (id) {
-            stop();
-            await inspect(id);
-            return;
+            scannerControls.stop();
+            controls.current = null;
+            setScanning(false);
+            void inspect(id);
           }
-        } catch {
-          /* Camera frame may still be warming up. */
-        }
-        if (current === run.current) requestAnimationFrame(() => void detect());
-      };
-      void detect();
+        },
+      );
     } catch {
       stop();
       toast.error("เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้องแล้วลองใหม่");
+    }
+  }
+  async function inspectImage(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("กรุณาเลือกไฟล์รูปภาพ QR");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("รูป QR ต้องมีขนาดไม่เกิน 10 MB");
+      return;
+    }
+    stop();
+    setPending(true);
+    const imageUrl = URL.createObjectURL(file);
+    try {
+      const result = await new BrowserQRCodeReader().decodeFromImageUrl(
+        imageUrl,
+      );
+      const id = result.getText().match(idPattern)?.[0];
+      if (!id) throw new Error("invalid payload");
+      await inspect(id);
+    } catch {
+      toast.error("อ่าน QR จากรูปไม่ได้ กรุณาเลือกรูปที่คมชัดหรือลองใหม่");
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+      setPending(false);
+      if (upload.current) upload.current.value = "";
     }
   }
   async function pay() {
@@ -164,6 +166,24 @@ export function CustomerQrScanner() {
               </Button>
             )}
           </div>
+          <input
+            ref={upload}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            aria-label="อัปโหลดรูป QR"
+            onChange={(event) => void inspectImage(event.target.files?.[0])}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={pending || scanning}
+            onClick={() => upload.current?.click()}
+          >
+            <ImageUp className="size-4" />
+            {pending ? "กำลังอ่านรูป QR..." : "อัปโหลดรูป QR จากเครื่อง"}
+          </Button>
           <form
             className="flex gap-2"
             onSubmit={(event) => {
