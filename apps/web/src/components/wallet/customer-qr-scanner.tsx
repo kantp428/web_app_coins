@@ -17,7 +17,10 @@ type Payment = {
   helpAmount?: string;
   customerAmount?: string;
   targetHelpAmount?: string;
+  rewardAmount?: string;
   canPay?: boolean;
+  coins: number;
+  coinReason: string;
 };
 const idPattern =
   /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
@@ -114,8 +117,11 @@ export function CustomerQrScanner() {
     if (!payment) return;
     setPending(true);
     try {
-      await api.post("/wallet", { action: "pay", id: payment.id });
-      toast.success("ชำระเงินสำเร็จ");
+      const { data } = await api.post<Payment>("/wallet", {
+        action: "pay",
+        id: payment.id,
+      });
+      toast.success(`ชำระเงินสำเร็จ · ได้รับ ${data.coins} Coins`);
       setPayment(null);
     } catch (error) {
       toast.error(getApiError(error));
@@ -214,6 +220,30 @@ export function CustomerQrScanner() {
                   <p className="text-sm text-muted-foreground">
                     รัฐช่วย ฿{payment.helpAmount} · จ่ายจากกระเป๋า ฿
                     {payment.customerAmount}
+                  </p>
+                  {payment.rewardAmount && payment.rewardAmount !== "0.00" && (
+                    <p className="text-sm text-muted-foreground">
+                      Main Quest ช่วยจ่าย ฿{payment.rewardAmount}
+                    </p>
+                  )}
+                  <p className="mt-2 text-sm">
+                    Coins โดยประมาณ:{" "}
+                    <span className="font-mono tabular-nums">
+                      {payment.coins}
+                    </span>
+                  </p>
+                  {payment.coinReason === "NO_RATE" && (
+                    <p className="text-xs text-muted-foreground">
+                      ร้านนี้ยังไม่มีเรต Coins ในรอบปัจจุบัน
+                    </p>
+                  )}
+                  {payment.coinReason === "BELOW_MINIMUM" && (
+                    <p className="text-xs text-muted-foreground">
+                      ยอดซื้อยังไม่ถึงขั้นต่ำรับ Coins
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    คำนวณ Coins อีกครั้งเมื่อยืนยันชำระเงิน
                   </p>
                   {payment.targetHelpAmount !== payment.helpAmount && (
                     <p className="mt-1 text-xs text-amber-700">

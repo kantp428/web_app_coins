@@ -19,11 +19,22 @@ export async function requireRole(role: AuthRole) {
       signal: AbortSignal.timeout(8000),
     });
   } catch {
-    throw new Error("ไม่สามารถตรวจสอบการเข้าสู่ระบบได้ กรุณาลองใหม่");
+    redirect("/login");
   }
-  if (response.status === 401) redirect("/login");
-  if (!response.ok) throw new Error("ไม่สามารถตรวจสอบการเข้าสู่ระบบได้");
-  const user = await response.json();
+  if (!response.ok) redirect("/login");
+  let user: AuthUser;
+  try {
+    user = await response.json();
+  } catch {
+    redirect("/login");
+  }
+  if (
+    !user ||
+    typeof user.id !== "string" ||
+    typeof user.displayName !== "string" ||
+    !["CUSTOMER", "SELLER", "GOVERNMENT"].includes(user.role)
+  )
+    redirect("/login");
   if (user.role !== role) redirect(destinations[user.role] ?? "/login");
   return user as AuthUser;
 }

@@ -28,6 +28,20 @@ type Summary = {
   helpDailyLimit: string | null;
   helpMonthlyLimit: string | null;
   month: string;
+  coins: string | null;
+  shopCoinRates: Array<{
+    shopId: string;
+    name: string;
+    status: string;
+    rate: {
+      minimumPurchase: string;
+      newCustomerCoins: number;
+      repeatCustomerCoins: number;
+      ruleVersion: number;
+      startsAt: string;
+      endsAt: string;
+    } | null;
+  }>;
 };
 type Entry = {
   id: string;
@@ -38,6 +52,7 @@ type Entry = {
   shopName: string | null;
   helpAmount?: string;
   customerAmount?: string;
+  rewardAmount?: string;
 };
 type RequestData = {
   id: string;
@@ -89,6 +104,7 @@ export function LiveWallet({
   section: "home" | "scan" | "topup" | "history" | "receive";
 }) {
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [summaryLoadFailed, setSummaryLoadFailed] = useState(false);
   const [history, setHistory] = useState<Entry[]>([]);
   const [amount, setAmount] = useState("");
   const [payment, setPayment] = useState<RequestData | null>(null);
@@ -104,6 +120,7 @@ export function LiveWallet({
           maximumFractionDigits: 2,
         });
   const load = useCallback(async () => {
+    setSummaryLoadFailed(false);
     try {
       if (section === "history")
         setHistory(
@@ -124,6 +141,7 @@ export function LiveWallet({
             .data,
         );
     } catch (error) {
+      setSummaryLoadFailed(true);
       toast.error(getApiError(error));
     }
   }, [section]);
@@ -153,15 +171,22 @@ export function LiveWallet({
         else setSummary(response.data as Summary);
       })
       .catch((error) => {
-        if (!controller.signal.aborted) toast.error(getApiError(error));
+        if (!controller.signal.aborted) {
+          setSummaryLoadFailed(true);
+          toast.error(getApiError(error));
+        }
       });
     return () => controller.abort();
   }, [section]);
   useEffect(() => {
-    if (section !== "receive") return;
-    const timer = window.setInterval(() => void load(), 3000);
+    if (section !== "receive" && !(role === "SELLER" && section === "home"))
+      return;
+    const timer = window.setInterval(
+      () => void load(),
+      section === "receive" ? 3000 : 60000,
+    );
     return () => window.clearInterval(timer);
-  }, [load, section]);
+  }, [load, section, role]);
   async function mutate(action: string, data: Record<string, string> = {}) {
     setPending(true);
     try {
@@ -218,6 +243,7 @@ export function LiveWallet({
                       {
                         TOPUP: "เติมเงิน",
                         BASE_ALLOCATION: "วงเงินช่วยเหลือ",
+                        REWARD_ALLOCATION: "วงเงิน Main Quest",
                         PAYMENT_CREDIT: "รับชำระเงิน",
                         PAYMENT_DEBIT: "ชำระเงิน",
                       }[entry.type] ??
@@ -227,6 +253,11 @@ export function LiveWallet({
                     {new Date(entry.createdAt).toLocaleString("th-TH")} ·{" "}
                     {entry.walletType}
                   </p>
+                  {entry.rewardAmount && (
+                    <p className="text-xs text-muted-foreground">
+                      Main Quest ฿{entry.rewardAmount}
+                    </p>
+                  )}
                   {entry.helpAmount && (
                     <p className="text-xs text-muted-foreground">
                       Help ฿{entry.helpAmount} · Balance ฿
@@ -414,6 +445,94 @@ export function LiveWallet({
           </div>
         </CardContent>
       </Card>
+      {role === "SELLER" && (
+        <section className="space-y-3" aria-label="Coins ที่ลูกค้าจะได้รับ">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <Coins className="size-5" />
+              Coins ของร้านตอนนี้
+            </h2>
+            <Button variant="outline" size="sm" onClick={() => void load()}>
+              อัปเดต
+            </Button>
+          </div>
+          {summaryLoadFailed ? (
+            <p className="rounded-xl border p-4 text-sm text-muted-foreground">
+              โหลดเรต Coins ไม่สำเร็จ กรุณากดอัปเดตเพื่อลองใหม่
+            </p>
+          ) : !summary ? (
+            <p className="text-sm text-muted-foreground" role="status">
+              กำลังโหลดเรต Coins…
+            </p>
+          ) : summary.shopCoinRates.length === 0 ? (
+            <p className="rounded-xl border p-4 text-sm text-muted-foreground">
+              ยังไม่มีร้านค้าในบัญชีนี้
+            </p>
+          ) : (
+            summary.shopCoinRates.map((shop) => (
+              <Card key={shop.shopId}>
+                <CardContent className="space-y-3 p-5">
+                  <h3 className="font-semibold wrap-break-word">{shop.name}</h3>
+                  {shop.rate ? (
+                    <>
+                      <p className="text-sm">
+                        ซื้อครบ {formatMoney(shop.rate.minimumPurchase) + " "}
+                        บาทต่อรายการ จึงได้รับ Coins
+                      </p>
+                      <dl className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3">
+                        <div>
+                          <dt className="text-xs text-muted-foreground">
+                            ไม่เคยได้รับ Coins จากร้านนี้
+                          </dt>
+                          <dd className="mt-1 font-mono tabular-nums">
+                            {shop.rate.newCustomerCoins} Coins
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">
+                            เคยได้รับ Coins จากร้านนี้แล้ว
+                          </dt>
+                          <dd className="mt-1 font-mono tabular-nums">
+                            {shop.rate.repeatCustomerCoins} Coin
+                          </dd>
+                        </div>
+                      </dl>
+                      <p className="text-xs text-muted-foreground">
+                        กฎเวอร์ชัน{" "}
+                        <span className="font-mono">
+                          {shop.rate.ruleVersion}
+                        </span>{" "}
+                        · เรตรอบนี้ถึง{" "}
+                        <span className="font-mono">
+                          {new Intl.DateTimeFormat("en-GB", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hourCycle: "h23",
+                            timeZone: "Asia/Bangkok",
+                          }).format(new Date(shop.rate.endsAt))}
+                        </span>{" "}
+                        น. (เวลาไทย)
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {shop.status === "APPROVED"
+                        ? "ยังไม่มีเรต Coins ในรอบปัจจุบัน ลูกค้ายังไม่ได้รับ Coins จนกว่าจะมีเรตในรอบถัดไป"
+                        : shop.status === "PENDING"
+                          ? "ร้านยังรออนุมัติ จึงยังไม่สามารถรับชำระเงินหรือแจก Coins ได้"
+                          : "ร้านถูกระงับ จึงยังไม่สามารถรับชำระเงินหรือแจก Coins ได้"}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+          <p className="text-xs text-muted-foreground">
+            อัปเดตเรตทุกนาที · ยอดต่ำกว่าขั้นต่ำไม่ได้ Coins
+            และระบบตรวจเรตอีกครั้งเมื่อชำระเงินสำเร็จ
+          </p>
+        </section>
+      )}
       {role === "CUSTOMER" && (
         <>
           <div className="grid grid-cols-4 gap-2">
@@ -456,10 +575,15 @@ export function LiveWallet({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Coins className="size-5" />
-                  <span className="font-medium">Main Quest</span>
+                  <span className="font-medium">Coins เดือนนี้</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  ยังไม่เชื่อม Coins
+                  <span className="font-mono tabular-nums">
+                    {summary?.coins == null
+                      ? "—"
+                      : BigInt(summary.coins).toLocaleString("th-TH")}
+                  </span>{" "}
+                  Coins
                 </span>
               </div>
               <Button

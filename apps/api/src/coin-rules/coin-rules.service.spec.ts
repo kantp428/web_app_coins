@@ -4,6 +4,7 @@ import { AuthService } from '../auth/auth.service.js';
 const { tx } = vi.hoisted(() => ({
   tx: {
     $executeRaw: vi.fn(),
+    $queryRaw: vi.fn(),
     coin_rule_versions: {
       findFirst: vi.fn(),
       update: vi.fn(),
@@ -13,10 +14,12 @@ const { tx } = vi.hoisted(() => ({
     coin_rate_periods: { findMany: vi.fn() },
   },
 }));
-vi.mock('@prisma/client', () => ({
+vi.mock('@prisma/client', async (importOriginal) => ({
+  Prisma: (await importOriginal<typeof import('@prisma/client')>()).Prisma,
   PrismaClient: class {
     coin_rule_versions = tx.coin_rule_versions;
     coin_rate_periods = tx.coin_rate_periods;
+    $queryRaw = tx.$queryRaw;
     $transaction = vi.fn((cb: (v: unknown) => unknown) => cb(tx));
     $disconnect = vi.fn();
   },
@@ -131,14 +134,28 @@ describe('Coin rules', () => {
     ).rejects.toMatchObject({ status: 400 });
     expect(tx.$executeRaw).not.toHaveBeenCalled();
   });
-  it('serializes IDs and reads actual period/rate relations', async () => {
+  it('serializes IDs and returns server round summaries without shop details', async () => {
     tx.coin_rule_versions.findMany.mockResolvedValue([{ rule_id: 1n }]);
-    tx.coin_rate_periods.findMany.mockResolvedValue([
-      { period_id: 1n, shop_coin_rates: [] },
+    tx.$queryRaw.mockResolvedValue([
+      {
+        period_id: 1n,
+        shopCount: 103,
+        belowThresholdShopCount: 102,
+        atOrAboveThresholdShopCount: 1,
+        coinsAwarded: '25',
+      },
     ]);
     expect(await service().list()).toMatchObject({
       rules: [{ rule_id: '1' }],
-      periods: [{ period_id: '1' }],
+      periods: [
+        {
+          period_id: '1',
+          shopCount: 103,
+          belowThresholdShopCount: 102,
+          atOrAboveThresholdShopCount: 1,
+          coinsAwarded: '25',
+        },
+      ],
     });
   });
 });

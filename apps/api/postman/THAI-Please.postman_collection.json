@@ -2,7 +2,7 @@
   "info": {
     "name": "THAI Please",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Government Coin Rules supports versioned GET/POST; shared period/rate storage remains read-only. Automatic rate generation/awards pending F06/F08."
+    "description": "THAI Please auth, wallet, QR payments, frozen Coin rates and monthly Main Quest reward contracts."
   },
   "variable": [
     {
@@ -611,7 +611,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Expected HTTP 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Expected HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Round summary contract', () => { const rows = pm.response.json().periods; pm.expect(rows.length).to.be.at.most(10); rows.forEach(p => { pm.expect(p.shopCount).to.eql(p.belowThresholdShopCount + p.atOrAboveThresholdShopCount); pm.expect(p.coinsAwarded).to.match(/^[0-9]+$/); pm.expect(p.created_at).to.be.a('string'); pm.expect(p).not.to.have.property('shop_coin_rates'); }); });"
                 ],
                 "type": "text/javascript"
               }
@@ -629,9 +630,10 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/government/coin-rules"
+            "url": "{{baseUrl}}/government/coin-rules",
+            "description": "Returns only latest 10 round aggregates. Shop sales buckets are fixed at THB 10,000; coinsAwarded is gross actual ledger awards by award time, including later reversals. No shop names/details or 100-shop cap. Regression: raw ledger/round queries explicitly qualify the application schema, so a stale pooled search_path must not cause 42P01 or HTTP 500."
           },
-          "name": "List rules/periods"
+          "name": "List rules and round summaries"
         },
         {
           "event": [
@@ -812,7 +814,12 @@
           "name": "List pending stores — 200",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/government/stores?status=PENDING"
           },
           "event": [
@@ -831,7 +838,12 @@
           "name": "Get store detail — 200",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/government/stores/{{shopId}}"
           }
         },
@@ -840,10 +852,19 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\"status\":\"APPROVED\"}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"APPROVED\"}"
+            },
             "url": "{{baseUrl}}/government/stores/{{shopId}}"
           }
         },
@@ -852,8 +873,14 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -891,10 +918,19 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\"status\":\"SUSPENDED\"}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"SUSPENDED\"}"
+            },
             "url": "{{baseUrl}}/government/stores/{{shopId}}"
           },
           "event": [
@@ -1056,9 +1092,13 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
             ],
-            "url": "{{baseUrl}}/wallets/me"
+            "url": "{{baseUrl}}/wallets/me",
+            "description": "Current Bangkok month Coins: integer string, unreversed coin ledger only. Seller coins is null. Coins do not spend or allocate Main Quest rewards. Regression: raw ledger/round queries explicitly qualify the application schema, so a stale pooled search_path must not cause 42P01 or HTTP 500."
           },
           "event": [
             {
@@ -1073,6 +1113,9 @@
                   "  pm.expect(Number(body.helpDailyRemaining)).to.be.at.most(200);",
                   "  pm.expect(Number(body.helpDailyRemaining)).to.be.at.most(Number(body.help));",
                   "  pm.expect(body.helpMonthlyLimit).to.eql('1000.00');",
+                  "});",
+                  "pm.test(\"Current month Coins is an integer string\", () => {",
+                  "  pm.expect(pm.response.json().coins).to.match(/^[0-9]+$/);",
                   "});"
                 ]
               }
@@ -1084,11 +1127,23 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "topup-demo-{{$guid}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "topup-demo-{{$guid}}"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\"amount\":\"500.00\"}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":\"500.00\"}"
+            },
             "url": "{{baseUrl}}/wallets/top-up"
           }
         },
@@ -1098,7 +1153,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
             ],
             "url": "{{baseUrl}}/wallets/help/reset-daily"
           }
@@ -1109,7 +1167,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
             ],
             "url": "{{baseUrl}}/wallets/help/reset"
           }
@@ -1119,29 +1180,93 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{sellerToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\"amount\":\"100.00\"}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"amount\":\"100.00\"}"
+            },
             "url": "{{baseUrl}}/seller/payment-requests"
           }
+        },
+        {
+          "name": "Customer previews request and Coins",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}",
+            "description": "Advisory Coins estimate from frozen current round. Settlement recomputes at confirmation, including cutoff and concurrent purchases. NO_RATE/BELOW_MINIMUM => 0. Response includes decimal rewardAmount; help + reward + customer cash equals total."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Preview returns Coins estimate\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.coins).to.be.a(\"number\").and.within(0,10);",
+                  "  pm.expect(data.coinReason).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"Reward amount is decimal THB\", () => { pm.expect(pm.response.json().rewardAmount).to.match(/^\\d+\\.\\d{2}$/); });"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Customer pays request",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
             ],
-            "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}/pay"
-          }
+            "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}/pay",
+            "description": "Atomic money + purchase + Coins settlement. Frozen shop rate at confirmation, inclusive minimum; ever-awarded customer/shop gets repeat rate across months. Missing rate/below minimum yields 0. Main Quest grants once/month after settlement when the OPEN budget covers 100 THB. Existing rewards cover the remaining cash share; new grants apply to the next payment. Duplicate/concurrent loser 409; rollback all writes on error. Response includes decimal rewardAmount; help + reward + customer cash equals total."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Coins result is server calculated\", () => {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.coins).to.be.a(\"number\").and.within(0, 10);",
+                  "  pm.expect([\"NO_RATE\", \"BELOW_MINIMUM\", \"NEW_CUSTOMER\", \"REPEAT_CUSTOMER\"]).to.include(data.coinReason);",
+                  "  pm.expect(data.coinRuleVersion === null || Number.isInteger(data.coinRuleVersion)).to.eql(true);",
+                  "});",
+                  "pm.test(\"Reward amount is decimal THB\", () => { pm.expect(pm.response.json().rewardAmount).to.match(/^\\d+\\.\\d{2}$/); });"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Seller lists recent payment requests",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
             ],
             "url": "{{baseUrl}}/seller/payment-requests"
           }
@@ -1151,7 +1276,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
             ],
             "url": "{{baseUrl}}/seller/payment-requests/{{paymentRequestId}}/cancel"
           }
@@ -1161,7 +1289,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
             ],
             "url": "{{baseUrl}}/payment-requests/{{paymentRequestId}}/pay"
           },
@@ -1182,10 +1313,505 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
             ],
             "url": "{{baseUrl}}/wallets/history"
           }
+        },
+        {
+          "name": "Seller wallet and current shop Coin rules",
+          "description": "Returns server-calculated CASH balance, THB 200 daily help remaining and THB 1,000 monthly help remaining using Asia/Bangkok boundaries.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/wallets/me",
+            "description": "SELLER only owned shops in shopCoinRates; frozen current half-open round, minimumPurchase decimal string/new/repeat Coins/rule version and timestamps. Pending/suspended/missing-rate returns rate:null. CUSTOMER receives shopCoinRates:[]; foreign shops excluded."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Seller receives owned current Coin rules\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const data=pm.response.json();",
+                  "  pm.expect(data.coins).to.eql(null);",
+                  "  pm.expect(data.shopCoinRates).to.be.an(\"array\");",
+                  "  for(const shop of data.shopCoinRates) {",
+                  "    pm.expect(shop.shopId).to.be.a(\"string\");",
+                  "    if(shop.rate) {",
+                  "      pm.expect(shop.status).to.eql(\"APPROVED\");",
+                  "      pm.expect(shop.rate.minimumPurchase).to.match(/^[0-9]+\\.[0-9]{2}$/);",
+                  "      pm.expect(shop.rate.newCustomerCoins).to.be.within(1,10);",
+                  "      pm.expect(shop.rate.repeatCustomerCoins).to.eql(1);",
+                  "    }",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Government Coin Rate Generation",
+      "item": [
+        {
+          "name": "Generate current round (create or reuse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Non-production GOVERNMENT token. Rule must already be effective at current 06/18 Bangkok round start."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Server-selected round', () => { const v = pm.response.json(); pm.expect(v.periodId).to.be.a('string'); pm.expect(v.shopCount).to.be.a('number'); pm.expect(v.created).to.be.a('boolean'); pm.collectionVariables.set('generatedRatePeriodId', v.periodId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repeat generation preserves current round",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Run immediately after preceding request, before next cutoff."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Reuses immutable round', () => { const v = pm.response.json(); pm.expect(v.created).to.eql(false); pm.expect(v.periodId).to.eql(pm.collectionVariables.get('generatedRatePeriodId')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject client-supplied rate (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"rate\":10}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject missing auth (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject customer or seller (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Set customerToken to an authenticated CUSTOMER token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing effective rule (409) - isolated fixture only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Run only against isolated test DB with no rule effective at current round start and no existing current round."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Production manual generation disabled (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Run only when API NODE_ENV=production with valid GOVERNMENT token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Live Main Quest",
+      "item": [
+        {
+          "name": "Current monthly quest",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/quests/me",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const q = pm.response.json();",
+                  "pm.test(\"Quest projection\", () => { pm.expect(q.target).to.eql(100); pm.expect(q.rewardAmount).to.eql(\"100.00\"); pm.expect(q.months).to.have.lengthOf(12); pm.expect(q.coins).to.match(/^\\d+$/); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Claim monthly reward (repeat safe)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/quests/me/claim",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const q = pm.response.json();",
+                  "pm.test(\"Quest projection\", () => { pm.expect(q.target).to.eql(100); pm.expect(q.rewardAmount).to.eql(\"100.00\"); pm.expect(q.months).to.have.lengthOf(12); pm.expect(q.coins).to.match(/^\\d+$/); });",
+                  "pm.collectionVariables.set(\"questRewardSnapshot\", JSON.stringify(pm.response.json().reward));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repeat claim returns same grant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/quests/me/claim",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const q = pm.response.json();",
+                  "pm.test(\"Quest projection\", () => { pm.expect(q.target).to.eql(100); pm.expect(q.rewardAmount).to.eql(\"100.00\"); pm.expect(q.months).to.have.lengthOf(12); pm.expect(q.coins).to.match(/^\\d+$/); });",
+                  "pm.test(\"No duplicate reward\", () => pm.expect(JSON.stringify(pm.response.json().reward)).to.eql(pm.collectionVariables.get(\"questRewardSnapshot\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid quest month",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/quests/me?month=2020-01",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quest requires authentication",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/quests/me",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quest rejects seller",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/quests/me",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Claim rejects seller",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/quests/me/claim",
+            "description": "Main Quest: 100 Coins -> 100 THB once per Bangkok month, OPEN budget required; 409 conflicts are safe to retry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

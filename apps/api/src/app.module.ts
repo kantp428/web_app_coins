@@ -2,6 +2,7 @@ import { StoresController } from './stores/stores.controller.js';
 import { StoresService } from './stores/stores.service.js';
 import { CoinRulesController } from './coin-rules/coin-rules.controller.js';
 import { CoinRulesService } from './coin-rules/coin-rules.service.js';
+import { CoinRatesService } from './coin-rules/coin-rates.service.js';
 import { CategoriesController } from './categories/categories.controller.js';
 import { CategoriesService } from './categories/categories.service.js';
 import { GeocodingController } from './geocoding/geocoding.controller.js';
@@ -37,6 +38,7 @@ import { GovernmentStoresService } from './government-stores/government-stores.s
     GeocodingService,
     CategoriesService,
     CoinRulesService,
+    CoinRatesService,
     WalletsService,
     GovernmentStoresService,
   ],

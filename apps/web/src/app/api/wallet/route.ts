@@ -7,6 +7,12 @@ const targets: Record<
   { method: string; path: (id?: string) => string }
 > = {
   summary: { method: "GET", path: () => "/wallets/me" },
+  quest: {
+    method: "GET",
+    path: (month) =>
+      `/quests/me${month ? `?month=${encodeURIComponent(month)}` : ""}`,
+  },
+  claimQuest: { method: "POST", path: () => "/quests/me/claim" },
   history: { method: "GET", path: () => "/wallets/history" },
   request: { method: "GET", path: (id) => `/payment-requests/${id}` },
   topup: { method: "POST", path: () => "/wallets/top-up" },
@@ -35,6 +41,7 @@ async function proxy(request: NextRequest) {
     id?: string;
     amount?: string;
     idempotencyKey?: string;
+    month?: string;
   } = {};
   if (request.method === "GET")
     input = Object.fromEntries(request.nextUrl.searchParams);
@@ -56,22 +63,25 @@ async function proxy(request: NextRequest) {
   )
     return NextResponse.json({ message: "คำขอไม่ถูกต้อง" }, { status: 400 });
   try {
-    const response = await fetch(`${apiUrl}${target.path(input.id)}`, {
-      method: request.method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        ...(input.action === "topup" && input.idempotencyKey
-          ? { "Idempotency-Key": input.idempotencyKey }
-          : {}),
+    const response = await fetch(
+      `${apiUrl}${target.path(input.action === "quest" ? input.month : input.id)}`,
+      {
+        method: request.method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...(input.action === "topup" && input.idempotencyKey
+            ? { "Idempotency-Key": input.idempotencyKey }
+            : {}),
+        },
+        body:
+          request.method === "POST" && input.amount
+            ? JSON.stringify({ amount: input.amount })
+            : undefined,
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000),
       },
-      body:
-        request.method === "POST" && input.amount
-          ? JSON.stringify({ amount: input.amount })
-          : undefined,
-      cache: "no-store",
-      signal: AbortSignal.timeout(10000),
-    });
+    );
     return NextResponse.json(await response.json(), {
       status: response.status,
       headers: { "Cache-Control": "no-store" },

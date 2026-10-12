@@ -6,12 +6,28 @@ import {
   Headers,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { WalletsService } from './wallets.service.js';
 
 @Controller()
 export class WalletsController {
   constructor(private readonly wallets: WalletsService) {}
+
+  @Get('quests/me')
+  @Header('Cache-Control', 'no-store')
+  quest(
+    @Query('month') month: unknown,
+    @Headers('authorization') auth?: string,
+  ) {
+    return this.wallets.mainQuest(month, auth);
+  }
+
+  @Post('quests/me/claim')
+  @Header('Cache-Control', 'no-store')
+  claim(@Headers('authorization') auth?: string) {
+    return this.wallets.claimQuest(auth);
+  }
 
   @Get('wallets/me')
   @Header('Cache-Control', 'no-store')

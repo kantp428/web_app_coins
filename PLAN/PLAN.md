@@ -11,58 +11,58 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                                                 | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ------------------------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                               | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                                            | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth + wallet help รายวัน/เดือน/top-up/history จริง; Coins ยังไม่มี                | D2                     | I               | F01                   |
-| F03     | PARTIAL: สมัคร PENDING + government approval/search จริง; owner CRUD ยังไม่มี               | D3                     | I               | F02                   |
-| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                                   | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้าน + government approval จริง; owner จัดการร้านยัง preview                  | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO                   | D4                     | I               | F02/F03               |
-| F07     | TODO                                                                                        | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: QR + help 60%/เพดานวันละ200/cash fallback; Coins/refund ค้าง                       | D5                     | I               | F06                   |
-| F09     | UI PREVIEW: Main Quest/ประวัติรายเดือนและสิทธิ์หมดอายุใช้ fixture; purchase/AI ยังไม่เชื่อม | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO                            | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                                   | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                                        | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                                    | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                                        | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                                   | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | ----------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                 | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                              | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth + wallet help/top-up/history + current-month Coins จริง         | D2                     | I               | F01                   |
+| F03     | PARTIAL: สมัคร PENDING + government approval/search จริง; owner CRUD ยังไม่มี | D3                     | I               | F02                   |
+| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                     | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้าน + government approval จริง; owner จัดการร้านยัง preview    | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: rules/rates + QR Coin preview จริง; standalone preview TODO          | D4                     | I               | F02/F03               |
+| F07     | TODO                                                                          | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: QR + Coins + Main Quest grant/spend/expiry จริง; refund ค้าง         | D5                     | I               | F06                   |
+| F09     | PARTIAL: QR/Main Quest จริง; ประวัติรายเดือน fixture และ AI ยังไม่เชื่อม      | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: Government + seller Coin rules API/UI; seller transactions TODO      | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                                     | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                          | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                      | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                          | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
 สถานะรอบใหม่เริ่มที่ TODO; อัปเดตเป็น DOING → PR → DONE ตามผลจริง หรือ BLOCKED พร้อมลิงก์ issue. ไม่ยกสถานะ UI Preview เป็น DONE ของ Feature.
 
-| วัน          | Daily Flag                  | Feature     | สถานะ                                                                     | Dependency                                                                         | Issue / PR |
-| ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
-| D1 / 7 ต.ค.  | [`R1-D1-A`](APP_DEV_A.md)   | F04/F09     | DOING                                                                     | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-B`](APP_DEV_B.md)   | F05/F10/F12 | DOING                                                                     | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I                                | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | TODO                                                                      | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                   | —          |
-| D1 / 7 ต.ค.  | [`R1-D1-I`](INTEGRATION.md) | F00/F01     | DOING                                                                     | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้                     | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-A`](APP_DEV_A.md)   | F04         | DOING                                                                     | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode                         | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                       | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                 | —          |
-| D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | PARTIAL: wallet ส่งยอดช่วยเหลือคงเหลือรายวัน/เดือนจาก ledger จริง         | F00/F01; Coins read ยังไม่ครบ                                                      | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | TODO                                                                      | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                               | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F03; owner isolation, validation/error และสถานะ pending/approved                   | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE       | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                     | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                    | —          |
-| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                      | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                   | —          |
-| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                                                                                 | B          | F06/F08 |
-| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                     | —          |
-| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                                                                                 | I          | F02/F03 |
-| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | DOING: Main Quest/ประวัติรายเดือนเป็น fixture; purchase/AI ยังไม่เชื่อม   | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                            | —          |
-| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md)   | F10/F12     | TODO                                                                      | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน             | —          |
-| D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md)     | F07/F13     | TODO                                                                      | F07/F09; รายงานผลจริงและข้อจำกัด                                                   | —          |
-| D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08         | PARTIAL: QR settle-once + 60%/เพดานช่วยวันละ200; Coins/refund test ค้าง   | F06; daily limit มี unit test boundary แต่ยังขาด DB E2E/concurrency regression     | —          |
-| D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md)   | F13         | TODO                                                                      | F04/F09; browser evidence และผลทดสอบจริง                                           | —          |
-| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md)   | F12/F13     | TODO                                                                      | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล                                | —          |
-| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md)     | F13         | TODO                                                                      | F07/F09; แนบ cases ที่ผ่าน/ไม่ผ่าน                                                 | —          |
-| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13     | TODO                                                                      | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | —          |
-| D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md)   | F14         | TODO                                                                      | F13 และ blocker ที่เกี่ยวปิดแล้ว                                                   | —          |
-| D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md)   | F14         | TODO                                                                      | F12/F13; ไม่มี KPI mock ใน demo integrated                                         | —          |
-| D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md)     | F14         | TODO                                                                      | F13; grounded response ตรวจซ้ำ                                                     | —          |
-| D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14         | TODO                                                                      | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน                             | —          |
+| วัน          | Daily Flag                  | Feature     | สถานะ                                                                    | Dependency                                                                             | Issue / PR |
+| ------------ | --------------------------- | ----------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ---------- |
+| D1 / 7 ต.ค.  | [`R1-D1-A`](APP_DEV_A.md)   | F04/F09     | DOING                                                                    | ใช้ UI เดิม; ส่ง field list ให้ I; browser QA 360/1920 px ยังต้องทำ                    | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-B`](APP_DEV_B.md)   | F05/F10/F12 | DOING                                                                    | ยังไม่เปลี่ยนสถานะร้านจริง; ส่ง DTO ที่ต้องใช้ให้ I                                    | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-AI`](AI_DEV.md)     | F07         | TODO                                                                     | ร่วมล็อก F01; ไม่คิด Coins/visited rule แยกจาก I                                       | —          |
+| D1 / 7 ต.ค.  | [`R1-D1-I`](INTEGRATION.md) | F00/F01     | DOING                                                                    | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้                         | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-A`](APP_DEV_A.md)   | F04         | DOING                                                                    | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode                             | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                    | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                           | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                     | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                     | —          |
+| D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | PARTIAL: wallet ส่งยอดช่วยเหลือคงเหลือรายวัน/เดือนจาก ledger จริง        | F00/F01; current-month Coins read มีแล้ว; quest/history API ยังไม่ครบ                  | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | TODO                                                                     | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                                   | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                    | F03; owner isolation, validation/error และสถานะ pending/approved                       | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                     | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE           | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                    | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                        | —          |
+| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                     | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                       | —          |
+| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government + seller Coin rules API/UI; seller transactions TODO | D5                                                                                     | B          | F06/F08 |
+| D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                     | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                         | —          |
+| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: rules/rates + QR Coin preview จริง; standalone preview TODO     | D4                                                                                     | I          | F02/F03 |
+| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | PARTIAL: Main Quest/QR จริง; ประวัติรายเดือน fixture และ AI ยังไม่เชื่อม | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                                | —          |
+| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md)   | F10/F12     | TODO                                                                     | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน                 | —          |
+| D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md)     | F07/F13     | TODO                                                                     | F07/F09; รายงานผลจริงและข้อจำกัด                                                       | —          |
+| D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08         | PARTIAL: QR + Coins + Main Quest grant/spend/expiry; refund ค้าง         | F06; settlement/quest budget/duplicate/concurrency/month boundary DB ผ่าน; refund ค้าง | —          |
+| D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md)   | F13         | TODO                                                                     | F04/F09; browser evidence และผลทดสอบจริง                                               | —          |
+| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md)   | F12/F13     | TODO                                                                     | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล                                    | —          |
+| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md)     | F13         | TODO                                                                     | F07/F09; แนบ cases ที่ผ่าน/ไม่ผ่าน                                                     | —          |
+| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13     | TODO                                                                     | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน     | —          |
+| D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md)   | F14         | TODO                                                                     | F13 และ blocker ที่เกี่ยวปิดแล้ว                                                       | —          |
+| D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md)   | F14         | TODO                                                                     | F12/F13; ไม่มี KPI mock ใน demo integrated                                             | —          |
+| D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md)     | F14         | TODO                                                                     | F13; grounded response ตรวจซ้ำ                                                         | —          |
+| D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14         | TODO                                                                     | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน                                 | —          |
 
 อัปเดตตามงานใน working tree ณ **11 ตุลาคม 2569 (Asia/Bangkok)**; งานที่เริ่มทำระบุ DOING และยังไม่มี Daily Flag ที่ปิด DONE หรือเข้า PR จากหลักฐานรอบนี้. งาน Auth/Registration ทำได้แล้วไม่ได้แปลว่า F02/F03 ผ่านครบ เพราะ wallet/Coins, store CRUD/approval และ ownership acceptance ยังเหลือ. Release F14 ยังต้องรอ F13 และ gates ตาม [Integration](INTEGRATION.md).
 
@@ -408,3 +408,98 @@
 
 - เพิ่ม `.vscode/tasks.json`: `Dev: Front + Back` เรียก `dev:web`/`dev:api` พร้อมกันจาก workspace root และใช้ presentation group เดียวเพื่อ split terminal; ตั้ง default build task สำหรับ Ctrl+Shift+B, dedicated panels และ instance limit 1. เพิ่ม exception ใน `.gitignore` เพื่อให้แชร์ tasks ได้; ไม่เปลี่ยน Feature/Daily Flag
 - ตรวจ JSON parse และอ้างอิง scripts กับ root package ด้วย PowerShell; ตรวจ `pnpm --filter web exec prettier --write ../../.vscode/tasks.json ../../PLAN/PLAN.md`, `--check` และ `git diff --check`. ไม่รัน app build/test เพราะเปลี่ยน editor configuration เท่านั้น และยังไม่ได้ทดสอบ VS Code UI จริง. ไม่มี business decision/blocker ใหม่. Next: เปิด repo root ใน VS Code แล้วกด Ctrl+Shift+B เพื่อยืนยัน front/back แสดงคนละ pane
+
+### 2026-10-13 04:33 Asia/Bangkok — F06/F08/F09 next-work review
+
+- เทียบ PLAN/INTEGRATION, decisions, Prisma schema และ payment settlement: มี rule version/period/rate storage และ QR purchase สำเร็จแล้ว แต่ settlement ยังไม่เขียน coin_entries และ reward_subsidy_used เป็นศูนย์; Main Quest/history ยังเป็น preview ตามบอร์ด. แนะนำทำ F06 rate generation/coin preview → F08 atomic coin award/reads → Main Quest budget/grant/expiry → F09 เชื่อม UI จริง; ไม่เปลี่ยนสถานะ flags จากการ review
+- เปลี่ยนเฉพาะ PLAN/PLAN.md; ตรวจ Prettier write/check และ git diff --check; ไม่รัน build/test เพราะไม่มี runtime change. ก่อน implement ต้องทบทวน cutoff defaults, นิยามซื้อซ้ำ/เคยได้รับ Coins และ policy เมื่อไม่มี rate/งบไม่พอใน docs/decisions.md ให้สอดคล้อง Integration. Next: ทำ coin calculation/preview service ที่ใช้ร่วมกันก่อนต่อ ledger ใน payment transaction พร้อม duplicate/concurrency และ month-boundary tests
+
+### 2026-10-13 04:44 Asia/Bangkok — R1-D4-I/R1-D4-B, F06/F10: automatic shop Coin rates + test button
+
+- เพิ่ม CoinRatesService: API startup + poll ทุก 60 วินาทีสร้างรอบ 06:00/18:00 Bangkok ปัจจุบัน; ใช้ rule ณ starts_at, Decimal sales ใน lookback ก่อน cutoff, APPROVED shops และบันทึก shop_coin_rates พร้อม snapshot. ใช้ advisory lock ร่วม rule writers และ transaction ทั้งรอบ; กดซ้ำ/หลาย instance ใช้รอบเดิม ไม่ทับหรือเพิ่มเรตที่ล็อกแล้ว. ENABLE_AUTO_COIN_RATES=false ปิด worker; downtime catch-up เฉพาะรอบปัจจุบัน
+- เพิ่ม GOVERNMENT-only non-production POST /government/coin-rules/generate-rates + same-origin Next BFF และปุ่ม “สร้างเรตรอบปัจจุบันทันที (ทดสอบ)” ที่ /government/coin-rules พร้อม confirm/pending/Sonner/reload และช่วงยอดขาย; ปรับ GET flags, Axios/hook, app provider, .env.example, decisions, contract และ Postman 200/repeat/400/401/403/409. ไม่มี schema/migration ใหม่ และยังไม่แจก Coins/รางวัล
+- ตรวจผ่าน: API unit 54/54, API lint/build; opt-in PostgreSQL 3/3 (apply migrations ทั้งชุดใน schema ชั่วคราวแล้ว cleanup; concurrent winner, cutoff/refunds, frozen retry/next round และ rollback เมื่อ insert ล้มเหลว); web lint/build 33 routes; API smoke 200/reuse/400/401/403 และ browser GOVERNMENT login→button→confirm→stored 3-shop round. ตรวจ 360/1920 px ไม่มี page overflow และ cancel/Escape; Prettier write/check กับ git diff --check ผ่าน. Default unit suite skip opt-in DB 3 cases โดยรันทดสอบแยกจริงแล้ว
+- F06/F10 คง PARTIAL: purchase preview, F08 award linkage และ seller rules ยังเหลือ. No-effective-rule ตอบ 409; partial-refund policy ยัง deferred ใน decisions. Next: ใช้ frozen shop_coin_rates ใน purchase preview/settlement แล้วเพิ่ม coin_entries แบบ atomic พร้อม customer monthly Coins reads
+
+### 2026-10-13 04:53 Asia/Bangkok — R1-D4-B/F10: rule history date/time readability
+
+- ปรับเฉพาะ apps/web/src/app/(government)/government/coin-rules/page.tsx: คอลัมน์เริ่มใช้งาน/สิ้นสุดใช้ semantic time แยกวันที่และเวลาคนละบรรทัด gap-1.5 พร้อม font-mono/tabular-nums; เวลาสีรองและขนาดเล็กกว่า วันที่ยังใช้ Asia/Bangkok และสิ้นสุดว่างแสดงขีดเดิม. F10 คง PARTIAL
+- ตรวจผ่าน web Prettier write/check, pnpm --filter web lint/build (33 routes) และ git diff --check; ยังไม่ได้ตรวจ browser รอบนี้. ไม่มี business decision/blocker ใหม่. Next: refresh /government/coin-rules แล้วตรวจ spacing ของประวัติกฎใน viewport ที่ใช้งาน
+
+### 2026-10-13 04:58 Asia/Bangkok — cross-cutting maintenance: Thai mono font replacement
+
+- ตรวจ name table ของไฟล์ผู้ใช้ apps/web/src/fonts/Arundinamono.ttf ได้ Arundina Sans Mono / Regular; เปลี่ยน apps/web/src/app/layout.tsx จาก Chivo Mono เป็น next/font/local น้ำหนัก 400 และเปลี่ยน --font-mono ใน globals.css ให้ใช้ --font-arundina-sans-mono ทั่วเว็บ. คงไฟล์ฟอนต์อื่นที่ผู้ใช้เพิ่มไว้ และไม่เปลี่ยน Feature/Daily Flag
+- ตรวจผ่าน Prettier write/check สำหรับ layout.tsx/globals.css, pnpm --filter web lint/build (33 routes), ไม่พบ Chivo references ใน web source และ git diff --check; ยังไม่ได้ browser QA รอบนี้. ไม่มี business decision/blocker ใหม่. Next: refresh หน้าที่ใช้ font-mono เพื่อตรวจ glyph ภาษาไทย/ตัวเลขและระยะห่างด้วย Arundina
+
+### 2026-10-13 05:00 Asia/Bangkok — cross-cutting maintenance: mono font size adjustment
+
+- เพิ่ม size-adjust:120% ใน next/font/local ของ Arundina Sans Mono ที่ apps/web/src/app/layout.tsx เพื่อขยาย glyph/metrics ทั่ว font-mono โดยคงลำดับขนาดจาก text-* เดิม; ไม่เปลี่ยน Feature/Daily Flag
+- ตรวจผ่าน Prettier write/check, pnpm --filter web lint/build (33 routes), พบ size-adjust:120% ใน CSS build และ git diff --check; ยังไม่ได้ browser QA รอบนี้. ไม่มี blocker/decision ใหม่. Next: refresh หน้าประวัติ/ยอดเงินเพื่อตรวจความอ่านง่ายของขนาดใหม่
+
+### 2026-10-13 05:02 Asia/Bangkok — R1-D4-B/F10: two-digit days in rule history
+
+- ปรับ HistoryDateTime ใน apps/web/src/app/(government)/government/coin-rules/page.tsx เป็น day:2-digit/month:short/year:numeric; คอลัมน์เริ่มใช้งาน/สิ้นสุดแสดง 01 แทน 1 โดยคงเดือนย่อ ปี พ.ศ. เวลาไทย และ mono เดิม. F10 คง PARTIAL
+- ตรวจ Intl ตัวอย่างได้ 01 ต.ค. 2569; Prettier write/check, web lint/build (33 routes) และ git diff --check ผ่าน. ไม่เพิ่ม unit tests สำหรับ formatting ขนาดเล็กและยังไม่ได้ browser QA รอบนี้. ไม่มี blocker/decision ใหม่. Next: refresh ตารางเพื่อตรวจวันที่หนึ่งหลัก
+
+### 2026-10-13 05:03 Asia/Bangkok — cross-cutting maintenance / F10: revert mono Bold trial
+
+- ผู้ใช้ขอคืนการทดลอง Bold: คืน layout.tsx ให้โหลด Arundina Sans Mono Regular 400 อย่างเดียว และคืน weight classes ของวันที่/เวลา/เวอร์ชัน/ตัวเลขใน government/coin-rules/page.tsx ตามก่อนทดลอง. คง size-adjust:150% ที่ผู้ใช้ตั้งไว้, วันที่สองหลัก และ spacing เดิม; F10 คง PARTIAL
+- ตรวจผ่าน Prettier write/check, web lint/build (33 routes) และ git diff --check; ไม่มี browser QA เพิ่มสำหรับการคืน styling. ไม่มี blocker/decision ใหม่. Next: refresh ตารางเพื่อตรวจน้ำหนักเดิม
+
+### 2026-10-13 05:10 Asia/Bangkok — R1-D4-I/R1-D4-B, F06/F10: rate round summary history
+
+- เปลี่ยน /government/coin-rules จากรายการรายร้านเป็นตารางล่าสุด 10 รอบ: เวลาสร้าง/เริ่ม/สิ้นสุดแยก date/time พร้อม mono, จำนวนร้านทั้งหมด, ยอด snapshot ต่ำกว่า 10,000/ตั้งแต่ 10,000 บาท และ Coins ที่แจกจริงตาม awarded_at ในช่วงรอบ [start,end). GET รวมทุกร้านโดยไม่มีเพดาน 100 ร้าน; ยอด Coins เป็น gross ก่อน reversal และรอบว่างเป็น 0 ตาม docs/decisions.md. ปรับ service/spec, web page/API types, docs/api-contract.md และ Postman ให้ตรงกัน
+- ตรวจผ่าน API lint/build, unit 54/54, opt-in PostgreSQL 4/4 (schema ชั่วคราวพร้อม migrations/cleanup; เพิ่มสรุปเกิน 100 ร้านผ่าน mock, ขอบเขตเวลา, reversal, รอบว่างและ latest 10); web lint/build 33 routes, Prettier write/check และ git diff --check. Browser ข้อมูลจริงแสดงร้านรวม 3/ต่ำกว่า 2/ตั้งแต่ 1/Coins 0; ยังไม่ได้ตรวจ responsive 360/1920 px ซ้ำในรอบนี้
+- F06/F10 คง PARTIAL; F08 ยังไม่เขียน coin_entries จึงยังไม่มี Coins แจกจริงในระบบปัจจุบัน. Next: เชื่อม frozen shop rates กับ purchase preview/atomic award ใน F08 แล้วตรวจยอด ledger แสดงในรอบที่เกี่ยวข้อง
+
+### 2026-10-13 05:13 Asia/Bangkok — R1-D4-B/F10: ISO-style history dates
+
+- ปรับ HistoryDateTime ที่ apps/web/src/app/(government)/government/coin-rules/page.tsx ให้ทั้งประวัติกฎและประวัติอัปเดตเรตใช้ yyyy-MM-dd ปี ค.ศ. ตัวเลข Latin; เวลา HH:mm แบบ 24 ชั่วโมงแยกบรรทัด คง Asia/Bangkok/mono/spacing เดิม. F10 คง PARTIAL; ไม่มี business rule หรือ API change
+- ตรวจผ่าน web Prettier write/check, pnpm --filter web lint และ pnpm --filter web build (33 routes), git diff --check; ไม่เพิ่ม tests สำหรับ display formatting และไม่ได้ตรวจ browser ซ้ำ. Next: refresh /government/coin-rules เพื่อตรวจรูปแบบวันที่ใหม่
+
+### 2026-10-13 05:23 Asia/Bangkok — R1-D5-I/F08, F02/F06/F09: atomic QR Coin awards
+
+- เพิ่ม apps/api/src/wallets/purchase-coins.ts และเชื่อม wallets.service.ts: QR preview/settlement ใช้ frozen rate ณ confirmed_at, minimum inclusive, repeat จาก coin entry เดิมทุกเดือนรวม reversal. เขียน purchase+Coins+money+PAID ใน Serializable transaction เดียว; unique/locks ป้องกันแจกซ้ำและ race ตอบ 409. ไม่มี rate/ยอดต่ำให้ 0 พร้อมเหตุผล; ไม่ backfill. เดือนใหม่สร้าง ledger period DRAFT budget=0 หากไม่มี โดยไม่แก้งบเดิม ตาม docs/decisions.md
+- GET /wallets/me ส่ง current-month unreversed Coins จริง; /wallet แสดงยอด และ /wallet/scan แสดง estimate/เหตุผล zero + toast actual award. ปรับ docs/api-contract.md และ Postman summary/preview/pay tests ให้ตรงกัน. F02/F06/F08 คง PARTIAL; Main Quest/history preview F09 ยังใช้ fixture ไม่มี auto grant/refund API ใหม่หรือ schema migration
+- ตรวจผ่าน pnpm --filter api test (59 unit; opt-in DB skipped ใน default suite), api lint/build; RUN_COIN_AWARDS_DB_TESTS=true pnpm --filter api exec vitest run src/wallets/purchase-coins.db.spec.ts ผ่าน 8/8 ใน random schema พร้อม migrations ทั้งชุดและ cleanup: minimum/missing rate, duplicate, concurrent first/repeat+retry, rollback, month/reversal, cutoff, role/expired/cancelled/suspended/insufficient CASH. Web lint/build 33 routes, Prettier write/check และ git diff --check ผ่าน. Browser demo /wallet แสดง Coins จริง 0, responsive 360/1920 ไม่มี page overflow และ /wallet/scan โหลดได้; ไม่จ่ายรายการในฐานข้อมูลหลักและยังไม่ได้ browser end-to-end ยืนยันซื้อจริง
+- ไม่มี blocker ใหม่; next: ทำ Main Quest budget/grant once ต่อเดือนและ refund reversal แบบ atomic แล้วเชื่อม quests/monthly history จาก API แทน fixture. UI shell ยังมีป้าย Preview เดิมแม้ยอด wallet มาจาก API
+
+### 2026-10-13 05:28 Asia/Bangkok — cross-cutting maintenance / F01: redirect auth verification failures
+
+- ปรับ apps/web/src/lib/auth.ts requireRole ให้ fetch/network/timeout, non-2xx, JSON parse failure และข้อมูลผู้ใช้ไม่ครบ/role ไม่ถูกต้อง redirect /login แทน throw Error; valid session และการส่ง role อื่นไปหน้า role ของตนคงเดิม. ไม่มี API contract/business rule change; F01 คง PARTIAL
+- ตรวจ source ที่ transpile ด้วย TypeScript + VM mocks ผ่าน 9/9: ไม่มี cookie, network error, 401, 503, malformed JSON, null profile, unknown role, wrong-role routing และ valid session. Web Prettier write/check, lint, production build (33 routes) และ git diff --check ผ่าน. ไม่ทำ browser QA เพราะเป็น server guard ไม่มี layout change. Next: ลองเปิด protected route ขณะ API ไม่พร้อมเพื่อยืนยันไป /login
+
+### 2026-10-13 05:31 Asia/Bangkok — cross-cutting maintenance / F02/F06/F08/F10: pooled search_path regression fix
+
+- ตรวจฐานข้อมูลจริงพบ public.money_entries ยังอยู่ แต่ current_schema=null และ search_path ค้างเป็น disposable coin_rates_test schema ที่ถูกลบแล้ว; raw SQL ไม่ระบุ schema จึง 42P01 แม้ Prisma ORM ยังอ่าน public ได้. ไม่ลบหรือย้ายตาราง/ข้อมูลจริง
+- เพิ่ม apps/api/src/prisma/sql-table.ts พร้อม identifier validation/qualification และ databaseSchema ของ PrismaService; wallet balance/daily usage/row locks กับ rate-round summary ใช้ qualified tables ตรง Prisma adapter (production public). แก้ coin-rates.db.spec.ts และ purchase-coins.db.spec.ts ใช้ BEGIN/SET LOCAL/COMMIT สำหรับ migration setup (ตัด transaction wrappers เฉพาะสำเนา SQL ใน test ไม่แก้ migration ต้นฉบับ), regression ตั้ง search_path=pg_catalog และฉีด test schema ให้ raw SQL. ปรับ unit mock/spec, docs/api-contract.md และ Postman descriptions; contract/business rules เดิมไม่เปลี่ยน สถานะ features คง PARTIAL
+- ตรวจผ่าน pnpm --filter api test 61/61 unit; RUN_COIN_AWARDS_DB_TESTS=true และ RUN_COIN_RATES_DB_TESTS=true pnpm --filter api exec vitest run src/wallets/purchase-coins.db.spec.ts src/coin-rules/coin-rates.db.spec.ts ผ่าน 12/12 รวม concurrent payment/award/rate และ rollback บน schema ชั่วคราวพร้อม cleanup; api lint/build, Prettier write/check และ git diff --check ผ่าน. Live HTTP login→CUSTOMER GET /wallets/me 200 และ GOVERNMENT GET /government/coin-rules 200; ไม่สร้างรายการซื้อในฐานข้อมูลหลักและไม่รัน web build เพราะแก้เฉพาะ API/data query
+- ไม่มี blocker ใหม่. Next: refresh หน้า wallet หลัง login; query ใหม่ไม่ขึ้นกับ stale pooled search_path และงาน Main Quest/refund ยังค้างตาม F08
+
+### 2026-10-13 05:36 Asia/Bangkok — R1-D4-B/F10: seller current shop Coins and minimum purchase
+
+- เพิ่ม readSellerCoinRates ใน apps/api/src/wallets/purchase-coins.ts และ GET /wallets/me shopCoinRates: เฉพาะร้าน owner ของ SELLER, frozen current half-open round, minimum purchase จาก rule ของเรต พร้อม new/repeat Coins, version และเวลารอบ; ร้านไม่อนุมัติ/ไม่มีเรตส่ง null, CUSTOMER ส่ง []. ไม่มีการคำนวณกฎใหม่หรือ schema/money mutation
+- ปรับ apps/web/src/components/wallet/live-wallet.tsx ที่ /store ให้แสดงชื่อร้านจริงในการ์ด Coins, ซื้อครบกี่บาทต่อรายการ, ไม่เคย/เคยได้รับ Coins, เวอร์ชันกฎและเวลาสิ้นสุดเรต; มี loading/error/retry/empty/no-rate/pending/suspended states, refresh ทุก 60 วินาทีและปุ่มอัปเดต. ปรับ docs/api-contract.md, Postman seller summary case และ unit spec. F10 คง PARTIAL เพราะ seller transaction view ยังไม่ครบ
+- ตรวจผ่าน pnpm --filter api test 62/62 unit (opt-in DB skip; ไม่รันซ้ำเพราะเปลี่ยน read-only projection), api lint/build, web lint/build 33 routes, Prettier write/check และ git diff --check. Live SELLER summary 200 อ่านเรต 5/1 Coins ขั้นต่ำ 50 บาท; browser /store ตรง API, ปุ่มอัปเดตทำงาน, viewport 360/1920 ไม่มี page overflow. Unit ตรวจ owner filter/current interval/null-rate/suspended serialization; ไม่มี blocker/business decision ใหม่. Next: เชื่อม seller transactions/history และเปลี่ยน seller shell ชื่อ/ป้าย preview เดิมให้ใช้ร้านจริงเมื่อทำ F05
+
+### 2026-10-13 05:49 Asia/Bangkok — R1-D5-A/R1-D5-I, F08/F09: live Main Quest and Preview cleanup
+
+- เพิ่ม [main-quest.ts](../apps/api/src/wallets/main-quest.ts), GET /quests/me และ POST /quests/me/claim; monthly Coins จริง, target100→reward100THB ครั้งเดียว/เดือน, OPEN budget/period locks/Serializable/unique allocation, retry เมื่อมีงบ, grant หลัง settle และใช้ได้บิลถัดไป. QR preview/pay หัก BASE→REWARD→CASH, ledger link grant/purchase/UUID, ไม่เขียน zero debit และ expiry ตามขอบเขตเดือน Bangkok โดยเก็บประวัติ. ไม่มี migration หรือแก้งบจริง; กติกาบันทึกก่อน implementation ใน docs/decisions.md
+- /wallet/quests ใช้ [customer-main-quest.tsx](../apps/web/src/components/wallet/customer-main-quest.tsx) ผ่าน same-origin wallet BFF: progress, 12เดือน, grant/used/available/expired, claim/refresh/retry/loading และ refresh ทุก60วินาที. Scanner/history แยกยอด reward; wallet shell เอา Preview ออกจากหน้า API-backed home/scan/top-up/explore/quests และ seller receive/history, seller heading จาก authenticated user. คง Preview ที่ customer monthly history/account/settings ซึ่งยัง fixture; metadata เลิกเรียกทั้งเว็บ Mobile UI Preview. Contract/Postman ปรับพร้อม endpoints และ auth/role/invalid-month/repeat-grant cases
+- ตรวจผ่าน API lint/build, pnpm --filter api test 64/64 unit (14 opt-in DB cases skipped ตามค่า default); RUN_COIN_AWARDS_DB_TESTS=true pnpm --filter api exec vitest run src/wallets/purchase-coins.db.spec.ts ผ่าน10/10 ใน random disposable schema พร้อม migrations/cleanup: budget waiting, auto grant, allocation failure rollback ทั้ง purchase/Coins/money/grant/QR, repeat/concurrent claim, next-bill reward use, zero CASH debit, expiry/no carry, และสอง eligible customers แข่งงบก้อนสุดท้ายได้เพียงหนึ่ง grant. Web lint/build33routes ผ่าน; Prettier write/check ผ่าน. Browser demo Quest แสดง Coins5 จาก API, เลือกย้อนหลังเป็น ENDED, refresh, ไม่มี Preview; customer monthly history ยังมี Preview. ตรวจ360/1920pxไม่มี page overflow. ไม่จ่าย/ให้รางวัลในฐานข้อมูลหลัก และไม่ได้รัน Postman collection จริง
+- F08/F09 คง PARTIAL เพราะ refund reversal, customer monthly purchase history และ AI integration ยังเหลือ; reward ต้องมี monthly_periods OPEN พร้อมงบจริงจึงแจกได้. Next: government monthly budget management และ customer purchase-history API/refund reversal ตามกติกาเดิม; review acceptance gates ก่อนยกสถานะ DONE
+
+### 2026-10-13 05:50 Asia/Bangkok — R1-D5-A/F09: circular Quest progress and normal font
+
+- ปรับ apps/web/src/components/wallet/customer-main-quest.tsx ที่ /wallet/quests จากแถบแนวนอนเป็น SVG circle progress พร้อมตัวเลข Coins/เป้าหมายตรงกลาง, progressbar semantics และ reduced-motion; เอา font-mono ออกจากตัวเลข เดือน ยอดรางวัลและ date/time ทั้ง component. คง API/การให้สิทธิ์และสถานะเดิม; F09 คง PARTIAL ตามงานที่เหลือ
+- ตรวจผ่าน pnpm --filter web exec prettier --write/--check src/components/wallet/customer-main-quest.tsx, pnpm --filter web lint/build (33 routes); browser ตรวจวงกลมแสดง Coins จริง 5/100 และฟอนต์ปกติ. ไม่มี business decision/API change และไม่เพิ่ม tests สำหรับ styling; next: ผู้ใช้ตรวจขนาดวงกลม/spacing ตามต้องการ แล้วทำ customer history/AI integration ที่ค้าง
+
+### 2026-10-13 05:52 Asia/Bangkok — R1-D5-A/F09: shadcn Quest month selector, latest year only
+
+- เปลี่ยน /wallet/quests ใน apps/web/src/components/wallet/customer-main-quest.tsx เป็น shadcn Select/Trigger/Value/Content/Item ที่ติดตั้งไว้ พร้อม label และ pending state. กรองเฉพาะปีของเดือนล่าสุดที่ API ส่งมา (Bangkok current year) แทนแสดงเดือนข้ามปี; API ยังรองรับย้อนหลัง12เดือนเหมือนเดิม ไม่แก้กฎ/ข้อมูล
+- ตรวจผ่าน web Prettier write/check, pnpm --filter web lint/build (33 routes) และ browser เปิดรายการได้เฉพาะ2026-10 ถึง2026-01 ไม่มี2025, เลือก2026-09แล้วโหลดข้อมูลได้. F09 คง PARTIAL; ไม่มี blocker/decision ใหม่และไม่เพิ่ม tests สำหรับ selector presentation. Next: customer monthly history/AI integration ตามบอร์ด
+
+### 2026-10-13 05:55 Asia/Bangkok — R1-D5-A/F09: Quest dropdown below trigger
+
+- ตั้ง SelectContent ของ apps/web/src/components/wallet/customer-main-quest.tsx เป็น side=bottom, align=start, alignItemWithTrigger=false เพื่อให้รายการเปิดใต้ช่องเดือนแทนจัด selected item ทับ trigger. F09 คง PARTIAL; ไม่มี API/business change
+- ตรวจผ่าน web Prettier write/check, pnpm --filter web lint/build (33 routes), browser screenshot ยืนยัน dropdown อยู่ใต้ trigger. ไม่เพิ่ม tests สำหรับ positioning; next: customer history/AI integration ตามบอร์ด

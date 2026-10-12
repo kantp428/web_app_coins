@@ -9,6 +9,17 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { AuthService } from '../auth/auth.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { sqlTable } from '../prisma/sql-table.js';
+import {
+  availableQuestReward,
+  ensureQuestGrant,
+  readMainQuest,
+} from './main-quest.js';
+import {
+  currentMonthCoins,
+  quotePurchaseCoins,
+  readSellerCoinRates,
+} from './purchase-coins.js';
 
 const HELP_MONTHLY_CENTS = 100_000;
 const HELP_DAILY_CENTS = 20_000;
@@ -80,23 +91,39 @@ export function paymentBreakdown(total: number, availableHelp: number) {
   return { targetHelp, help, cash: total - help };
 }
 
+export function paymentWithReward(
+  total: number,
+  availableHelp: number,
+  availableReward: number,
+) {
+  const base = paymentBreakdown(total, availableHelp);
+  const reward = Math.min(base.cash, Math.max(0, availableReward));
+  return { ...base, reward, cash: base.cash - reward };
+}
+
 function isSerializationFailure(error: unknown) {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
   const meta = error.meta as
     { driverAdapterError?: { cause?: { originalCode?: string } } } | undefined;
   return (
-    error.code === 'P2010' &&
-    meta?.driverAdapterError?.cause?.originalCode === '40001'
+    error.code === 'P2034' ||
+    error.code === 'P2002' ||
+    (error.code === 'P2010' &&
+      ['40001', '40P01'].includes(
+        meta?.driverAdapterError?.cause?.originalCode ?? '',
+      ))
   );
 }
 
 @Injectable()
 export class WalletsService {
+  private readonly databaseSchema: string;
   private readonly testActionsEnabled: boolean;
   constructor(
     private readonly db: PrismaService,
     private readonly auth: AuthService,
   ) {
+    this.databaseSchema = db.databaseSchema ?? 'public';
     this.testActionsEnabled =
       process.env.NODE_ENV !== 'production' &&
       process.env.ENABLE_TEST_WALLET_ACTIONS === 'true';
@@ -104,6 +131,37 @@ export class WalletsService {
 
   private async user(authorization?: string) {
     return this.auth.me(authorization);
+  }
+
+  async mainQuest(month: unknown, authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    return this.db.$transaction((tx) =>
+      readMainQuest(tx, BigInt(user.id), month, new Date()),
+    );
+  }
+
+  async claimQuest(authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== 'CUSTOMER')
+      throw new ForbiddenException('เฉพาะบัญชีลูกค้า');
+    try {
+      return await this.db.$transaction(
+        async (tx) => {
+          const userId = BigInt(user.id);
+          await tx.$queryRaw`SELECT user_id FROM ${sqlTable('users', this.databaseSchema)} WHERE user_id=${userId} FOR UPDATE`;
+          const now = new Date();
+          await ensureQuestGrant(tx, userId, now, this.databaseSchema);
+          return readMainQuest(tx, userId, undefined, now);
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (isSerializationFailure(error))
+        throw new ConflictException('รายการชนกัน กรุณาตรวจสิทธิ์อีกครั้ง');
+      throw error;
+    }
   }
 
   private async ensureWallets(
@@ -146,7 +204,7 @@ export class WalletsService {
     if (range) {
       const rows = await tx.$queryRaw<{ cents: bigint }[]>`
         SELECT COALESCE(ROUND(SUM(signed_amount) * 100), 0)::bigint AS cents
-        FROM money_entries
+        FROM ${sqlTable('money_entries', this.databaseSchema)}
         WHERE wallet_id = ${walletId}
           AND created_at >= ${range.startsAt}
           AND created_at < ${range.endsAt}`;
@@ -154,7 +212,7 @@ export class WalletsService {
     }
     const rows = await tx.$queryRaw<{ cents: bigint }[]>`
       SELECT COALESCE(ROUND(SUM(signed_amount) * 100), 0)::bigint AS cents
-      FROM money_entries WHERE wallet_id = ${walletId}`;
+      FROM ${sqlTable('money_entries', this.databaseSchema)} WHERE wallet_id = ${walletId}`;
     return Number(rows[0]?.cents ?? 0n);
   }
 
@@ -169,7 +227,7 @@ export class WalletsService {
     const range = bangkokDayRange();
     const rows = await tx.$queryRaw<{ cents: bigint }[]>`
       SELECT COALESCE(ROUND(-SUM(signed_amount) * 100), 0)::bigint AS cents
-      FROM money_entries
+      FROM ${sqlTable('money_entries', this.databaseSchema)}
       WHERE wallet_id = ${walletId}
         AND wallet_type = 'BASE'
         AND entry_type = 'PAYMENT_DEBIT'
@@ -177,7 +235,7 @@ export class WalletsService {
         AND created_at < ${range.endsAt}
         AND entry_id > COALESCE((
           SELECT MAX(entry_id)
-          FROM money_entries
+          FROM ${sqlTable('money_entries', this.databaseSchema)}
           WHERE wallet_id = ${walletId}
             AND idempotency_key LIKE 'help-daily-reset:%'
             AND created_at >= ${range.startsAt}
@@ -210,7 +268,15 @@ export class WalletsService {
         helpDailyLimit: user.role === 'CUSTOMER' ? '200.00' : null,
         helpMonthlyLimit: user.role === 'CUSTOMER' ? '1000.00' : null,
         month: bangkokMonth(),
+        coins:
+          user.role === 'CUSTOMER'
+            ? await currentMonthCoins(tx, BigInt(user.id), bangkokMonth())
+            : null,
         testActionsEnabled: this.testActionsEnabled,
+        shopCoinRates:
+          user.role === 'SELLER'
+            ? await readSellerCoinRates(tx, BigInt(user.id), new Date())
+            : [],
       };
     });
   }
@@ -279,7 +345,7 @@ export class WalletsService {
     await this.db.$transaction(async (tx) => {
       const { base } = await this.ensureWallets(tx, user);
       if (!base) return;
-      await tx.$queryRaw`SELECT wallet_id FROM wallets WHERE wallet_id = ${base.wallet_id} FOR UPDATE`;
+      await tx.$queryRaw`SELECT wallet_id FROM ${sqlTable('wallets', this.databaseSchema)} WHERE wallet_id = ${base.wallet_id} FOR UPDATE`;
       const resetId = randomUUID();
       await tx.money_entries.createMany({
         data: [
@@ -334,6 +400,7 @@ export class WalletsService {
         shopName: string | null;
         helpAmount?: string;
         customerAmount?: string;
+        rewardAmount?: string;
       }> = [];
       const payments = new Map<
         string,
@@ -347,6 +414,7 @@ export class WalletsService {
           shopName: string;
           helpCents: number;
           customerCents: number;
+          rewardCents: number;
         }
       >();
       for (const entry of entries) {
@@ -375,8 +443,11 @@ export class WalletsService {
             entry.payment_requests.seller.display_name,
           helpCents: 0,
           customerCents: 0,
+          rewardCents: 0,
         };
         existing.amountCents += amountCents;
+        if (entry.wallet_type === 'REWARD' && amountCents < 0)
+          existing.rewardCents += Math.abs(amountCents);
         if (entry.wallet_type === 'BASE')
           existing.helpCents += Math.abs(amountCents);
         if (entry.wallet_type === 'CASH' && amountCents < 0)
@@ -394,6 +465,9 @@ export class WalletsService {
           shopName: entry.shopName,
           ...(entry.helpCents > 0
             ? { helpAmount: money(entry.helpCents) }
+            : {}),
+          ...(entry.rewardCents > 0
+            ? { rewardAmount: money(entry.rewardCents) }
             : {}),
           ...(entry.customerCents > 0
             ? { customerAmount: money(entry.customerCents) }
@@ -515,10 +589,25 @@ export class WalletsService {
         wallets.base.wallet_id,
       );
       const availableCash = await this.balance(tx, wallets.cash.wallet_id);
-      const breakdown = paymentBreakdown(
+      const reward = await availableQuestReward(
+        tx,
+        BigInt(user.id),
+        new Date(),
+      );
+      const breakdown = paymentWithReward(
         total,
         Math.min(availableHelp, dailyHelp),
+        Number(reward?.available.mul(100).toFixed(0) ?? 0),
       );
+      const coinQuote = request.shop_id
+        ? await quotePurchaseCoins(
+            tx,
+            BigInt(user.id),
+            request.shop_id,
+            request.amount,
+            new Date(),
+          )
+        : { coins: 0, coinReason: 'NO_RATE', coinRuleVersion: null };
       return {
         id,
         status,
@@ -527,7 +616,11 @@ export class WalletsService {
         targetHelpAmount: money(breakdown.targetHelp),
         helpAmount: money(breakdown.help),
         customerAmount: money(breakdown.cash),
+        rewardAmount: money(breakdown.reward),
         canPay: availableCash >= breakdown.cash,
+        coins: coinQuote.coins,
+        coinReason: coinQuote.coinReason,
+        coinRuleVersion: coinQuote.coinRuleVersion,
       };
     });
   }
@@ -540,7 +633,7 @@ export class WalletsService {
     try {
       return await this.db.$transaction(
         async (tx) => {
-          await tx.$queryRaw`SELECT payment_request_id FROM payment_requests WHERE payment_request_id = ${id}::uuid FOR UPDATE`;
+          await tx.$queryRaw`SELECT payment_request_id FROM ${sqlTable('payment_requests', this.databaseSchema)} WHERE payment_request_id = ${id}::uuid FOR UPDATE`;
           const request = await tx.payment_requests.findUnique({
             where: { payment_request_id: id },
           });
@@ -551,12 +644,13 @@ export class WalletsService {
             throw new ConflictException('QR นี้หมดอายุแล้ว');
           if (!request.shop_id)
             throw new ConflictException('QR นี้ไม่ได้ผูกกับร้านค้า');
+          await tx.$queryRaw`SELECT user_id FROM ${sqlTable('users', this.databaseSchema)} WHERE user_id=${BigInt(user.id)} FOR UPDATE`;
           const customerWallets = await this.ensureWallets(tx, user);
           const seller = { id: request.seller_id.toString(), role: 'SELLER' };
           const sellerWallets = await this.ensureWallets(tx, seller);
           if (!customerWallets.base)
             throw new ConflictException('ไม่พบสิทธิช่วยจ่าย');
-          await tx.$queryRaw`SELECT wallet_id FROM wallets WHERE wallet_id IN (${customerWallets.cash.wallet_id}, ${customerWallets.base.wallet_id}, ${sellerWallets.cash.wallet_id}) ORDER BY wallet_id FOR UPDATE`;
+          await tx.$queryRaw`SELECT wallet_id FROM ${sqlTable('wallets', this.databaseSchema)} WHERE wallet_id IN (${customerWallets.cash.wallet_id}, ${customerWallets.base.wallet_id}, ${sellerWallets.cash.wallet_id}) ORDER BY wallet_id FOR UPDATE`;
           const total = Number(request.amount.mul(100).toFixed(0));
           const availableHelp = await this.currentHelpBalance(
             tx,
@@ -566,9 +660,16 @@ export class WalletsService {
             tx,
             customerWallets.base.wallet_id,
           );
-          const { help, cash } = paymentBreakdown(
+          const now = new Date();
+          const rewardState = await availableQuestReward(
+            tx,
+            BigInt(user.id),
+            now,
+          );
+          const { help, cash, reward } = paymentWithReward(
             total,
             Math.min(availableHelp, dailyHelp),
+            Number(rewardState?.available.mul(100).toFixed(0) ?? 0),
           );
           if ((await this.balance(tx, customerWallets.cash.wallet_id)) < cash)
             throw new ConflictException('ยอดเงินใน wallet ไม่เพียงพอ');
@@ -582,24 +683,22 @@ export class WalletsService {
           });
           if (shop.participation_status !== 'APPROVED')
             throw new ConflictException('ร้านค้านี้ไม่ได้อยู่ในสถานะอนุมัติ');
-          const now = new Date();
-          const rule = await tx.coin_rule_versions.findFirst({
-            where: {
-              effective_from: { lte: now },
-              OR: [{ effective_to: null }, { effective_to: { gt: now } }],
-            },
-            orderBy: { version: 'desc' },
-            select: { rule_id: true },
-          });
+          const coinQuote = await quotePurchaseCoins(
+            tx,
+            BigInt(user.id),
+            shop.shop_id,
+            request.amount,
+            now,
+          );
           const purchase = await tx.purchases.create({
             data: {
               customer_id: BigInt(user.id),
               shop_id: shop.shop_id,
-              rule_id: rule?.rule_id ?? null,
+              rule_id: coinQuote.ruleId,
               total_amount: money(total),
               customer_paid: money(cash),
               base_subsidy_used: money(help),
-              reward_subsidy_used: '0.00',
+              reward_subsidy_used: money(reward),
               status: 'SUCCEEDED',
               created_at: now,
               confirmed_at: now,
@@ -608,6 +707,30 @@ export class WalletsService {
               idempotency_key: `payment:${id}`,
             },
           });
+          if (coinQuote.coins > 0 && coinQuote.ruleId !== null) {
+            const range = bangkokMonthRange(now);
+            const period = await tx.monthly_periods.upsert({
+              where: { month_key: new Date(`${range.month}T00:00:00Z`) },
+              create: {
+                month_key: new Date(`${range.month}T00:00:00Z`),
+                starts_at: range.startsAt,
+                ends_at: range.endsAt,
+                budget_limit: '0.00',
+                status: 'DRAFT',
+              },
+              update: {},
+            });
+            await tx.coin_entries.create({
+              data: {
+                user_id: BigInt(user.id),
+                period_id: period.period_id,
+                purchase_id: purchase.purchase_id,
+                rule_id: coinQuote.ruleId,
+                coins: coinQuote.coins,
+                awarded_at: now,
+              },
+            });
+          }
           await tx.money_entries.createMany({
             data: [
               ...(help > 0
@@ -623,15 +746,44 @@ export class WalletsService {
                     },
                   ]
                 : []),
-              {
-                idempotency_key: `pay:${id}:cash`,
-                wallet_id: customerWallets.cash.wallet_id,
-                user_id: BigInt(user.id),
-                wallet_type: 'CASH',
-                signed_amount: money(-cash),
-                entry_type: 'PAYMENT_DEBIT',
-                payment_request_id: id,
-              },
+              ...(cash > 0
+                ? [
+                    {
+                      idempotency_key: `pay:${id}:cash`,
+                      wallet_id: customerWallets.cash.wallet_id,
+                      user_id: BigInt(user.id),
+                      wallet_type: 'CASH',
+                      signed_amount: money(-cash),
+                      entry_type: 'PAYMENT_DEBIT',
+                      payment_request_id: id,
+                    },
+                  ]
+                : []),
+              ...(reward > 0 && rewardState
+                ? [
+                    {
+                      idempotency_key: `pay:${id}:reward`,
+                      wallet_id: (
+                        await tx.wallets.findUniqueOrThrow({
+                          where: {
+                            user_id_wallet_type: {
+                              user_id: BigInt(user.id),
+                              wallet_type: 'REWARD',
+                            },
+                          },
+                        })
+                      ).wallet_id,
+                      user_id: BigInt(user.id),
+                      wallet_type: 'REWARD',
+                      grant_id: rewardState.grant.grant_id,
+                      purchase_id: purchase.purchase_id,
+                      payment_request_id: id,
+                      signed_amount: money(-reward),
+                      entry_type: 'PURCHASE',
+                      created_at: now,
+                    },
+                  ]
+                : []),
               {
                 idempotency_key: `pay:${id}:seller`,
                 wallet_id: sellerWallets.cash.wallet_id,
@@ -643,6 +795,7 @@ export class WalletsService {
               },
             ],
           });
+          await ensureQuestGrant(tx, BigInt(user.id), now, this.databaseSchema);
           await tx.payment_requests.update({
             where: { payment_request_id: id },
             data: {
@@ -658,7 +811,11 @@ export class WalletsService {
             amount: money(total),
             helpAmount: money(help),
             customerAmount: money(cash),
+            rewardAmount: money(reward),
             purchaseId: purchase.purchase_id.toString(),
+            coins: coinQuote.coins,
+            coinReason: coinQuote.coinReason,
+            coinRuleVersion: coinQuote.coinRuleVersion,
           };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

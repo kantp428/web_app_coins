@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AuthService } from '../auth/auth.service.js';
+import { sqlTable } from '../prisma/sql-table.js';
 
 export type RuleInput = {
   minimumPurchase: string;
@@ -71,11 +72,51 @@ function jsonValue(value: unknown): unknown {
     ),
   );
 }
+type RatePeriodSummary = {
+  period_id: bigint;
+  starts_at: Date;
+  ends_at: Date;
+  created_at: Date;
+  shopCount: number;
+  belowThresholdShopCount: number;
+  atOrAboveThresholdShopCount: number;
+  coinsAwarded: string;
+};
+export function readRatePeriodSummaries(
+  db: Pick<PrismaClient, '$queryRaw'>,
+  schema = 'public',
+) {
+  return db.$queryRaw<RatePeriodSummary[]>`
+        WITH recent_periods AS (
+          SELECT period_id, starts_at, ends_at, created_at
+          FROM ${sqlTable('coin_rate_periods', schema)} ORDER BY starts_at DESC LIMIT 10
+        ), shop_counts AS (
+          SELECT r.period_id, COUNT(*)::int AS shop_count,
+            COUNT(*) FILTER (WHERE r.sales_total_snapshot < 10000)::int AS below_count,
+            COUNT(*) FILTER (WHERE r.sales_total_snapshot >= 10000)::int AS above_count
+          FROM ${sqlTable('shop_coin_rates', schema)} r JOIN recent_periods p ON p.period_id = r.period_id
+          GROUP BY r.period_id
+        ), coin_totals AS (
+          SELECT p.period_id, SUM(c.coins) AS awarded
+          FROM recent_periods p JOIN ${sqlTable('coin_entries', schema)} c
+            ON c.awarded_at >= p.starts_at AND c.awarded_at < p.ends_at
+          GROUP BY p.period_id
+        )
+        SELECT p.*, COALESCE(s.shop_count, 0) AS "shopCount",
+          COALESCE(s.below_count, 0) AS "belowThresholdShopCount",
+          COALESCE(s.above_count, 0) AS "atOrAboveThresholdShopCount",
+          COALESCE(c.awarded, 0)::text AS "coinsAwarded"
+        FROM recent_periods p
+        LEFT JOIN shop_counts s ON s.period_id = p.period_id
+        LEFT JOIN coin_totals c ON c.period_id = p.period_id
+        ORDER BY p.starts_at DESC
+      `;
+}
 @Injectable()
 export class CoinRulesService implements OnModuleDestroy {
   private readonly db: PrismaClient;
   constructor(
-    config: ConfigService,
+    private readonly config: ConfigService,
     private readonly auth: AuthService,
   ) {
     this.db = new PrismaClient({
@@ -97,18 +138,7 @@ export class CoinRulesService implements OnModuleDestroy {
         orderBy: { version: 'desc' },
         take: 50,
       }),
-      this.db.coin_rate_periods.findMany({
-        orderBy: { starts_at: 'desc' },
-        take: 10,
-        include: {
-          shop_coin_rates: {
-            include: { shops: { select: { name: true } } },
-            orderBy: { shop_id: 'asc' },
-            take: 100,
-          },
-          _count: { select: { shop_coin_rates: true } },
-        },
-      }),
+      readRatePeriodSummaries(this.db),
     ]);
     const now = new Date();
     return jsonValue({
@@ -116,6 +146,10 @@ export class CoinRulesService implements OnModuleDestroy {
       periods,
       serverTime: now,
       nextEffectiveAt: nextCutoff(now),
+      automaticGenerationEnabled:
+        this.config.get<string>('ENABLE_AUTO_COIN_RATES') !== 'false',
+      manualGenerationEnabled:
+        this.config.get<string>('NODE_ENV') !== 'production',
     });
   }
   async create(body: unknown, authorization?: string) {

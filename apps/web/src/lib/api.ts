@@ -108,20 +108,17 @@ export type CoinRulesData = {
   rules: CoinRule[];
   serverTime: string;
   nextEffectiveAt: string;
+  automaticGenerationEnabled: boolean;
+  manualGenerationEnabled: boolean;
   periods: {
     period_id: string;
     starts_at: string;
     ends_at: string;
-    _count: { shop_coin_rates: number };
-    shop_coin_rates: {
-      shop_coin_rate_id: string;
-      shop_id: string;
-      rule_id: string;
-      new_customer_coins: number;
-      repeat_customer_coins: number;
-      sales_total_snapshot: string;
-      shops: { name: string };
-    }[];
+    created_at: string;
+    shopCount: number;
+    belowThresholdShopCount: number;
+    atOrAboveThresholdShopCount: number;
+    coinsAwarded: string;
   }[];
 };
 export async function getCoinRules(signal?: AbortSignal) {
@@ -130,6 +127,18 @@ export async function getCoinRules(signal?: AbortSignal) {
 }
 export async function createCoinRule(body: CoinRuleInput) {
   return (await api.post<CoinRule>("/government/coin-rules", body)).data;
+}
+
+export async function generateCoinRates() {
+  return (
+    await api.post<{
+      periodId: string;
+      startsAt: string;
+      endsAt: string;
+      created: boolean;
+      shopCount: number;
+    }>("/government/coin-rules/generate-rates", {}, { timeout: 50000 })
+  ).data;
 }
 
 export type NearbyStore = {

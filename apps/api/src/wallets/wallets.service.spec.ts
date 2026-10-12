@@ -5,6 +5,7 @@ import {
   bangkokMonth,
   bangkokMonthRange,
   paymentBreakdown,
+  paymentWithReward,
 } from './wallets.service.js';
 
 describe('wallet money rules', () => {
@@ -70,6 +71,26 @@ describe('wallet money rules', () => {
       targetHelp: 1,
       help: 1,
       cash: 1,
+    });
+  });
+});
+
+describe('Main Quest payment allocation', () => {
+  it('caps reward at the remaining cash share and available reward', () => {
+    expect(paymentWithReward(10000, 6000, 10000)).toMatchObject({
+      help: 6000,
+      reward: 4000,
+      cash: 0,
+    });
+    expect(paymentWithReward(10000, 2500, 1000)).toMatchObject({
+      help: 2500,
+      reward: 1000,
+      cash: 6500,
+    });
+    expect(paymentWithReward(10000, 0, 0)).toMatchObject({
+      help: 0,
+      reward: 0,
+      cash: 10000,
     });
   });
 });

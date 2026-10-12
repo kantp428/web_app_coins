@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { NearbyStores } from "@/components/wallet/nearby-stores";
 import { LiveWallet } from "@/components/wallet/live-wallet";
-import {
-  CustomerMainQuest,
-  CustomerMonthlyHistory,
-} from "@/components/wallet/customer-rewards-preview";
+import { CustomerMonthlyHistory } from "@/components/wallet/customer-rewards-preview";
+import { CustomerMainQuest } from "@/components/wallet/customer-main-quest";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
@@ -126,6 +124,10 @@ export function WalletApp({
   const { user } = useAuth();
   const seller = role === "store";
   const tab = section;
+  const livePage =
+    ["home", "scan", "topup", "receive", "explore"].includes(tab) ||
+    (seller && tab === "history") ||
+    (!seller && tab === "quest");
   const router = useRouter();
   const routes = seller ? sellerRoutes : customerRoutes;
   function navigate(section: string) {
@@ -193,7 +195,7 @@ export function WalletApp({
                 / wallet
               </span>
             </Link>
-            {tab !== "explore" && <Badge variant="outline">UI Preview</Badge>}
+            {!livePage && <Badge variant="outline">UI Preview</Badge>}
           </div>
           <div className="flex items-center justify-between">
             <div>
@@ -201,7 +203,7 @@ export function WalletApp({
                 {seller ? "พื้นที่สำหรับร้านค้า" : "ยินดีต้อนรับกลับ"}
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                {seller ? storeName : `สวัสดี, ${user.displayName}`}
+                {seller ? user.displayName : `สวัสดี, ${user.displayName}`}
               </h1>
             </div>
             <button
@@ -538,11 +540,13 @@ export function WalletApp({
               </p>
             </Section>
           )}
-          <p className="text-center text-[11px] text-muted-foreground">
-            {tab === "explore"
-              ? "ร้านที่อนุมัติแล้ว เรียงตามระยะห่างจากพิกัดที่ค้นหา"
-              : "ข้อมูลและยอดทั้งหมดเป็นตัวอย่างสำหรับออกแบบ UI"}
-          </p>
+          {(!livePage || tab === "explore") && (
+            <p className="text-center text-[11px] text-muted-foreground">
+              {tab === "explore"
+                ? "ร้านที่อนุมัติแล้ว เรียงตามระยะห่างจากพิกัดที่ค้นหา"
+                : "ข้อมูลและยอดทั้งหมดเป็นตัวอย่างสำหรับออกแบบ UI"}
+            </p>
+          )}
         </main>
         <nav
           aria-label="เมนูหลัก"

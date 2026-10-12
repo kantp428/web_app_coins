@@ -38,6 +38,38 @@ const date = (value: string) =>
     timeStyle: "short",
     timeZone: "Asia/Bangkok",
   }).format(new Date(value));
+function HistoryDateTime({ value }: { value: string | null }) {
+  if (!value) return <span className="font-mono">—</span>;
+  const timestamp = new Date(value);
+  const dateParts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    calendar: "gregory",
+    numberingSystem: "latn",
+    timeZone: "Asia/Bangkok",
+  }).formatToParts(timestamp);
+  const datePart = (type: string) =>
+    dateParts.find((part) => part.type === type)?.value;
+  return (
+    <time
+      dateTime={value}
+      className="flex flex-col gap-1.5 font-mono tabular-nums"
+    >
+      <span>
+        {`${datePart("year")}-${datePart("month")}-${datePart("day")}`}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        {new Intl.DateTimeFormat("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+          timeZone: "Asia/Bangkok",
+        }).format(timestamp)}
+      </span>
+    </time>
+  );
+}
 const fields = [
   ["minimumPurchase", "ยอดซื้อขั้นต่ำ (บาท)", "decimal"],
   ["lowSalesThreshold", "เกณฑ์ยอดขายร้านต่ำ (บาท)", "decimal"],
@@ -47,7 +79,9 @@ const fields = [
   ["repeatCoins", "ลูกค้าซ้ำ (1 Coin)", "number"],
 ] as const;
 export default function Page() {
-  const { data, loading, saving, save, retry } = useCoinRules();
+  const { data, loading, saving, save, retry, generating, generate } =
+    useCoinRules();
+  const [confirmGeneration, setConfirmGeneration] = useState(false);
   const [pending, setPending] = useState<CoinRuleInput | null>(null);
   const {
     register,
@@ -74,7 +108,7 @@ export default function Page() {
       new Date(r.effective_from).getTime() <= now &&
       (!r.effective_to || new Date(r.effective_to).getTime() > now),
   );
-  const disabled = loading || saving || !data || !!queued;
+  const disabled = loading || saving || generating || !data || !!queued;
   return (
     <section className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -84,7 +118,11 @@ export default function Page() {
             ล็อกเรตรอบเช้า 06:00 และรอบเย็น 18:00 น. เวลาไทย
           </p>
         </div>
-        <Button variant="outline" disabled={loading || saving} onClick={retry}>
+        <Button
+          variant="outline"
+          disabled={loading || saving || generating}
+          onClick={retry}
+        >
           {loading ? "กำลังโหลด…" : "โหลดข้อมูลใหม่"}
         </Button>
       </div>
@@ -175,7 +213,7 @@ export default function Page() {
           role="region"
           aria-label="ตารางประวัติกฎ Coins เลื่อนแนวนอนได้"
         >
-          <table className="w-full min-w-[1000px] text-left text-sm">
+          <table className="w-full min-w-250 text-left text-sm">
             <caption className="sr-only">
               ประวัติกฎ Coins แสดงเวอร์ชัน สถานะ ช่วงใช้งาน และเงื่อนไข
             </caption>
@@ -228,10 +266,10 @@ export default function Page() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-4">
-                      {date(r.effective_from)}
+                      <HistoryDateTime value={r.effective_from} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-4">
-                      {r.effective_to ? date(r.effective_to) : "—"}
+                      <HistoryDateTime value={r.effective_to} />
                     </td>
                     {[
                       Number(r.minimum_purchase).toLocaleString("th-TH", {
@@ -275,42 +313,139 @@ export default function Page() {
           </table>
         </div>
       </section>
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          รอบและเรตร้านจาก DB (ล่าสุด 10 รอบ)
-        </h2>
-        {data?.periods.length === 0 && (
-          <p className="text-muted-foreground">
-            ยังไม่มีข้อมูลรอบและเรตร้าน ระบบสร้างเรตอัตโนมัติยังอยู่ระหว่างพัฒนา
+      <section
+        className="min-w-0 overflow-hidden rounded-xl border bg-background"
+        aria-labelledby="rate-rounds-heading"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+          <h2 id="rate-rounds-heading" className="text-lg font-semibold">
+            ประวัติอัปเดตเรต Coins
+          </h2>
+          <p className="text-sm text-muted-foreground">ล่าสุด 10 รอบ</p>
+          {data?.manualGenerationEnabled && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading || saving || generating}
+              onClick={() => setConfirmGeneration(true)}
+            >
+              {generating
+                ? "กำลังสร้างเรต…"
+                : "สร้างเรตรอบปัจจุบันทันที (ทดสอบ)"}
+            </Button>
+          )}
+        </div>
+        {data && (
+          <p className="px-5 pt-4 text-sm text-muted-foreground">
+            {data.automaticGenerationEnabled
+              ? "สร้างเรตอัตโนมัติรอบ 06:00 และ 18:00 น. ขณะ API ทำงาน โดยตรวจทุกนาที"
+              : "ปิดการสร้างเรตอัตโนมัติอยู่"}
+            {
+              " · เรตที่สร้างแล้วจะคงเดิมตลอดรอบ ร้านที่อนุมัติภายหลังเข้ารอบถัดไป"
+            }
           </p>
         )}
-        {data?.periods.map((p) => (
-          <article
-            key={p.period_id}
-            className="rounded-xl border p-4 space-y-3"
-          >
-            <h3 className="font-semibold">
-              {date(p.starts_at)} – {date(p.ends_at)}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {p._count.shop_coin_rates} ร้าน · แสดงสูงสุด 100 ร้าน
-            </p>
-            {p.shop_coin_rates.map((r) => (
-              <div key={r.shop_coin_rate_id} className="border-t pt-2 text-sm">
-                <p className="font-medium break-words">{r.shops.name}</p>
-                <p>
-                  ลูกค้าใหม่ {r.new_customer_coins} · ลูกค้าซ้ำ{" "}
-                  {r.repeat_customer_coins} Coins
-                </p>
-                <p className="text-muted-foreground">
-                  ยอดขายที่คำนวณ {r.sales_total_snapshot} บาท · กฎ ID{" "}
-                  {r.rule_id}
-                </p>
-              </div>
-            ))}
-          </article>
-        ))}
-      </div>
+        <div
+          className="mt-4 overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
+          tabIndex={0}
+          role="region"
+          aria-label="ตารางประวัติอัปเดตเรต Coins เลื่อนแนวนอนได้"
+        >
+          <table className="w-full min-w-262.5 text-left text-sm">
+            <caption className="sr-only">
+              สรุปจำนวนร้านและ Coins ที่แจกจริงในแต่ละรอบ
+            </caption>
+            <thead className="border-y bg-muted/50 text-xs text-muted-foreground">
+              <tr>
+                {[
+                  "รอบ",
+                  "สร้างเมื่อ",
+                  "เริ่มใช้งาน",
+                  "สิ้นสุด",
+                  "ร้านทั้งหมด",
+                  "ยอดต่ำกว่า 10,000 บาท",
+                  "ยอดตั้งแต่ 10,000 บาท",
+                  "Coins ที่แจก",
+                ].map((title, index) => (
+                  <th
+                    key={title}
+                    scope="col"
+                    className={`whitespace-nowrap px-4 py-3 font-medium ${index >= 4 ? "text-right" : ""}`}
+                  >
+                    {title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {data?.periods.map((p) => (
+                <tr key={p.period_id} className="hover:bg-muted/30">
+                  <th
+                    scope="row"
+                    className="whitespace-nowrap px-4 py-4 font-mono font-medium"
+                  >
+                    {p.period_id}
+                  </th>
+                  {[p.created_at, p.starts_at, p.ends_at].map(
+                    (value, index) => (
+                      <td key={index} className="whitespace-nowrap px-4 py-4">
+                        <HistoryDateTime value={value} />
+                      </td>
+                    ),
+                  )}
+                  {[
+                    p.shopCount,
+                    p.belowThresholdShopCount,
+                    p.atOrAboveThresholdShopCount,
+                  ].map((value, index) => (
+                    <td
+                      key={index}
+                      className="whitespace-nowrap px-4 py-4 text-right font-mono tabular-nums"
+                    >
+                      {value.toLocaleString("th-TH")}
+                    </td>
+                  ))}
+                  <td className="whitespace-nowrap px-4 py-4 text-right font-mono tabular-nums">
+                    {BigInt(p.coinsAwarded).toLocaleString("th-TH")}
+                  </td>
+                </tr>
+              ))}
+              {(!data || data.periods.length === 0) && (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-4 py-10 text-center text-muted-foreground"
+                  >
+                    {loading
+                      ? "กำลังโหลดประวัติ…"
+                      : data
+                        ? "ยังไม่มีรอบอัปเดต ต้องมีกฎที่มีผลตอนเริ่มรอบก่อนสร้างเรต"
+                        : "โหลดข้อมูลใหม่เพื่อดูประวัติ"}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="px-5 py-4 text-xs text-muted-foreground">
+          จำนวนร้านนับจากยอดขายที่ล็อกไว้ในรอบ โดยแบ่งที่ 10,000 บาท · Coins
+          ที่แจกนับจาก ledger ตามเวลาแจกในรอบ ก่อนหักรายการย้อนคืน
+          หากยังไม่มีรายการแจกจะแสดง 0
+        </p>
+      </section>
+      <ConfirmDialog
+        open={confirmGeneration}
+        onOpenChange={setConfirmGeneration}
+        title="สร้างเรตรอบปัจจุบันสำหรับทดสอบ"
+        description="คำนวณจากยอดขายก่อนเวลาเริ่มรอบและกฎที่มีผลตอนเริ่มรอบ หากสร้างรอบนี้แล้วจะใช้เรตเดิม ไม่มีการแจก Coins ให้ลูกค้า"
+        pending={generating}
+        confirmLabel="สร้างเรตทันที"
+        onConfirm={() => {
+          void generate().then((ok) => {
+            if (ok) setConfirmGeneration(false);
+          });
+        }}
+      />
       <ConfirmDialog
         open={!!pending}
         onOpenChange={(open) => {
