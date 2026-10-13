@@ -11,23 +11,23 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                                                 | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ------------------------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                               | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                                            | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth + wallet help รายวัน/เดือน/top-up/history จริง; Coins ยังไม่มี                | D2                     | I               | F01                   |
-| F03     | PARTIAL: สมัคร PENDING + government approval/search จริง; owner CRUD ยังไม่มี               | D3                     | I               | F02                   |
-| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                                   | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้าน + government approval จริง; owner จัดการร้านยัง preview                  | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO                   | D4                     | I               | F02/F03               |
-| F07     | TODO                                                                                        | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: QR + help 60%/เพดานวันละ200/cash fallback; Coins/refund ค้าง                       | D5                     | I               | F06                   |
-| F09     | UI PREVIEW: Main Quest/ประวัติรายเดือนและสิทธิ์หมดอายุใช้ fixture; purchase/AI ยังไม่เชื่อม | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO                            | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                                   | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                                        | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                                    | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                                        | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                                   | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | ----------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                 | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                              | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth + wallet help รายวัน/เดือน/top-up/history จริง; Coins ยังไม่มี  | D2                     | I               | F01                   |
+| F03     | PARTIAL: สมัคร PENDING + government approval/search จริง; owner CRUD ยังไม่มี | D3                     | I               | F02                   |
+| F04     | PARTIAL: Login/Register + Interactive Map ร้านจริง/fixture; Coins ยัง preview | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้าน + government approval จริง; owner จัดการร้านยัง preview    | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO     | D4                     | I               | F02/F03               |
+| F07     | TODO                                                                          | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: QR + help 60%/เพดานวันละ200/cash fallback; Coins/refund ค้าง         | D5                     | I               | F06                   |
+| F09     | UI PREVIEW: purchase จริง + Main Quest/history fixture; Coins/AI ยังไม่เชื่อม | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO              | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                                     | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                          | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                      | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                          | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
@@ -43,11 +43,11 @@
 | D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                       | —          |
 | D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                 | —          |
 | D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | PARTIAL: wallet ส่งยอดช่วยเหลือคงเหลือรายวัน/เดือนจาก ledger จริง         | F00/F01; Coins read ยังไม่ครบ                                                      | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | TODO                                                                      | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                               | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | DOING: Interactive Map ร้านจริง/fixture; browser QA ยังไม่ครบ             | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้                               | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                     | F03; owner isolation, validation/error และสถานะ pending/approved                   | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE       | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                     | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                    | —          |
-| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                      | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                   | —          |
+| D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | DOING: payment request preview จริง; เอา mock state controls ออกแล้ว      | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                   | —          |
 | D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                                                                                 | B          | F06/F08 |
 | D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                      | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                     | —          |
 | D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                                                                                 | I          | F02/F03 |
@@ -398,3 +398,26 @@
 
 - ปรับ fixture และ `/wallet/quests` ให้สิทธิ์ Main Quest ใช้ได้เฉพาะเดือนที่ได้รับ: สิทธิ์ที่ไม่ได้ใช้เมื่อข้ามเดือนแสดง “หมดอายุ” พร้อมเวลาหมดอายุ และรอบเก่าที่สะสมไม่ครบแสดง “จบรอบแล้ว” โดยไม่มีปุ่มกลับไปสะสม; `/wallet/history` แสดง badge “หมดอายุ” แทน “พร้อมใช้” สำหรับสิทธิ์รอบก่อน
 - ไม่เพิ่มหรือแก้ Database/API; เป็น UI Preview ตามกติกา Main Quest เดิม. ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA. Next: ให้ backend ส่งสถานะ/เวลา expiry จริงเมื่อ F08 เชื่อม quest API
+
+### 2026-10-13 17:53 Asia/Bangkok — R1-D3-A/F04: remove area selector and verify web
+
+- ตรวจสถานะ `/wallet/explore` หลังเอาช่องเลือกพื้นที่ที่แสดงค่า “manual” ออกแล้ว; ยังคงปุ่มใช้ตำแหน่งปัจจุบันและช่องกรอกละติจูด/ลองจิจูด/รัศมีไว้
+- ตรวจผ่าน Prettier write/check ของ `nearby-stores.tsx`, web ESLint และ production build 32 routes; ยังไม่ได้ทำ browser QA. F04 คง PARTIAL. Next: เปิด `/wallet/explore` ตรวจว่าไม่มี dropdown “manual” และค้นหาด้วยพิกัดได้ตามเดิม
+
+### 2026-10-13 19:23 Asia/Bangkok — R1-D3-A/F04: rebuild customer Explore
+
+- ทำ `/wallet/explore` ใหม่โดยไม่มี dropdown “manual”: คง geolocation แบบกดอนุญาตและกรอกพิกัดเอง, เชื่อมร้าน approved จาก `GET /stores`, เพิ่มค้นหาชื่อ/หมวด/พื้นที่ กรองหมวด เลือกร้านจากรายการ และ React Leaflet/OpenStreetMap พร้อมหมุดตำแหน่งค้นหา/ร้าน โดยโหลด tiles เมื่อกดเปิดแผนที่
+- เพิ่มโหมดร้านตัวอย่างที่ติดป้ายชัดเจนพร้อม Coins ตัวอย่างสำหรับกรณียังไม่มีร้านจริง; ร้านจาก API แสดง Coins ว่า “รอเชื่อมระบบ” ไม่คำนวณใน frontend และไม่เพิ่ม Database/API/Postman
+- ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA 360/1920 px. F04 คง PARTIAL. Next: ทดสอบปฏิเสธตำแหน่ง→กรอกพิกัด→ค้นหา→เปิดแผนที่→เลือกหมุดใน browser จริง
+
+### 2026-10-13 19:28 Asia/Bangkok — R1-D3-A/F04 + R1-D4-A/F09: FR-C02/FR-C04 combined UI preview
+
+- ยืนยัน FR-C02 บน `/wallet/explore` มี Interactive Map, หมุดร้านจริง/ตัวอย่าง, ค้นหาชื่อ/พื้นที่, กรองหมวด, เลือกร้านดูระยะ/หมวด/Coins และกรอกพิกัดเองเมื่อไม่อนุญาตตำแหน่ง โดยไม่มี dropdown “manual”
+- ปรับ `/wallet/scan` ให้ preview จาก QR จริงแสดงยอดซื้อ/ช่วยจ่าย/จ่ายเองจาก API และ Coins “รอเชื่อมระบบ”; เพิ่ม UI Preview ที่ไม่ยิง pay สำหรับพร้อมยืนยัน, ยอดเงินไม่พอ, สิทธิ์ช่วยจ่ายหมด และยืนยันซ้ำ พร้อม loading/pending label และข้อความไม่ตัดเงินจริง
+- ไม่เพิ่ม Database/API/Postman. ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA กล้อง/แผนที่. F04 คง PARTIAL และ F09 คง UI PREVIEW. Next: ทดสอบ flow จริงใน browser ที่ 360/1920 px และเชื่อม Coin estimate เมื่อ F06/F08 พร้อม
+
+### 2026-10-13 20:28 Asia/Bangkok — R1-D4-A/F09: remove purchase mock controls
+
+- เอากล่อง “ทดลองหน้าพรีวิว”, badge “ไม่ตัดเงินจริง” และปุ่มสถานะจำลองพร้อมยืนยัน/ยอดเงินไม่พอ/หมดสิทธิ์ช่วยจ่าย/ยืนยันซ้ำออกจาก `/wallet/scan` พร้อมล้าง state/handler mock ที่เกี่ยวข้อง
+- คงหน้าพรีวิว QR จริงจาก API ซึ่งแสดงยอดซื้อ/ช่วยจ่าย/จ่ายเอง, loading, error และ Coins “รอเชื่อมระบบ” ไว้ตามเดิม; ไม่แก้ Database/API/Postman
+- ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA. F09 คง UI PREVIEW. Next: ทดสอบ QR/payment request จริงและค่อยเพิ่ม error-state UI จาก response จริงเมื่อ contract รองรับ

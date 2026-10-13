@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserQRCodeReader } from "@zxing/browser";
-import { ImageUp, QrCode } from "lucide-react";
+import { Coins, ImageUp, LoaderCircle, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { api, getApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 type Payment = {
   id: string;
@@ -38,6 +39,7 @@ export function CustomerQrScanner() {
   }, []);
   useEffect(() => () => stop(), [stop]);
   async function inspect(id: string) {
+    setPending(true);
     try {
       setPayment(
         (
@@ -49,6 +51,8 @@ export function CustomerQrScanner() {
       toast.success("สแกน QR สำเร็จ");
     } catch (error) {
       toast.error(getApiError(error));
+    } finally {
+      setPending(false);
     }
   }
   async function start() {
@@ -206,8 +210,23 @@ export function CustomerQrScanner() {
               ตรวจสอบ
             </Button>
           </form>
+          {pending && !payment && (
+            <div
+              role="status"
+              className="flex items-center gap-2 rounded-xl border p-4 text-sm text-muted-foreground"
+            >
+              <LoaderCircle className="size-4 animate-spin" />
+              กำลังตรวจสอบยอดและสิทธิ์ก่อนยืนยัน…
+            </div>
+          )}
           {payment && (
             <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">ข้อมูลจากระบบ</Badge>
+                {payment.status === "PAID" && (
+                  <Badge variant="outline">ยืนยันไปแล้ว</Badge>
+                )}
+              </div>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{payment.shopName}</p>
@@ -223,6 +242,28 @@ export function CustomerQrScanner() {
                 </div>
                 <p className="text-xl font-semibold">฿{payment.amount}</p>
               </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {[
+                  ["ยอดซื้อ", payment.amount],
+                  ["ช่วยจ่าย", payment.helpAmount ?? "0.00"],
+                  ["จ่ายเอง", payment.customerAmount ?? payment.amount],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-lg border bg-background p-2"
+                  >
+                    <p className="text-[11px] text-muted-foreground">{label}</p>
+                    <p className="mt-1 text-sm font-semibold">฿{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between rounded-lg border bg-background p-3 text-sm">
+                <span className="flex items-center gap-2">
+                  <Coins className="size-4" />
+                  Coins ที่คาดว่าจะได้รับ
+                </span>
+                <span className="font-semibold">รอเชื่อมระบบ</span>
+              </div>
               <Button
                 className="w-full"
                 disabled={
@@ -232,13 +273,23 @@ export function CustomerQrScanner() {
                 }
                 onClick={() => void pay()}
               >
-                ยืนยันชำระเงิน
+                {pending ? "กำลังยืนยัน…" : "ยืนยันชำระเงิน"}
               </Button>
-              {payment.canPay === false && (
-                <p className="text-xs text-destructive">
-                  Balance ไม่เพียงพอสำหรับยอดที่ลูกค้าต้องจ่าย
+              {payment.helpAmount === "0.00" && (
+                <p className="text-xs text-amber-700">
+                  สิทธิ์ช่วยจ่ายหมดแล้ว ต้องชำระจากกระเป๋าเงินบาททั้งหมด
                 </p>
               )}
+              {payment.canPay === false && (
+                <p className="text-xs text-destructive">
+                  {payment.status === "PAID"
+                    ? "รายการนี้ยืนยันไปแล้ว ไม่สามารถยืนยันซ้ำได้"
+                    : "ยอดเงินในกระเป๋าไม่เพียงพอสำหรับยอดที่ต้องจ่ายเอง"}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                ตรวจสอบยอดซื้อ ส่วนช่วยจ่าย และยอดที่ต้องจ่ายเองก่อนยืนยัน
+              </p>
             </div>
           )}
         </CardContent>
