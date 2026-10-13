@@ -23,7 +23,7 @@
 | F07     | TODO                                                                                          | D4–5                   | AI              | F03/F06               |
 | F08     | PARTIAL: QR + Coins + Main Quest grant/spend/expiry จริง; ไม่รองรับ refund; review gates ค้าง | D5                     | I               | F06                   |
 | F09     | PARTIAL: QR/Main Quest/wallet history จริง; monthly purchase history/AI ค้าง                  | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: Government + seller Coin rules API/UI; seller transactions TODO                      | D5                     | B               | F06/F08               |
+| F10     | PARTIAL: Government + seller current Coins API/UI; seller transactions TODO                   | D5                     | B               | F06/F08               |
 | F11     | DB views มีแล้ว; API TODO                                                                     | D6                     | I               | F08                   |
 | F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                                          | D6                     | B               | F11                   |
 | F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                                      | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
@@ -48,7 +48,7 @@
 | D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                                     | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE                                   | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                                    | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                                                | —          |
 | D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md)   | F09         | TODO                                                                                     | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม                                               | —          |
-| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government + seller Coin rules API/UI; seller transactions TODO                 | D5                                                                                                             | B          | F06/F08 |
+| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government + seller current Coins API/UI; seller transactions TODO              | D5                                                                                                             | B          | F06/F08 |
 | D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                                     | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                                                 | —          |
 | D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: rules/linear ceil rates + QR Coin preview จริง; standalone preview TODO         | D4                                                                                                             | I          | F02/F03 |
 | D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | PARTIAL: Main Quest/QR/wallet history จริง; monthly history/AI ค้าง                      | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                                                        | —          |
@@ -591,3 +591,20 @@
 - ตรวจพบ mergeชุดใหม่กับ b7082ec หลัง merge coin-ruleจบแล้ว; resolve3conflictsใน PLAN/PLAN.md โดยเก็บทุกhandoff headingจากstages2/3, รักษาF06linear scale/F08no-refund scope และรับF09daily wallet historyจริง/R1-D5-Aล่าสุด. ไม่ย้อนรายการประวัติเก่าและไม่ยกFeatureเป็นDONE
 - ตรวจผ่าน API lint/test/build (82 unit,14 opt-in skipped), web lint/build33routes และ Prettier write/check; แก้trailing whitespaceของ incoming live-wallet.tsxด้วยowning-package Prettierอย่างเดียว. งานmergeไม่รันDB/browserซ้ำ. Stageไฟล์ที่resolveและจบmerge commitในเครื่อง; ไม่push
 - ไม่มีconflict/blockerไฟล์ค้าง; next: ตรวจgit statusหลังcommit และดำเนินreview/remote syncตามworkflow. History month filter/pagination/AIและreview gatesยังอยู่ตามบอร์ด
+
+### 2026-10-13 21:11 Asia/Bangkok — R1-D4-B/F10: seller five-step Coins cards
+
+- /store entry apps/web/src/app/(seller)/store/page.tsx ใช้ WalletApp/LiveWallet อยู่แล้ว; เพิ่มใน apps/web/src/components/wallet/live-wallet.tsx เป็น ordered cardsบนลงล่าง ยอดขายคู่CoinsจากAPI, ช่วงlookbackและยอดขายsnapshotร้าน, คงเรตnew/repeatที่ล็อกจริง/ขั้นต่ำ/เวอร์ชัน/เวลาสิ้นสุดพร้อมloading/error/no-rateเดิม. ไม่แสดงสูตร; ระบุว่าscale examplesประกอบกฎปัจจุบัน ไม่ใช่การเปลี่ยนเรตรอบเก่า
+- เพิ่มsalesWindowDays/salesTotalSnapshot/scaleExamplesใน seller GET /wallets/me ผ่าน purchase-coins.ts โดยใช้ shared Decimal ruleScaleDetailจากruleของfrozen rate, คงowner/current interval/approval filtersและไม่มีDBwrites/migration. ปรับ seller projection unit, docs/api-contract.md และPostman assertions. CustomerยังรับshopCoinRates[]และไม่เห็นข้อมูลร้านอื่น
+- ตรวจผ่าน API lint/test/build (82unit;14opt-in skipped), web lint/build33routes, owning-package Prettier write/check และ git diff --check. Browser SELLER /store แสดง5cardsจริง0→10/2500→9/5000→8/7500→7/10000→5 พร้อมfrozen new5/repeat1/minimum50; ตรวจ360/1920ไม่มีpageoverflowและการ์ดเรียงแนวตั้ง. ไม่รันDBtestsซ้ำเพราะread-only projectionและshared helperผ่านก่อนหน้า; ไม่รันPostman collectionจริง
+- F10คงPARTIALตามseller transaction/review gatesที่เหลือ; ไม่มีblocker/กติกาธุรกิจใหม่. Next: ตรวจเรตรอบใหม่และseller transactionsตามบอร์ด
+
+### 2026-10-13 21:15 Asia/Bangkok — R1-D4-B/F10: store shows current Coins only
+
+- ปรับ apps/web/src/components/wallet/live-wallet.tsx ที่ /store เอา5scale example cards/sales snapshot explanationออก เหลือเรตfrozenจริงของร้านนี้: ลูกค้าใหม่/ลูกค้าซ้ำ, ขั้นต่ำต่อบิล, rule versionและเวลาสิ้นสุด. ขยายจำนวนCoinsด้วยfontปกติให้เด่น; คงloading/error/no-rateและowner filtering. ปรับคำอธิบายUIใน docs/api-contract.md; ไม่เปลี่ยนAPI/schema/สูตร/ledger
+- ตรวจผ่าน web Prettier write/check, pnpm --filter web lint/build33routes; browser /storeเห็นnew5/repeat1/minimum50 และไม่มี5ตัวอย่าง. ไม่เพิ่มtestsสำหรับpresentationหรือรันAPItestsซ้ำเพราะไม่มีbackendchange. F10คงPARTIAL; ไม่มีblocker/decisionใหม่. Next: seller transactions/reviewตามบอร์ด
+
+### 2026-10-13 21:19 Asia/Bangkok — R1-D4-B/F10: repeat-customer history case
+
+- เพิ่มคอลัมน์ลูกค้าซ้ำท้าย5ตัวอย่างในประวัติกฎ apps/web/src/app/(government)/government/coin-rules/page.tsx แสดง repeat_coins จริงของแต่ละversion พร้อมเงื่อนไขซื้อครบขั้นต่ำ; ปรับempty row colspan13. ไม่เปลี่ยนAPI/กฎ/การคำนวณและคง5ตัวอย่างลูกค้าใหม่เดิม
+- ตรวจผ่าน owning-package Prettier write/check, pnpm --filter web lint/build33routes และ sourceตรวจcolumn/rowจำนวนตรงกัน. ไม่เพิ่มtestsสำหรับpresentationและยังไม่ได้browserQAรอบนี้. F10คงPARTIAL; ไม่มีblocker/decisionใหม่. Next: refreshตารางตรวจคอลัมน์ลูกค้าซ้ำและทำreviewตามบอร์ด

@@ -38,9 +38,14 @@ describe('seller shop Coin rates', () => {
     const rate = {
       new_customer_coins: 10,
       repeat_customer_coins: 1,
+      sales_total_snapshot: new Prisma.Decimal('2500'),
       coin_rule_versions: {
         minimum_purchase: new Prisma.Decimal('50'),
         version: 4,
+        sales_window_days: 7,
+        low_sales_threshold: new Prisma.Decimal('10000'),
+        new_low_sales_coins: 10,
+        new_other_coins: 5,
       },
       coin_rate_periods: {
         starts_at: now,
@@ -96,6 +101,15 @@ describe('seller shop Coin rates', () => {
         newCustomerCoins: 10,
         repeatCustomerCoins: 1,
         ruleVersion: 4,
+        salesWindowDays: 7,
+        salesTotalSnapshot: '2500.00',
+        scaleExamples: [
+          { sales: '0.00', coins: 10 },
+          { sales: '2500.00', coins: 9 },
+          { sales: '5000.00', coins: 8 },
+          { sales: '7500.00', coins: 7 },
+          { sales: '10000.00', coins: 5 },
+        ],
       },
     });
     expect(result.slice(1).every((shop) => shop.rate === null)).toBe(true);

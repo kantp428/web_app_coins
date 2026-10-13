@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { ruleScaleDetail } from '../coin-rules/coin-scale.js';
 
 export async function readSellerCoinRates(
   tx: Prisma.TransactionClient,
@@ -34,6 +35,9 @@ export async function readSellerCoinRates(
             newCustomerCoins: rate.new_customer_coins,
             repeatCustomerCoins: rate.repeat_customer_coins,
             ruleVersion: rate.coin_rule_versions.version,
+            salesWindowDays: rate.coin_rule_versions.sales_window_days,
+            salesTotalSnapshot: rate.sales_total_snapshot.toFixed(2),
+            scaleExamples: ruleScaleDetail(rate.coin_rule_versions).examples,
             startsAt: rate.coin_rate_periods.starts_at.toISOString(),
             endsAt: rate.coin_rate_periods.ends_at.toISOString(),
           }

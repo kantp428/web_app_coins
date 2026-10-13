@@ -1378,7 +1378,7 @@
               }
             ],
             "url": "{{baseUrl}}/wallets/me",
-            "description": "SELLER only owned shops in shopCoinRates; frozen current half-open round, minimumPurchase decimal string/new/repeat Coins/rule version and timestamps. Pending/suspended/missing-rate returns rate:null. CUSTOMER receives shopCoinRates:[]; foreign shops excluded."
+            "description": "SELLER only owned shops in shopCoinRates; frozen current half-open round, minimumPurchase decimal string/new/repeat Coins/rule version and timestamps. Pending/suspended/missing-rate returns rate:null. CUSTOMER receives shopCoinRates:[]; foreign shops excluded. rate also includes salesWindowDays, salesTotalSnapshot and server-calculated scaleExamples (up to 5 unique sales/coins pairs) for vertical store cards. Samples explain the current formula; frozen actual rates remain unchanged."
           },
           "event": [
             {
@@ -1400,7 +1400,8 @@
                   "      pm.expect(shop.rate.repeatCustomerCoins).to.eql(1);",
                   "    }",
                   "  }",
-                  "});"
+                  "});",
+                  "pm.test(\"Seller scale examples\", () => { for (const shop of pm.response.json().shopCoinRates) { if (!shop.rate) continue; pm.expect(shop.rate.salesWindowDays).to.be.a(\"number\"); pm.expect(shop.rate.salesTotalSnapshot).to.match(/^\\d+\\.\\d{2}$/); pm.expect(shop.rate.scaleExamples).to.be.an(\"array\").with.length.within(1, 5); for (const point of shop.rate.scaleExamples) { pm.expect(point.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isInteger(point.coins)).to.eql(true); } } });"
                 ]
               }
             }

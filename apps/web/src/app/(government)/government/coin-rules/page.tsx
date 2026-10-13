@@ -236,6 +236,7 @@ export default function Page() {
                   "ตัวอย่าง 3",
                   "ตัวอย่าง 4",
                   "ตัวอย่าง 5",
+                  "ลูกค้าซ้ำ",
                 ].map((title, index) => (
                   <th
                     key={title}
@@ -325,13 +326,21 @@ export default function Page() {
                         </td>
                       );
                     })}
+                    <td className="whitespace-nowrap px-4 py-4 text-center tabular-nums">
+                      <p className="text-xs text-muted-foreground">
+                        ซื้อครบขั้นต่ำ
+                      </p>
+                      <p className="mt-1 font-semibold">
+                        {r.repeat_coins} Coin
+                      </p>
+                    </td>
                   </tr>
                 );
               })}
               {(!data || data.rules.length === 0) && (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={13}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     {loading

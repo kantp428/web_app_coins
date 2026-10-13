@@ -38,6 +38,9 @@ type Summary = {
       newCustomerCoins: number;
       repeatCustomerCoins: number;
       ruleVersion: number;
+      salesWindowDays: number;
+      salesTotalSnapshot: string;
+      scaleExamples?: Array<{ sales: string; coins: number }>;
       startsAt: string;
       endsAt: string;
     } | null;
@@ -536,17 +539,17 @@ export function LiveWallet({
                       <dl className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3">
                         <div>
                           <dt className="text-xs text-muted-foreground">
-                            ไม่เคยได้รับ Coins จากร้านนี้
+                            ลูกค้าใหม่ของร้านนี้
                           </dt>
-                          <dd className="mt-1 font-mono tabular-nums">
+                          <dd className="mt-1 text-2xl font-semibold tabular-nums">
                             {shop.rate.newCustomerCoins} Coins
                           </dd>
                         </div>
                         <div>
                           <dt className="text-xs text-muted-foreground">
-                            เคยได้รับ Coins จากร้านนี้แล้ว
+                            ลูกค้าซ้ำของร้านนี้
                           </dt>
-                          <dd className="mt-1 font-mono tabular-nums">
+                          <dd className="mt-1 text-2xl font-semibold tabular-nums">
                             {shop.rate.repeatCustomerCoins} Coin
                           </dd>
                         </div>
