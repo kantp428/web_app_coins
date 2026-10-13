@@ -219,7 +219,7 @@ describe.skipIf(process.env.RUN_COIN_RATES_DB_TESTS !== 'true')(
       expect(rates.map((rate) => rate.sales_total_snapshot.toFixed(2))).toEqual(
         ['9999.99', '10000.00', '0.00'],
       );
-      expect(rates.map((rate) => rate.new_customer_coins)).toEqual([10, 5, 10]);
+      expect(rates.map((rate) => rate.new_customer_coins)).toEqual([6, 5, 10]);
       expect(
         rates.every(
           (rate) => rate.sales_window_ends_at.getTime() === cutoff.getTime(),

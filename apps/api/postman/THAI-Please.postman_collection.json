@@ -616,6 +616,15 @@
                 ],
                 "type": "text/javascript"
               }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.test(\"Server rule scale details\", () => { for (const rule of pm.response.json().rules) { pm.expect(rule.calculationDetail.formula).to.be.a(\"string\"); pm.expect(rule.calculationDetail.examples).to.be.an(\"array\").that.is.not.empty; for (const example of rule.calculationDetail.examples) { pm.expect(example.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(example.coins).to.be.a(\"number\").within(rule.new_other_coins, rule.new_low_sales_coins); } } }); }"
+                ]
+              }
             }
           ],
           "request": {
@@ -631,7 +640,7 @@
               }
             ],
             "url": "{{baseUrl}}/government/coin-rules",
-            "description": "Returns only latest 10 round aggregates. Shop sales buckets are fixed at THB 10,000; coinsAwarded is gross actual ledger awards by award time, including later reversals. No shop names/details or 100-shop cap. Regression: raw ledger/round queries explicitly qualify the application schema, so a stale pooled search_path must not cause 42P01 or HTTP 500."
+            "description": "Returns only latest 10 round aggregates. Shop sales buckets are fixed at THB 10,000; coinsAwarded is gross actual ledger awards by award time, including later reversals. No shop names/details or 100-shop cap. Regression: raw ledger/round queries explicitly qualify the application schema, so a stale pooled search_path must not cause 42P01 or HTTP 500. New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000. Successful response rules include calculationDetail.formula and server-calculated sales/coins examples for each rule; old frozen rates unchanged."
           },
           "name": "List rules and round summaries"
         },
@@ -668,7 +677,8 @@
               },
               "mode": "raw",
               "raw": "{\r\n  \"minimumPurchase\": \"50.00\",\r\n  \"repeatCoins\": 1,\r\n  \"lowSalesThreshold\": \"10000.00\",\r\n  \"salesWindowDays\": 7,\r\n  \"newLowSalesCoins\": 10,\r\n  \"newOtherCoins\": 5\r\n}"
-            }
+            },
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "name": "Create rule version"
         },
@@ -681,6 +691,15 @@
                   "pm.test('Expected HTTP 401', function () { pm.response.to.have.status(401); });"
                 ],
                 "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.test(\"Server rule scale details\", () => { for (const rule of pm.response.json().rules) { pm.expect(rule.calculationDetail.formula).to.be.a(\"string\"); pm.expect(rule.calculationDetail.examples).to.be.an(\"array\").that.is.not.empty; for (const example of rule.calculationDetail.examples) { pm.expect(example.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(example.coins).to.be.a(\"number\").within(rule.new_other_coins, rule.new_low_sales_coins); } } }); }"
+                ]
               }
             }
           ],
@@ -696,7 +715,8 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/government/coin-rules"
+            "url": "{{baseUrl}}/government/coin-rules",
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000. Successful response rules include calculationDetail.formula and server-calculated sales/coins examples for each rule; old frozen rates unchanged."
           },
           "name": "Reject unauthenticated"
         },
@@ -709,6 +729,15 @@
                   "pm.test('Expected HTTP 403', function () { pm.response.to.have.status(403); });"
                 ],
                 "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) { pm.test(\"Server rule scale details\", () => { for (const rule of pm.response.json().rules) { pm.expect(rule.calculationDetail.formula).to.be.a(\"string\"); pm.expect(rule.calculationDetail.examples).to.be.an(\"array\").that.is.not.empty; for (const example of rule.calculationDetail.examples) { pm.expect(example.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(example.coins).to.be.a(\"number\").within(rule.new_other_coins, rule.new_low_sales_coins); } } }); }"
+                ]
               }
             }
           ],
@@ -724,7 +753,8 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/government/coin-rules"
+            "url": "{{baseUrl}}/government/coin-rules",
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000. Successful response rules include calculationDetail.formula and server-calculated sales/coins examples for each rule; old frozen rates unchanged."
           },
           "name": "Reject non-government token"
         },
@@ -761,7 +791,8 @@
               },
               "mode": "raw",
               "raw": "{\r\n  \"minimumPurchase\": \"50.00\",\r\n  \"repeatCoins\": 2,\r\n  \"lowSalesThreshold\": \"10000.00\",\r\n  \"salesWindowDays\": 7,\r\n  \"newLowSalesCoins\": 10,\r\n  \"newOtherCoins\": 5\r\n}"
-            }
+            },
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "name": "Reject invalid rule"
         },
@@ -798,7 +829,8 @@
               },
               "mode": "raw",
               "raw": "{\r\n  \"minimumPurchase\": \"50.00\",\r\n  \"repeatCoins\": 1,\r\n  \"lowSalesThreshold\": \"10000.00\",\r\n  \"salesWindowDays\": 7,\r\n  \"newLowSalesCoins\": 10,\r\n  \"newOtherCoins\": 5\r\n}"
-            }
+            },
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "name": "Reject second pending rule"
         }
@@ -1390,7 +1422,7 @@
                 }
               }
             },
-            "description": "Non-production GOVERNMENT token. Rule must already be effective at current 06/18 Bangkok round start."
+            "description": "Non-production GOVERNMENT token. Rule must already be effective at current 06/18 Bangkok round start. New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {
@@ -1429,7 +1461,7 @@
                 }
               }
             },
-            "description": "Run immediately after preceding request, before next cutoff."
+            "description": "Run immediately after preceding request, before next cutoff. New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {
@@ -1468,7 +1500,7 @@
                 }
               }
             },
-            "description": ""
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {
@@ -1502,7 +1534,7 @@
                 }
               }
             },
-            "description": ""
+            "description": " New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {
@@ -1540,7 +1572,7 @@
                 }
               }
             },
-            "description": "Set customerToken to an authenticated CUSTOMER token."
+            "description": "Set customerToken to an authenticated CUSTOMER token. New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {
@@ -1578,7 +1610,7 @@
                 }
               }
             },
-            "description": "Run only against isolated test DB with no rule effective at current round start and no existing current round."
+            "description": "Run only against isolated test DB with no rule effective at current round start and no existing current round. New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {
@@ -1616,7 +1648,7 @@
                 }
               }
             },
-            "description": "Run only when API NODE_ENV=production with valid GOVERNMENT token."
+            "description": "Run only when API NODE_ENV=production with valid GOVERNMENT token. New rounds use linear ceil scaling from newLowSalesCoins (maximum) to newOtherCoins (minimum) by sales/lowSalesThreshold capped at 1; threshold zero uses minimum. Repeat unchanged. Existing frozen rounds/manual repeats keep stored rates. Example 10->5 with threshold10000: 0/2500/5000/7500/10000 sales => 10/9/8/7/5 Coins. Reporting buckets stay fixed10000."
           },
           "event": [
             {

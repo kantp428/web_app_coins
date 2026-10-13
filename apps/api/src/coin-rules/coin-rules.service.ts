@@ -1,3 +1,4 @@
+import { ruleScaleDetail } from './coin-scale.js';
 import {
   BadRequestException,
   ConflictException,
@@ -142,7 +143,10 @@ export class CoinRulesService implements OnModuleDestroy {
     ]);
     const now = new Date();
     return jsonValue({
-      rules,
+      rules: rules.map((rule) => ({
+        ...rule,
+        calculationDetail: ruleScaleDetail(rule),
+      })),
       periods,
       serverTime: now,
       nextEffectiveAt: nextCutoff(now),

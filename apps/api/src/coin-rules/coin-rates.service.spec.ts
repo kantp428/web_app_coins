@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { CoinRatesService, currentRatePeriod } from './coin-rates.service.js';
+import {
+  CoinRatesService,
+  currentRatePeriod,
+  scaledNewCustomerCoins,
+} from './coin-rates.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthService } from '../auth/auth.service.js';
 
@@ -91,7 +95,7 @@ describe('shop Coin rate generation', () => {
     const rows = tx.shop_coin_rates.createMany.mock.calls[0][0].data;
     expect(
       rows.map((row: { new_customer_coins: number }) => row.new_customer_coins),
-    ).toEqual([10, 5, 10]);
+    ).toEqual([6, 5, 10]);
     expect(rows[2].sales_total_snapshot.toString()).toBe('0');
     expect(rows[0]).toMatchObject({
       rule_id: 4n,
@@ -244,5 +248,60 @@ describe('shop Coin rate generation', () => {
     ]);
     await service.runAutomatic();
     expect(generate).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('linear new-customer Coins', () => {
+  it.each([
+    ['0', 10],
+    ['1000', 10],
+    ['2000', 9],
+    ['2000.01', 9],
+    ['1999.99', 10],
+    ['2500', 9],
+    ['5000', 8],
+    ['6000', 7],
+    ['7500', 7],
+    ['9000', 6],
+    ['9999.99', 6],
+    ['10000', 5],
+    ['10000.01', 5],
+    ['999999999999.99', 5],
+    ['-1', 10],
+  ])('rounds up and clamps sales %s to %i Coins', (sales, expected) => {
+    expect(
+      scaledNewCustomerCoins(
+        new Prisma.Decimal(sales),
+        new Prisma.Decimal('10000'),
+        10,
+        5,
+      ),
+    ).toBe(expected);
+  });
+  it('uses configured endpoints, decimal thresholds, equal endpoints and zero threshold', () => {
+    expect(
+      scaledNewCustomerCoins(
+        new Prisma.Decimal('25.05'),
+        new Prisma.Decimal('100.20'),
+        8,
+        2,
+      ),
+    ).toBe(7);
+    expect(
+      scaledNewCustomerCoins(
+        new Prisma.Decimal('5000'),
+        new Prisma.Decimal('10000'),
+        8,
+        8,
+      ),
+    ).toBe(8);
+    expect(
+      scaledNewCustomerCoins(
+        new Prisma.Decimal('0'),
+        new Prisma.Decimal('0'),
+        10,
+        5,
+      ),
+    ).toBe(5);
   });
 });

@@ -12,6 +12,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthService } from '../auth/auth.service.js';
 import { nextCutoff } from './coin-rules.service.js';
+import { scaledNewCustomerCoins } from './coin-scale.js';
+export { scaledNewCustomerCoins } from './coin-scale.js';
 
 const HALF_DAY = 12 * 60 * 60 * 1000;
 export function currentRatePeriod(now: Date) {
@@ -122,9 +124,12 @@ export class CoinRatesService
                 period_id: period.period_id,
                 shop_id: shop.shop_id,
                 rule_id: rule.rule_id,
-                new_customer_coins: total.lt(rule.low_sales_threshold)
-                  ? rule.new_low_sales_coins
-                  : rule.new_other_coins,
+                new_customer_coins: scaledNewCustomerCoins(
+                  total,
+                  rule.low_sales_threshold,
+                  rule.new_low_sales_coins,
+                  rule.new_other_coins,
+                ),
                 repeat_customer_coins: rule.repeat_coins,
                 sales_total_snapshot: total,
                 sales_window_starts_at: windowStart,

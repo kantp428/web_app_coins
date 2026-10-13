@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth/auth.service.js';
@@ -135,7 +136,15 @@ describe('Coin rules', () => {
     expect(tx.$executeRaw).not.toHaveBeenCalled();
   });
   it('serializes IDs and returns server round summaries without shop details', async () => {
-    tx.coin_rule_versions.findMany.mockResolvedValue([{ rule_id: 1n }]);
+    tx.coin_rule_versions.findMany.mockResolvedValue([
+      {
+        rule_id: 1n,
+        low_sales_threshold: new Prisma.Decimal('10000'),
+        sales_window_days: 7,
+        new_low_sales_coins: 10,
+        new_other_coins: 5,
+      },
+    ]);
     tx.$queryRaw.mockResolvedValue([
       {
         period_id: 1n,
@@ -146,7 +155,20 @@ describe('Coin rules', () => {
       },
     ]);
     expect(await service().list()).toMatchObject({
-      rules: [{ rule_id: '1' }],
+      rules: [
+        {
+          rule_id: '1',
+          calculationDetail: {
+            examples: [
+              { sales: '0.00', coins: 10 },
+              { sales: '2500.00', coins: 9 },
+              { sales: '5000.00', coins: 8 },
+              { sales: '7500.00', coins: 7 },
+              { sales: '10000.00', coins: 5 },
+            ],
+          },
+        },
+      ],
       periods: [
         {
           period_id: '1',
