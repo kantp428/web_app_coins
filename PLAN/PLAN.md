@@ -13,7 +13,7 @@
 
 | Feature | สถานะล่าสุด                                                                                   | วันเป้าหมาย            | เจ้าของ         | Dependency            |
 | ------- | --------------------------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                                                 | D1                     | I               | —                     |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles/20 nearby shops                                 | D1                     | I               | —                     |
 | F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                                              | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
 | F02     | PARTIAL: Auth + wallet help/top-up/history + current-month Coins จริง                         | D2                     | I               | F01                   |
 | F03     | PARTIAL: สมัคร PENDING + government approval/search จริง; owner CRUD ยังไม่มี                 | D3                     | I               | F02                   |
@@ -608,3 +608,16 @@
 
 - เพิ่มคอลัมน์ลูกค้าซ้ำท้าย5ตัวอย่างในประวัติกฎ apps/web/src/app/(government)/government/coin-rules/page.tsx แสดง repeat_coins จริงของแต่ละversion พร้อมเงื่อนไขซื้อครบขั้นต่ำ; ปรับempty row colspan13. ไม่เปลี่ยนAPI/กฎ/การคำนวณและคง5ตัวอย่างลูกค้าใหม่เดิม
 - ตรวจผ่าน owning-package Prettier write/check, pnpm --filter web lint/build33routes และ sourceตรวจcolumn/rowจำนวนตรงกัน. ไม่เพิ่มtestsสำหรับpresentationและยังไม่ได้browserQAรอบนี้. F10คงPARTIAL; ไม่มีblocker/decisionใหม่. Next: refreshตารางตรวจคอลัมน์ลูกค้าซ้ำและทำreviewตามบอร์ด
+
+### 2026-10-13 21:24 Asia/Bangkok — cross-cutting maintenance/F02: investigate missing test reset controls
+
+- ตรวจ CustomerTopUp อ่านtestActionsEnabledจากwallet summaryและซ่อนปุ่มเมื่อfalse; WalletsServiceเปิดเฉพาะNODE_ENV!=production && ENABLE_TEST_WALLET_ACTIONS==='true'. เครื่องนี้ไม่พบflagในapi envและdotenvตรวจค่าเป็นunset; .env.exampleตั้งfalseโดยdefault. WebAPI_URLชี้localhost3000
+- Read-only config/source checksสำเร็จ; liveHTTPloginตรวจruntimeไม่สำเร็จเพราะECONNRESET จึงไม่อ้างผลliveflag. ไม่แก้env/เปิดtestactionsหรือresetเงินจริง, ไม่มีsource/API changeและไม่รันappbuild/testsสำหรับinvestigation. วิธีแก้ในdev: ตั้งENABLE_TEST_WALLET_ACTIONS=trueในapps/api/.envแล้วrestartAPI/refreshweb; productionยังปิดเสมอ
+- Featuresคงสถานะเดิม. Next: เปิดflagเฉพาะdevelopmentที่ต้องการทดสอบและตรวจGETwallet summaryส่งtrue; หากยังไม่ขึ้นตรวจAPIavailability/summaryerror (UIcatchซ่อนปุ่มไว้)
+
+### 2026-10-14 04:11 Asia/Bangkok — R1-D1-I/F00 + R1-D3-I/F03: 20 nearby mock shops across all categories
+
+- เพิ่ม apps/api/prisma/seed-nearby-shops.mjs และ package script seed:nearby-shops; สร้างบัญชีSELLERช่วงdemo_shop_01..20และร้านAPPROVED20ร้าน พร้อมคำอธิบายภาษาไทยติดป้ายข้อมูลทดสอบ/ที่อยู่จำลอง/เวลาเปิด/CASHwallet/หมวดร้าน. ใช้พิกัดกระจายแบบspherical destinationภายใน5kmของจุดที่ผู้ใช้ให้มา; ไม่บันทึกพิกัดผู้ใช้หรือรหัสผ่านในhandoffนี้. ครบ7หมวด: อาหาร/คาเฟ่/เบเกอรี่/เครื่องดื่ม/ของใช้/บริการอย่างละ3 และอื่นๆ2. ไม่แตะร้านจริง/ยอดเงิน/Coins/ratesที่ล็อกไว้
+- Seeddefaultdry-run, productionguard, reserved-name/password/ownership collision checks, advisorylockและtransactionทั้งชุด; --applyจึงเขียนDB. บันทึกขอบเขตก่อนimplementในdocs/decisions.md. รันapplyครั้งแรกสร้าง20users/20shops; รันซ้ำสร้าง0/0. ตรวจDB20ร้านครบcategories/status/descriptions/scryptcredentialsและระยะจากพิกัดที่ปัด6ตำแหน่ง max4.59717km
+- ตรวจผ่าน pnpm --filter api exec node --check prisma/seed-nearby-shops.mjs, pnpm --filter api seed:nearby-shops (dry-run), apply2รอบพร้อมassertions, owning-package Prettier write/check และ git diff --check. APIเดิมปิดอยู่จึงเปิดdist/main.jsชั่วคราวโดยENABLE_AUTO_COIN_RATES=falseเพื่อread-onlysmoke: sellerlogin/wallet200และCUSTOMER GETstoresค้นเจอ20mock/7categoriesทั้งหมดใน5km; หยุดprocessทดสอบแล้ว. ไม่รันappbuild/fullunitเพราะseed/config/docs-onlyและไม่มีschema/APIchange
+- F00/F03คงPARTIALตามacceptanceที่เหลือ. ไม่มีblocker; next: เปิดแอปตามปกติแล้วค้นหาจุดทดสอบ/ล็อกอินบัญชีร้านใหม่; ร้านใหม่เข้ารอบCoinถัดไปตามfrozen-roundpolicy. คำสั่งใช้ซ้ำ: pnpm --filter api seed:nearby-shops --apply (ไม่มี --apply จะตรวจแผนอย่างเดียว)

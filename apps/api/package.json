@@ -22,7 +22,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "seed:demo": "node prisma/seed-demo.mjs",
     "seed:coin-rules": "node prisma/seed-coin-rules.mjs",
-    "seed:coin-rules:current": "node prisma/seed-current-coin-rule.mjs"
+    "seed:coin-rules:current": "node prisma/seed-current-coin-rule.mjs",
+    "seed:nearby-shops": "node prisma/seed-nearby-shops.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

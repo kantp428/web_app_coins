@@ -159,3 +159,7 @@ Apply only when generating a new frozen round. Existing shop_coin_rates and hist
 ### 2026-10-13 — Rule history scale explanation
 
 User requests a formula and sales-to-Coins examples for each rule-history row. API computes explanatory samples with the same Decimal scale helper as rate generation; frontend only renders server values. Samples use0/25/50/75/100 percent of that rule threshold, floored to satang before calculating Coins; duplicate sales points omitted for tiny/zero thresholds. Threshold0 explicitly shows constant minimum instead of division by zero. Explain that this is the current formula for newly generated rounds, not a rewrite of older binary frozen rates. Repeat Coins stays visible inside the detail cell.
+
+### 2026-10-13 — Nearby mock shops seed
+
+User authorizes20 mock seller/shop records within5km of the supplied center, all existing categories covered, sequential usernames and the supplied demo password. Use reserved demo_shop_01..20, one APPROVED shop each so customer search works, descriptions visibly marked as test data, synthetic addresses and opening hours. Generate deterministic spherical coordinates and verify rounded stored points remain within5km. Non-production seed only, atomic transaction, collision checks and idempotent reuse; never overwrite unrelated accounts/shops or fabricate sales/Coins/grants. Existing frozen Coin rounds are unchanged; newly approved demo shops join the next generated round.
