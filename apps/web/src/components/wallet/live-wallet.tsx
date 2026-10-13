@@ -53,7 +53,32 @@ type Entry = {
   helpAmount?: string;
   customerAmount?: string;
   rewardAmount?: string;
+  coinsEarned?: number;
 };
+
+const historyDateKey = (value: string) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+
+const historyDateLabel = (value: string) =>
+  new Intl.DateTimeFormat("th-TH", {
+    timeZone: "Asia/Bangkok",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+  }).format(new Date(value));
+
+const historyTimeLabel = (value: string) =>
+  new Intl.DateTimeFormat("th-TH", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 type RequestData = {
   id: string;
   status: string;
@@ -225,7 +250,62 @@ export function LiveWallet({
       toast.error("บันทึกรูป QR ไม่สำเร็จ กรุณาลองใหม่");
     }
   }
-  if (section === "history")
+  if (section === "history") {
+    const groups = Array.from(
+      history.reduce((dates, entry) => {
+        const key = historyDateKey(entry.createdAt);
+        const group = dates.get(key) ?? {
+          date: entry.createdAt,
+          entries: [] as Entry[],
+        };
+        group.entries.push(entry);
+        dates.set(key, group);
+        return dates;
+      }, new Map<string, { date: string; entries: Entry[] }>()),
+    );
+    const entryCard = (entry: Entry) => (
+      <Card key={entry.id}>
+        <CardContent className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 p-4">
+          <p className="min-w-0 break-words font-medium">
+            {entry.shopName ??
+              {
+                TOPUP: "เติมเงิน",
+                BASE_ALLOCATION: "วงเงินช่วยเหลือ",
+                REWARD_ALLOCATION: "วงเงิน Main Quest",
+                PAYMENT_CREDIT: "รับชำระเงิน",
+                PAYMENT_DEBIT: "ชำระเงิน",
+              }[entry.type] ??
+              entry.type}
+          </p>
+          <p
+            className={`text-right font-semibold tabular-nums ${Number(entry.amount) >= 0 ? "text-emerald-600" : "text-destructive"}`}
+          >
+            {Number(entry.amount) >= 0 ? "+" : "-"}฿
+            {formatMoney(String(Math.abs(Number(entry.amount))))}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {historyTimeLabel(entry.createdAt)} น. · {entry.walletType}
+          </p>
+          <span aria-hidden="true" />
+          <div>
+            {!!entry.coinsEarned && (
+              <p className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                <Coins className="size-3.5" aria-hidden="true" />+
+                {entry.coinsEarned.toLocaleString("th-TH")} Coins
+              </p>
+            )}
+          </div>
+          <div className="max-w-[13rem] text-right text-xs leading-relaxed text-muted-foreground">
+            {(entry.customerAmount || entry.helpAmount) && (
+              <p>สิทธิ์ช่วยจ่าย ฿{formatMoney(entry.helpAmount ?? "0.00")}</p>
+            )}
+            {entry.rewardAmount && (
+              <p>สิทธิ์ Main Quest ฿{formatMoney(entry.rewardAmount)}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
     return (
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">ประวัติเงินเข้าออก</h2>
@@ -234,51 +314,25 @@ export function LiveWallet({
             ยังไม่มีรายการ
           </p>
         ) : (
-          history.map((entry) => (
-            <Card key={entry.id}>
-              <CardContent className="flex items-center justify-between gap-4 p-4">
-                <div>
-                  <p className="font-medium">
-                    {entry.shopName ??
-                      {
-                        TOPUP: "เติมเงิน",
-                        BASE_ALLOCATION: "วงเงินช่วยเหลือ",
-                        REWARD_ALLOCATION: "วงเงิน Main Quest",
-                        PAYMENT_CREDIT: "รับชำระเงิน",
-                        PAYMENT_DEBIT: "ชำระเงิน",
-                      }[entry.type] ??
-                      entry.type}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(entry.createdAt).toLocaleString("th-TH")} ·{" "}
-                    {entry.walletType}
-                  </p>
-                  {entry.rewardAmount && (
-                    <p className="text-xs text-muted-foreground">
-                      Main Quest ฿{entry.rewardAmount}
-                    </p>
-                  )}
-                  {entry.helpAmount && (
-                    <p className="text-xs text-muted-foreground">
-                      Help ฿{entry.helpAmount} · Balance ฿
-                      {entry.customerAmount ?? "0.00"}
-                    </p>
-                  )}
-                </div>
-                <p
-                  className={`font-semibold ${Number(entry.amount) >= 0 ? "text-emerald-600" : "text-destructive"}`}
-                >
-                  {Number(entry.amount) >= 0 ? "+" : ""}฿
-                  {Number(entry.amount).toLocaleString("th-TH", {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-              </CardContent>
-            </Card>
+          groups.map(([date, group]) => (
+            <section
+              key={date}
+              className="space-y-3"
+              aria-labelledby={`history-${date}`}
+            >
+              <h3
+                id={`history-${date}`}
+                className="border-b pb-2 text-sm font-semibold text-muted-foreground"
+              >
+                {historyDateLabel(group.date)}
+              </h3>
+              <div className="space-y-2">{group.entries.map(entryCard)}</div>
+            </section>
           ))
         )}
       </section>
     );
+  }
   if (section === "receive")
     return (
       <section className="space-y-4">

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { NearbyStores } from "@/components/wallet/nearby-stores";
 import { LiveWallet } from "@/components/wallet/live-wallet";
-import { CustomerMonthlyHistory } from "@/components/wallet/customer-rewards-preview";
 import { CustomerMainQuest } from "@/components/wallet/customer-main-quest";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { useAuth } from "@/contexts/auth-context";
@@ -125,8 +124,7 @@ export function WalletApp({
   const seller = role === "store";
   const tab = section;
   const livePage =
-    ["home", "scan", "topup", "receive", "explore"].includes(tab) ||
-    (seller && tab === "history") ||
+    ["home", "scan", "topup", "receive", "explore", "history"].includes(tab) ||
     (!seller && tab === "quest");
   const router = useRouter();
   const routes = seller ? sellerRoutes : customerRoutes;
@@ -216,8 +214,7 @@ export function WalletApp({
           </div>
         </header>
         <main className="space-y-7 px-5 pb-28">
-          {(["home", "scan", "topup", "receive"].includes(tab) ||
-            (seller && tab === "history")) && (
+          {["home", "scan", "topup", "receive", "history"].includes(tab) && (
             <LiveWallet
               role={seller ? "SELLER" : "CUSTOMER"}
               section={tab as "home" | "scan" | "topup" | "history" | "receive"}
@@ -387,7 +384,6 @@ export function WalletApp({
           {tab === "quest" && !seller && (
             <CustomerMainQuest onExplore={() => navigate("explore")} />
           )}
-          {tab === "history" && !seller && <CustomerMonthlyHistory />}
           {false && tab === "receive" && (
             <Section
               title="รับเงินจากลูกค้า"

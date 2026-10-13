@@ -22,7 +22,7 @@
 | F06     | PARTIAL: rules/linear ceil rates + QR Coin preview จริง; standalone preview TODO              | D4                     | I               | F02/F03               |
 | F07     | TODO                                                                                          | D4–5                   | AI              | F03/F06               |
 | F08     | PARTIAL: QR + Coins + Main Quest grant/spend/expiry จริง; ไม่รองรับ refund; review gates ค้าง | D5                     | I               | F06                   |
-| F09     | PARTIAL: QR/Main Quest จริง; ประวัติรายเดือน fixture และ AI ยังไม่เชื่อม                      | D5                     | A               | F07/F08               |
+| F09     | PARTIAL: QR/Main Quest/wallet history จริง; monthly purchase history/AI ค้าง                  | D5                     | A               | F07/F08               |
 | F10     | PARTIAL: Government + seller Coin rules API/UI; seller transactions TODO                      | D5                     | B               | F06/F08               |
 | F11     | DB views มีแล้ว; API TODO                                                                     | D6                     | I               | F08                   |
 | F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                                          | D6                     | B               | F11                   |
@@ -51,7 +51,7 @@
 | D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md)   | F10         | PARTIAL: Government + seller Coin rules API/UI; seller transactions TODO                 | D5                                                                                                             | B          | F06/F08 |
 | D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md)     | F07         | TODO                                                                                     | F03/F06; ไม่มี candidate ส่ง empty; provider ล่มยังใช้ DB จริง                                                 | —          |
 | D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06         | PARTIAL: rules/linear ceil rates + QR Coin preview จริง; standalone preview TODO         | D4                                                                                                             | I          | F02/F03 |
-| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | PARTIAL: Main Quest/QR จริง; ประวัติรายเดือน fixture และ AI ยังไม่เชื่อม                 | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                                                        | —          |
+| D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md)   | F09         | PARTIAL: Main Quest/QR/wallet history จริง; monthly history/AI ค้าง                      | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ                                                                        | —          |
 | D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md)   | F10/F12     | TODO                                                                                     | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน                                         | —          |
 | D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md)     | F07/F13     | TODO                                                                                     | F07/F09; รายงานผลจริงและข้อจำกัด                                                                               | —          |
 | D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08         | PARTIAL: QR + Coins + Main Quest grant/spend/expiry; ไม่รองรับ refund; review gates ค้าง | F06; settlement/quest budget/duplicate/concurrency/month boundary DB ผ่าน; ไม่รองรับ refund; review gates ค้าง | —          |
@@ -569,3 +569,25 @@
 - แก้ conflict ระหว่าง HEAD กับ coin-rule ใน PLAN/PLAN.md โดยเก็บ handoff ทั้งฝั่ง Explore/QR/AI และฝั่ง Coin scale/ตารางกฎ ไม่เลือกทับฝ่ายใด; ตรวจทุก heading จาก index stages2/3 ว่ายังอยู่ครบ. ปรับเฉพาะ current F08/R1-D5-I rows และ dependency R1-D2-I ให้ตรง Main Quest จริง, ถอน refund จากงานค้างตามผู้ใช้ยืนยันไม่ยกเลิก/คืนรายการสำเร็จ พร้อม scope noteที่แทนข้อกำหนดเก่าโดยไม่ลบประวัติ
 - ตรวจผ่าน pnpm --filter web exec prettier --write/--check ../../PLAN/PLAN.md, conflict-marker check, preserved-heading assertions และ git diff --check -- PLAN/PLAN.md. งานdocumentation-only ไม่รัน app tests/build. Stageเฉพาะ PLAN/PLAN.md เพื่อmark conflict resolved; ไม่แก้ staged source files อื่นและไม่สร้าง merge commit
 - F08 คงPARTIALจนผ่านreview/acceptanceจริง; ไม่มีblockerการmergeไฟล์นี้. Next: ผู้ใช้ตรวจ staged diff แล้วดำเนิน merge commit ตาม workflow; customer monthly history/AI/government budget management ยังอยู่ตามบอร์ด
+
+### 2026-10-13 20:53 Asia/Bangkok — R1-D5-A/R1-D5-I, F02/F09: daily wallet history and awarded Coins
+
+- เปลี่ยน CUSTOMER `/wallet/history` จาก monthly fixture เป็น ledger history จริงเหมือน seller และจัดกลุ่มรายการตามวัน Asia/Bangkok; คง Card/สีเดิม ใช้ `+` สีเขียวสำหรับเงินเข้าและ `−` สีแดงสำหรับเงินออก โดยไม่เพิ่มหัวข้อรายรับ/รายจ่ายแยกย่อย
+- รายการชำระยังแสดง “จ่ายเอง”, “สิทธิ์ช่วยจ่าย” และ Main Quest breakdown; เพิ่ม `coinsEarned` จาก non-reversed `coin_entries` ของ purchase จริงใน `GET /wallets/history` แล้วแสดง `+N Coins`. ไม่มีการคำนวณ Coins หรือยอดเงินใหม่ใน browser และ seller history ไม่เปิดเผย Coins ของลูกค้า
+- ปรับ `wallets.service.ts`, `live-wallet.tsx`, `wallet-app.tsx`, contract และ Postman assertion. ตรวจผ่าน API Vitest64/64 (14 opt-in DB skipped), API lint/build, web lint/build33 routes และ Prettier ของไฟล์แก้. ยังไม่ได้ browser QA ด้วยข้อมูลหลายวัน; F09 คง PARTIAL เพราะ monthly purchase-history filter/refund/AI ยังเหลือ. Next: เปิด `/wallet/history` ด้วยบัญชีที่มี Coin award ตรวจ responsive และเพิ่ม pagination/month filter จาก API
+
+### 2026-10-13 21:00 Asia/Bangkok — R1-D5-A/F09: history amount breakdown alignment
+
+- ย้าย “จ่ายเอง/สิทธิ์ช่วยจ่าย” และ Main Quest breakdown จากรายละเอียดฝั่งซ้ายไปอยู่ใต้จำนวนเงินฝั่งขวาใน Card `/wallet/history`; คง `+` เขียว/`−` แดง, Coins, การจัดกลุ่มรายวัน และข้อมูล API เดิม
+- แก้เฉพาะ `apps/web/src/components/wallet/live-wallet.tsx`; ตรวจ Prettier write/check, web lint และ production build33 routes ผ่าน. ยังไม่ได้ browser QA ที่ viewport แคบ; F09 คง PARTIAL. Next: refresh `/wallet/history` และตรวจการตัดบรรทัดที่ 360px กับรายการชื่อร้านยาว
+
+### 2026-10-13 21:05 Asia/Bangkok — R1-D5-A/F09: align breakdown with Coins
+
+- ปรับ Card `/wallet/history` เป็น grid สองคอลัมน์: ชื่อร้าน/เวลา/Coins ฝั่งซ้าย และจำนวนเงิน/รายละเอียดจ่ายเองกับสิทธิ์ช่วยจ่ายฝั่งขวา โดยให้ breakdown อยู่ระดับเดียวและใช้ขนาด `text-xs` เท่ากับ Coins; คงสีและข้อมูลเดิม
+- แก้เฉพาะ `apps/web/src/components/wallet/live-wallet.tsx`; Prettier write/check, web lint และ production build33 routes ผ่าน. ยังไม่ได้ browser QA ที่ 360px; F09 คง PARTIAL. Next: refresh หน้าและตรวจชื่อร้านยาวกับ breakdown ที่มี Main Quest
+
+### 2026-10-13 21:07 Asia/Bangkok — cross-cutting maintenance/F09: resolve subsequent origin/dev merge
+
+- ตรวจพบ mergeชุดใหม่กับ b7082ec หลัง merge coin-ruleจบแล้ว; resolve3conflictsใน PLAN/PLAN.md โดยเก็บทุกhandoff headingจากstages2/3, รักษาF06linear scale/F08no-refund scope และรับF09daily wallet historyจริง/R1-D5-Aล่าสุด. ไม่ย้อนรายการประวัติเก่าและไม่ยกFeatureเป็นDONE
+- ตรวจผ่าน API lint/test/build (82 unit,14 opt-in skipped), web lint/build33routes และ Prettier write/check; แก้trailing whitespaceของ incoming live-wallet.tsxด้วยowning-package Prettierอย่างเดียว. งานmergeไม่รันDB/browserซ้ำ. Stageไฟล์ที่resolveและจบmerge commitในเครื่อง; ไม่push
+- ไม่มีconflict/blockerไฟล์ค้าง; next: ตรวจgit statusหลังcommit และดำเนินreview/remote syncตามworkflow. History month filter/pagination/AIและreview gatesยังอยู่ตามบอร์ด

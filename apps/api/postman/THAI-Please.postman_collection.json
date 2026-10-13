@@ -1342,6 +1342,7 @@
         },
         {
           "name": "Wallet history",
+          "description": "Returns role-owned ledger items. Customer payment rows include the help/customer breakdown and coinsEarned only when a non-reversed Coin award exists.",
           "request": {
             "method": "GET",
             "header": [
@@ -1351,7 +1352,19 @@
               }
             ],
             "url": "{{baseUrl}}/wallets/history"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('History is an array', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('Coin values are integers when present', () => { pm.response.json().filter(item => item.coinsEarned !== undefined).forEach(item => pm.expect(item.coinsEarned).to.be.a('number').and.satisfy(Number.isInteger)); });"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Seller wallet and current shop Coin rules",
