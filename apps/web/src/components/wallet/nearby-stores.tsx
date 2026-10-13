@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Coins, Map, MapPin, Search, Store } from "lucide-react";
+import { Map, MapPin, Search, Store, ExternalLink, Route } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { api, getApiError, getCategories, type ShopCategory } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,97 +15,100 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNearbyStores } from "@/hooks/use-nearby-stores";
-import type { ExploreStore } from "./nearby-stores-map";
+import type { DrivingRoute } from "./nearby-stores-map";
 
 const ExploreMap = dynamic(() => import("./nearby-stores-map"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-80 items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
+    <div className="flex h-96 items-center justify-center rounded-xl bg-muted text-sm">
       กำลังโหลดแผนที่…
     </div>
   ),
 });
-
-const previews: ExploreStore[] = [
-  {
-    id: "preview-1",
-    name: "ครัวชุมชนสุขใจ",
-    latitude: "13.8211",
-    longitude: "100.0589",
-    distanceKm: 0.62,
-    categories: ["อาหาร"],
-    address: { line1: "ตัวอย่าง • เมืองนครปฐม" },
-    coinEstimate: 10,
-    preview: true,
-  },
-  {
-    id: "preview-2",
-    name: "ละมุนคอฟฟี่",
-    latitude: "13.8152",
-    longitude: "100.0661",
-    distanceKm: 1.3,
-    categories: ["เครื่องดื่ม"],
-    address: { line1: "ตัวอย่าง • เมืองนครปฐม" },
-    coinEstimate: 8,
-    preview: true,
-  },
-  {
-    id: "preview-3",
-    name: "ร้านของใช้แบ่งปัน",
-    latitude: "13.8245",
-    longitude: "100.0715",
-    distanceKm: 2.1,
-    categories: ["ของใช้"],
-    address: { line1: "ตัวอย่าง • เมืองนครปฐม" },
-    coinEstimate: 9,
-    preview: true,
-  },
-];
+const initialPoint: [number, number] = [14.020894, 99.991808];
 
 export function NearbyStores() {
-  const { stores, loading, loaded, search } = useNearbyStores();
-  const [latitude, setLatitude] = useState(""),
-    [longitude, setLongitude] = useState(""),
-    [radius, setRadius] = useState("5");
-  const [locating, setLocating] = useState(false),
-    [preview, setPreview] = useState(false),
-    [showMap, setShowMap] = useState(false);
-  const [query, setQuery] = useState(""),
-    [category, setCategory] = useState("all"),
-    [selectedId, setSelectedId] = useState<string | null>(null);
+  const { stores, loading, loaded, error, search } = useNearbyStores();
+  const [latitude, setLatitude] = useState(String(initialPoint[0]));
+  const [longitude, setLongitude] = useState(String(initialPoint[1]));
+  const [radius, setRadius] = useState("5");
+  const [origin, setOrigin] = useState<[number, number]>(initialPoint);
+  const [searchRadius, setSearchRadius] = useState(5);
+  const [locating, setLocating] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [categories, setCategories] = useState<ShopCategory[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [routeState, setRouteState] = useState<{
+    key: string;
+    data: DrivingRoute | null;
+    failed: boolean;
+  }>({ key: "", data: null, failed: false });
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
+    const controller = new AbortController();
+    getCategories(controller.signal)
+      .then(setCategories)
+      .catch((error) => {
+        if (!controller.signal.aborted) toast.error(getApiError(error));
+      });
     return () => {
       active.current = false;
+      controller.abort();
     };
   }, []);
 
-  const available: ExploreStore[] = preview
-    ? previews
-    : stores.map((store) => ({ ...store, coinEstimate: null }));
-  const categories = useMemo(
-    () =>
-      Array.from(new Set(available.flatMap((store) => store.categories))).sort(
-        (a, b) => a.localeCompare(b, "th"),
-      ),
-    [available],
-  );
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("th");
-    return available.filter(
+    return stores.filter(
       (store) =>
         (category === "all" || store.categories.includes(category)) &&
         (!needle ||
-          store.name.toLocaleLowerCase("th").includes(needle) ||
-          store.categories.some((item) =>
-            item.toLocaleLowerCase("th").includes(needle),
-          ) ||
-          Object.values(store.address ?? {}).some((item) =>
-            item.toLocaleLowerCase("th").includes(needle),
-          )),
+          [
+            store.name,
+            store.description ?? "",
+            ...store.categories,
+            ...Object.values(store.address ?? {}),
+          ].some((text) => text.toLocaleLowerCase("th").includes(needle))),
     );
-  }, [available, category, query]);
+  }, [stores, category, query]);
+  const selected = filtered.find((store) => store.id === selectedId) ?? null;
+  const routeKey = selected
+    ? `${origin.join(",")}:${selected.id}:${selected.latitude},${selected.longitude}:${retry}`
+    : "";
+  const route = routeState.key === routeKey ? routeState.data : null;
+  const routeLoading = Boolean(selected && routeState.key !== routeKey);
+  const routeFailed = Boolean(
+    selected && routeState.key === routeKey && routeState.failed,
+  );
+  useEffect(() => {
+    if (!selected) return;
+    const controller = new AbortController();
+    api
+      .get<DrivingRoute>("/routing", {
+        params: {
+          originLat: origin[0],
+          originLng: origin[1],
+          destinationLat: selected.latitude,
+          destinationLng: selected.longitude,
+        },
+        signal: controller.signal,
+      })
+      .then(({ data }) => {
+        if (!controller.signal.aborted)
+          setRouteState({ key: routeKey, data, failed: false });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setRouteState({ key: routeKey, data: null, failed: true });
+          toast.error(getApiError(error));
+        }
+      });
+    return () => controller.abort();
+  }, [origin, selected, routeKey]);
 
   function validRadius() {
     const value = Number(radius);
@@ -115,15 +118,22 @@ export function NearbyStores() {
     }
     return value;
   }
-  function runSearch(lat: number, lng: number, km: number) {
-    setPreview(false);
-    setShowMap(false);
-    setSelectedId(null);
-    void search(lat, lng, km);
-  }
-  function locate() {
+  function commitPoint(lat: number, lng: number) {
     const km = validRadius();
     if (km === null) return;
+    const point: [number, number] = [
+      Number(lat.toFixed(6)),
+      Number(lng.toFixed(6)),
+    ];
+    setOrigin(point);
+    setLatitude(String(point[0]));
+    setLongitude(String(point[1]));
+    setSearchRadius(km);
+    setSelectedId(null);
+    void search(point[0], point[1], km);
+  }
+  function locate() {
+    if (validRadius() === null) return;
     if (!navigator.geolocation) {
       toast.error("อุปกรณ์ไม่รองรับตำแหน่ง กรุณากรอกพิกัด");
       return;
@@ -132,218 +142,273 @@ export function NearbyStores() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (!active.current) return;
-        const lat = Number(position.coords.latitude.toFixed(6)),
-          lng = Number(position.coords.longitude.toFixed(6));
-        setLatitude(String(lat));
-        setLongitude(String(lng));
         setLocating(false);
-        runSearch(lat, lng, km);
+        setShowMap(true);
+        commitPoint(position.coords.latitude, position.coords.longitude);
       },
       () => {
         if (active.current) {
           setLocating(false);
-          toast.error("หาตำแหน่งไม่ได้ กรุณากรอกพิกัดแทน");
+          toast.error("หาตำแหน่งไม่ได้ กรุณาปักหมุดหรือกรอกพิกัดแทน");
         }
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
     );
   }
-  function showPreview() {
-    setPreview(true);
-    setLatitude("13.8199");
-    setLongitude("100.0622");
-    setShowMap(false);
-    setSelectedId(null);
+  function choose(id: string) {
+    setSelectedId(id);
+    setShowMap(true);
   }
-
-  const center: [number, number] = [
-    Number(latitude) || 13.8199,
-    Number(longitude) || 100.0622,
-  ];
+  const categoryNames = Array.from(
+    new Set([
+      ...categories.map((item) => item.name),
+      ...stores.flatMap((store) => store.categories),
+    ]),
+  );
   return (
-    <div className="space-y-5">
+    <section className="space-y-4">
       <div>
         <h2 className="text-xl font-semibold">ร้านใกล้ฉัน</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          ใช้ตำแหน่งเมื่อกดอนุญาต หรือกรอกพิกัดเองได้
+          เลือกจุดค้นหาบนแผนที่ ลากหมุด หรือกรอกพิกัดเพื่อค้นหาร้านจริงในขอบเขต
         </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" onClick={locate} disabled={locating}>
+          <MapPin className="size-4" />
+          {locating ? "กำลังหาตำแหน่ง…" : "ใช้ตำแหน่งปัจจุบัน"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowMap((value) => !value)}
+        >
+          <Map className="size-4" />
+          {showMap ? "ซ่อนแผนที่" : "เปิดแผนที่เพื่อปักหมุด"}
+        </Button>
       </div>
       <form
         className="space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
-          const km = validRadius(),
-            lat = Number(latitude),
+          const lat = Number(latitude),
             lng = Number(longitude);
-          if (km === null) return;
           if (
             !latitude.trim() ||
             !longitude.trim() ||
             !Number.isFinite(lat) ||
-            lat < -90 ||
-            lat > 90 ||
+            Math.abs(lat) > 90 ||
             !Number.isFinite(lng) ||
-            lng < -180 ||
-            lng > 180
+            Math.abs(lng) > 180
           ) {
             toast.error("กรุณากรอกพิกัดให้ถูกต้อง");
             return;
           }
-          runSearch(lat, lng, km);
+          commitPoint(lat, lng);
         }}
       >
-        <fieldset disabled={loading || locating} className="space-y-3">
-          <Button type="button" onClick={locate}>
-            <MapPin className="size-4" />
-            {locating ? "กำลังหาตำแหน่ง…" : "ใช้ตำแหน่งปัจจุบัน"}
-          </Button>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              ["latitude", "ละติจูด", latitude, setLatitude],
-              ["longitude", "ลองจิจูด", longitude, setLongitude],
-              ["radius", "รัศมี (กม.)", radius, setRadius],
-            ].map(([id, label, value, set]) => (
-              <div key={id as string} className="space-y-1">
-                <label htmlFor={`nearby-${id}`} className="text-sm">
-                  {label as string}
-                </label>
-                <Input
-                  id={`nearby-${id}`}
-                  value={value as string}
-                  onChange={(event) =>
-                    (set as (value: string) => void)(event.target.value)
-                  }
-                  inputMode="decimal"
-                />
-              </div>
-            ))}
-          </div>
-          <Button type="submit" variant="outline">
-            <Search className="size-4" />
-            {loading ? "กำลังค้นหา…" : "ค้นหาจากพิกัด"}
-          </Button>
-        </fieldset>
-      </form>
-      {!preview && (
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full"
-          onClick={showPreview}
-        >
-          ทดลองด้วยร้านตัวอย่าง
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="space-y-1 text-sm">
+            Latitude
+            <Input
+              aria-label="Latitude"
+              value={latitude}
+              onChange={(event) => setLatitude(event.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            Longitude
+            <Input
+              aria-label="Longitude"
+              value={longitude}
+              onChange={(event) => setLongitude(event.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            รัศมี (กม.)
+            <Input
+              aria-label="รัศมี (กม.)"
+              value={radius}
+              onChange={(event) => setRadius(event.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+        </div>
+        <Button type="submit" variant="outline" disabled={locating}>
+          <Search className="size-4" />
+          {loading ? "ค้นหาใหม่จากพิกัด" : "ค้นหาจากพิกัด"}
         </Button>
-      )}
-      {loaded && stores.length === 0 && !preview && (
-        <div className="space-y-3 rounded-xl border border-dashed p-5 text-center">
-          <p className="text-sm text-muted-foreground">
-            ไม่พบร้านที่อนุมัติแล้วในรัศมีนี้
+      </form>
+      <div className="grid min-w-0 grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2">
+        <div className="relative min-w-0">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSelectedId(null);
+            }}
+            placeholder="ค้นหาชื่อร้านหรือพื้นที่"
+            aria-label="ค้นหาร้าน"
+          />
+        </div>
+        <Select
+          items={[
+            { value: "all", label: "ทุกหมวดหมู่" },
+            ...categoryNames.map((name) => ({ value: name, label: name })),
+          ]}
+          value={category}
+          onValueChange={(value) => {
+            setCategory(value ?? "all");
+            setSelectedId(null);
+          }}
+        >
+          <SelectTrigger
+            className="h-10 w-full min-w-0"
+            aria-label="กรองหมวดหมู่"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false} side="bottom">
+            <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+            {categoryNames.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {showMap && (
+        <div className="space-y-2">
+          <ExploreMap
+            center={origin}
+            radiusKm={searchRadius}
+            stores={filtered}
+            selectedId={selected?.id ?? null}
+            onSelect={choose}
+            onOriginChange={commitPoint}
+            route={route}
+          />
+          <p className="text-xs text-muted-foreground">
+            หมุดสีน้ำเงินคือจุดค้นหา · คลิกพื้นที่ว่างหรือลากหมุดเพื่อเปลี่ยนจุด
+            · Ctrl + เลื่อนเมาส์เพื่อซูม
           </p>
-          <Button type="button" variant="outline" onClick={showPreview}>
-            ดูร้านตัวอย่าง
-          </Button>
         </div>
       )}
-      {available.length > 0 && (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="ค้นหาชื่อร้าน หมวดหมู่ หรือพื้นที่"
-                aria-label="ค้นหาร้าน"
-              />
-            </div>
-            <Select
-              value={category}
-              onValueChange={(value) => setCategory(value ?? "all")}
-            >
-              <SelectTrigger className="h-10 w-full" aria-label="กรองหมวดหมู่">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-                {categories.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              พบ {filtered.length} ร้าน{preview ? " • ข้อมูลตัวอย่าง" : ""}
+      {selected && (
+        <div
+          className="space-y-3 rounded-xl border bg-muted/20 p-4"
+          aria-label="เส้นทางไปร้านที่เลือก"
+        >
+          <h3 className="font-semibold">{selected.name}</h3>
+          <p className="text-sm text-muted-foreground">
+            ระยะเส้นตรง {selected.distanceKm.toFixed(2)} กม. จากจุดค้นหา
+          </p>
+          {routeLoading ? (
+            <p role="status" className="text-sm">
+              กำลังคำนวณเส้นทาง…
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowMap((value) => !value)}
-            >
-              <Map className="size-4" />
-              {showMap ? "ซ่อนแผนที่" : "เปิดแผนที่"}
-            </Button>
-          </div>
-          {showMap && (
-            <ExploreMap
-              center={center}
-              stores={filtered}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
-          )}
-          {filtered.length === 0 ? (
-            <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-              ไม่พบร้านที่ตรงกับคำค้นหา
+          ) : route ? (
+            <p className="text-sm">
+              <Route className="mr-1 inline size-4" />
+              ตามถนน {(route.distanceMeters / 1000).toFixed(2)} กม. ·
+              เวลาขับรถประมาณ{" "}
+              {Math.max(1, Math.ceil(route.durationSeconds / 60))} นาที
             </p>
-          ) : (
-            <div className="grid gap-3">
-              {filtered.map((store) => (
-                <button
-                  type="button"
-                  key={store.id}
-                  onClick={() => {
-                    setSelectedId(store.id);
-                    setShowMap(true);
-                  }}
-                  className={`rounded-xl border p-4 text-left hover:bg-muted/60 ${selectedId === store.id ? "border-primary bg-muted/50" : ""}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Store className="mt-1 size-5 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <h3 className="font-semibold">{store.name}</h3>
-                        {store.coinEstimate == null ? (
-                          <Badge variant="outline">Coins รอเชื่อมระบบ</Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            <Coins className="size-3" />+{store.coinEstimate}{" "}
-                            Coins
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {store.categories.join(", ") || "ไม่มีหมวดหมู่"} •{" "}
-                        {store.distanceKm.toFixed(2)} กม.
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {store.address
-                          ? Object.values(store.address)
-                              .filter(Boolean)
-                              .join(" ")
-                          : "ไม่มีรายละเอียดที่อยู่"}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))}
+          ) : routeFailed ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                ไม่สามารถแสดงเส้นทางได้ ยังดูระยะเส้นตรงหรือเปิด Google Maps ได้
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRetry((value) => value + 1)}
+              >
+                ลองคำนวณเส้นทางใหม่
+              </Button>
             </div>
-          )}
-        </>
+          ) : null}
+          <a
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            href={`https://www.google.com/maps/place/${encodeURIComponent(`${selected.latitude},${selected.longitude}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ExternalLink className="size-4" />
+            เปิดใน Google Maps
+          </a>
+          <p className="text-xs text-muted-foreground">
+            คำนวณจาก OSRM ตามถนน ไม่รวมสภาพจราจรปัจจุบัน
+          </p>
+        </div>
       )}
-    </div>
+      {loading ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          กำลังค้นหาร้านในขอบเขต…
+        </p>
+      ) : error ? (
+        <div className="space-y-2 rounded-xl border p-4">
+          <p className="text-sm">ค้นหาร้านไม่สำเร็จ</p>
+          <Button variant="outline" onClick={() => commitPoint(...origin)}>
+            ลองใหม่
+          </Button>
+        </div>
+      ) : !loaded ? (
+        <p className="text-sm text-muted-foreground">
+          กดค้นหาจากพิกัด หรือเปิดแผนที่แล้วลากหมุดเพื่อเริ่มค้นหา
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          พบ {filtered.length} ร้านในรัศมี {searchRadius} กม. ·
+          ระยะทางในรายการเป็นระยะเส้นตรง
+        </p>
+      )}
+      {loaded && !loading && filtered.length === 0 && (
+        <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+          ไม่พบร้านที่ตรงกับขอบเขต คำค้นหา หรือหมวดหมู่ที่เลือก
+        </p>
+      )}
+      <div className="grid gap-3">
+        {filtered.map((store) => (
+          <button
+            type="button"
+            key={store.id}
+            onClick={() => choose(store.id)}
+            className={`rounded-xl border p-4 text-left hover:bg-muted/60 ${selected?.id === store.id ? "border-primary bg-muted/50" : ""}`}
+            aria-pressed={selected?.id === store.id}
+          >
+            <div className="flex items-start gap-3">
+              <Store className="mt-1 size-5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap justify-between gap-2">
+                  <h3 className="font-semibold wrap-break-word">
+                    {store.name}
+                  </h3>
+                  <span className="text-sm tabular-nums">
+                    {store.distanceKm.toFixed(2)} กม.
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {store.categories.join(", ") || "ไม่มีหมวดหมู่"}
+                </p>
+                {store.description && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {store.description}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  เลือกเพื่อดูเส้นทางจากจุดค้นหา
+                </p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }

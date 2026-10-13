@@ -52,6 +52,10 @@
     {
       "value": "1",
       "key": "shopId"
+    },
+    {
+      "key": "webBaseUrl",
+      "value": "http://localhost:3001"
     }
   ],
   "item": [
@@ -1854,6 +1858,107 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Explore routing BFF",
+      "item": [
+        {
+          "name": "Route from selected origin",
+          "request": {
+            "method": "GET",
+            "url": "{{webBaseUrl}}/api/routing?originLat=14.020894&originLng=99.991808&destinationLat=14.025278&destinationLng=99.974583",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "session={{customerToken}}"
+              }
+            ],
+            "description": "Authenticated CUSTOMER BFF; driving route uses OSRM. Live success depends on routing service availability; never fabricates roads. No money mutation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const route=pm.response.json(); pm.test(\"Driving route\", () => { pm.expect(route.distanceMeters).to.be.a(\"number\"); pm.expect(route.durationSeconds).to.be.a(\"number\"); pm.expect(route.coordinates).to.be.an(\"array\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Route requires session",
+          "request": {
+            "method": "GET",
+            "url": "{{webBaseUrl}}/api/routing?originLat=14&originLng=99&destinationLat=14&destinationLng=100",
+            "header": [],
+            "description": "Authenticated CUSTOMER BFF; driving route uses OSRM. Live success depends on routing service availability; never fabricates roads. No money mutation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Route rejects seller",
+          "request": {
+            "method": "GET",
+            "url": "{{webBaseUrl}}/api/routing?originLat=14&originLng=99&destinationLat=14&destinationLng=100",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "session={{sellerToken}}"
+              }
+            ],
+            "description": "Authenticated CUSTOMER BFF; driving route uses OSRM. Live success depends on routing service availability; never fabricates roads. No money mutation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Route rejects invalid coordinates",
+          "request": {
+            "method": "GET",
+            "url": "{{webBaseUrl}}/api/routing?originLat=91&originLng=99&destinationLat=14&destinationLng=100",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "session={{customerToken}}"
+              }
+            ],
+            "description": "Authenticated CUSTOMER BFF; driving route uses OSRM. Live success depends on routing service availability; never fabricates roads. No money mutation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }

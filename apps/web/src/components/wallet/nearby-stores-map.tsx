@@ -1,34 +1,39 @@
 "use client";
+import "leaflet/dist/leaflet.css";
 
 import { useEffect } from "react";
 import { divIcon, latLngBounds } from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import {
+  Circle,
+  MapContainer,
+  Marker,
+  Popup,
+  Polyline,
+  TileLayer,
+  useMapEvents,
+} from "react-leaflet";
 import { toast } from "sonner";
+import type { NearbyStore } from "@/lib/api";
 
-export type ExploreStore = {
-  id: string;
-  name: string;
-  address: Record<string, string> | null;
-  latitude: string;
-  longitude: string;
-  distanceKm: number;
-  categories: string[];
-  coinEstimate?: number | null;
-  preview?: boolean;
+export type DrivingRoute = {
+  distanceMeters: number;
+  durationSeconds: number;
+  coordinates: [number, number][];
 };
-
 type Props = {
   center: [number, number];
-  stores: ExploreStore[];
+  radiusKm: number;
+  stores: NearbyStore[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onOriginChange: (latitude: number, longitude: number) => void;
+  route: DrivingRoute | null;
 };
-
 const searchIcon = divIcon({
   className: "explore-search-marker",
-  html: '<span style="display:block;width:18px;height:18px;border-radius:50%;background:#2563eb;border:4px solid white;box-shadow:0 1px 8px #0008"></span>',
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
+  html: '<span style="display:block;width:24px;height:24px;border-radius:50%;background:#2563eb;border:4px solid white;box-shadow:0 1px 8px #0008"></span>',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
 });
 const shopIcon = divIcon({
   className: "explore-shop-marker",
@@ -38,86 +43,134 @@ const shopIcon = divIcon({
   popupAnchor: [0, -16],
 });
 
-function FitMap({ center, stores }: Pick<Props, "center" | "stores">) {
-  const map = useMap();
+function MapBehavior({
+  center,
+  stores,
+  onOriginChange,
+  route,
+}: Pick<Props, "center" | "stores" | "onOriginChange" | "route">) {
+  const map = useMapEvents({
+    click: (event) => onOriginChange(event.latlng.lat, event.latlng.lng),
+  });
   useEffect(() => {
-    const points: [number, number][] = [center];
-    stores.forEach((store) => {
-      const lat = Number(store.latitude);
-      const lng = Number(store.longitude);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) points.push([lat, lng]);
+    const container = map.getContainer();
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) event.stopImmediatePropagation();
+    };
+    container.addEventListener("wheel", wheel, {
+      capture: true,
+      passive: false,
     });
+    return () => container.removeEventListener("wheel", wheel, true);
+  }, [map]);
+  useEffect(() => {
+    const points: [number, number][] = route
+      ? [...route.coordinates, center]
+      : [
+          center,
+          ...stores.map(
+            (store) =>
+              [Number(store.latitude), Number(store.longitude)] as [
+                number,
+                number,
+              ],
+          ),
+        ];
     if (points.length === 1) map.setView(center, 14);
     else
-      map.fitBounds(latLngBounds(points), { padding: [28, 28], maxZoom: 15 });
-  }, [center, map, stores]);
+      map.fitBounds(latLngBounds(points), { padding: [30, 30], maxZoom: 15 });
+  }, [center, map, stores, route]);
   return null;
 }
 
-export default function NearbyStoresMap({
-  center,
-  stores,
-  selectedId,
-  onSelect,
-}: Props) {
-  const tileUrl =
-    process.env.NEXT_PUBLIC_MAP_TILE_URL ??
-    "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const attribution =
-    process.env.NEXT_PUBLIC_MAP_ATTRIBUTION ??
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+export default function NearbyStoresMap(props: Props) {
+  const {
+    center,
+    stores,
+    selectedId,
+    onSelect,
+    onOriginChange,
+    route,
+    radiusKm,
+  } = props;
   return (
     <MapContainer
       center={center}
       zoom={14}
-      scrollWheelZoom={false}
-      className="h-80 w-full rounded-xl"
-      aria-label="แผนที่ร้านใกล้ฉัน"
+      scrollWheelZoom
+      className="relative z-0 h-96 w-full rounded-xl"
+      aria-label="แผนที่เลือกจุดค้นหาและเส้นทางไปร้าน"
     >
       <TileLayer
-        url={tileUrl}
-        attribution={attribution}
+        url={
+          process.env.NEXT_PUBLIC_MAP_TILE_URL ??
+          "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        }
+        attribution={
+          process.env.NEXT_PUBLIC_MAP_ATTRIBUTION ??
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }
         maxZoom={19}
         eventHandlers={{
           tileerror: () =>
             toast.error("โหลดแผนที่ไม่ได้", {
               id: "explore-map-error",
-              description: "ยังเลือกร้านจากรายการด้านล่างได้",
+              description: "ยังค้นหาด้วยพิกัดและเลือกร้านจากรายการได้",
             }),
         }}
       />
-      <FitMap center={center} stores={stores} />
-      <Marker position={center} icon={searchIcon} title="ตำแหน่งที่ใช้ค้นหา">
-        <Popup>ตำแหน่งที่ใช้ค้นหา</Popup>
+      <MapBehavior
+        center={center}
+        stores={stores}
+        onOriginChange={onOriginChange}
+        route={route}
+      />
+      <Circle
+        center={center}
+        radius={radiusKm * 1000}
+        pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.04 }}
+        interactive={false}
+      />
+      {route && (
+        <Polyline
+          positions={route.coordinates}
+          pathOptions={{ color: "#7c3aed", weight: 5, opacity: 0.85 }}
+          interactive={false}
+        />
+      )}
+      <Marker
+        position={center}
+        icon={searchIcon}
+        title="จุดค้นหา ลากหมุดเพื่อเปลี่ยนตำแหน่ง"
+        draggable
+        eventHandlers={{
+          dragend: (event) => {
+            const point = event.target.getLatLng();
+            onOriginChange(point.lat, point.lng);
+          },
+        }}
+      >
+        <Popup>จุดค้นหา · ลากหมุดเพื่อค้นหาจากจุดใหม่</Popup>
       </Marker>
-      {stores.map((store) => {
-        const lat = Number(store.latitude),
-          lng = Number(store.longitude);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-        return (
-          <Marker
-            key={store.id}
-            position={[lat, lng]}
-            icon={shopIcon}
-            title={store.name}
-            opacity={selectedId && selectedId !== store.id ? 0.6 : 1}
-            eventHandlers={{ click: () => onSelect(store.id) }}
-          >
-            <Popup>
-              <div className="min-w-40 space-y-1">
-                <p className="font-semibold">{store.name}</p>
-                <p>{store.categories.join(", ") || "ไม่มีหมวดหมู่"}</p>
-                <p>{store.distanceKm.toFixed(2)} กม.</p>
-                <p>
-                  {store.coinEstimate == null
-                    ? "Coins รอเชื่อมระบบ"
-                    : `+${store.coinEstimate} Coins ตัวอย่าง`}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
+      {stores.map((store) => (
+        <Marker
+          key={store.id}
+          position={[Number(store.latitude), Number(store.longitude)]}
+          icon={shopIcon}
+          title={store.name}
+          opacity={selectedId && selectedId !== store.id ? 0.6 : 1}
+          eventHandlers={{ click: () => onSelect(store.id) }}
+        >
+          <Popup>
+            <div className="min-w-40 space-y-1">
+              <p className="font-semibold">{store.name}</p>
+              <p>{store.categories.join(", ")}</p>
+              <p>ระยะเส้นตรง {store.distanceKm.toFixed(2)} กม.</p>
+              <p>ดูเส้นทางและเปิด Google Maps ได้ด้านล่างแผนที่</p>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
     </MapContainer>
   );
 }
