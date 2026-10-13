@@ -205,7 +205,10 @@ export default function Page() {
           <h2 id="rules-history-heading" className="text-lg font-semibold">
             ประวัติกฎ
           </h2>
-          <p className="text-sm text-muted-foreground">ล่าสุด 50 เวอร์ชัน</p>
+          <p className="text-sm text-muted-foreground">
+            ล่าสุด 50 เวอร์ชัน · ตัวอย่างใช้สูตรปัจจุบัน
+            เรตที่ล็อกไว้ก่อนเปลี่ยนสูตรยังคงเดิม
+          </p>
         </div>
         <div
           className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
@@ -215,7 +218,8 @@ export default function Page() {
         >
           <table className="w-full min-w-250 text-left text-sm">
             <caption className="sr-only">
-              ประวัติกฎ Coins แสดงเวอร์ชัน สถานะ ช่วงใช้งาน และเงื่อนไข
+              ประวัติกฎ Coins แสดงเวอร์ชัน สถานะ ช่วงใช้งาน เงื่อนไข
+              และตัวอย่างยอดขายคู่กับ Coins ทั้ง 5 คอลัมน์
             </caption>
             <thead className="border-b bg-muted/50 text-xs text-muted-foreground">
               <tr>
@@ -227,14 +231,16 @@ export default function Page() {
                   "ซื้อขั้นต่ำ (บาท)",
                   "เกณฑ์ยอดขายต่ำ (บาท)",
                   "ย้อนหลัง (วัน)",
-                  "ใหม่ / ยอดขายต่ำ",
-                  "ใหม่ / ทั่วไป",
-                  "ซ้ำ",
+                  "ตัวอย่าง 1",
+                  "ตัวอย่าง 2",
+                  "ตัวอย่าง 3",
+                  "ตัวอย่าง 4",
+                  "ตัวอย่าง 5",
                 ].map((title, index) => (
                   <th
                     key={title}
                     scope="col"
-                    className={`whitespace-nowrap px-4 py-3 font-medium ${index >= 4 ? "text-right" : ""}`}
+                    className={`whitespace-nowrap px-4 py-3 font-medium ${index >= 7 ? "text-center" : index >= 4 ? "text-right" : ""}`}
                   >
                     {title}
                   </th>
@@ -281,9 +287,6 @@ export default function Page() {
                         maximumFractionDigits: 2,
                       }),
                       r.sales_window_days,
-                      r.new_low_sales_coins,
-                      r.new_other_coins,
-                      r.repeat_coins,
                     ].map((value, index) => (
                       <td
                         key={index}
@@ -292,13 +295,43 @@ export default function Page() {
                         {value}
                       </td>
                     ))}
+                    {Array.from({ length: 5 }, (_, index) => {
+                      const example = r.calculationDetail?.examples[index];
+                      return (
+                        <td
+                          key={index}
+                          className="whitespace-nowrap px-4 py-4 text-center tabular-nums"
+                        >
+                          {example ? (
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">
+                                {Number(example.sales).toLocaleString("th-TH", {
+                                  maximumFractionDigits: 2,
+                                })}{" "}
+                                บาท
+                              </p>
+                              <p className="font-semibold">
+                                {example.coins} Coins
+                              </p>
+                            </div>
+                          ) : (
+                            <span
+                              className="text-muted-foreground"
+                              aria-label="ไม่มีตัวอย่าง"
+                            >
+                              —
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
               {(!data || data.rules.length === 0) && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={12}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     {loading
@@ -363,8 +396,9 @@ export default function Page() {
                   "เริ่มใช้งาน",
                   "สิ้นสุด",
                   "ร้านทั้งหมด",
-                  "ยอดต่ำกว่า 10,000 บาท",
-                  "ยอดตั้งแต่ 10,000 บาท",
+                  "เกณฑ์ (บาท)",
+                  "น้อยกว่าเกณฑ์",
+                  "ตั้งแต่เกณฑ์ขึ้นไป",
                   "Coins ที่แจก",
                 ].map((title, index) => (
                   <th
@@ -395,6 +429,7 @@ export default function Page() {
                   )}
                   {[
                     p.shopCount,
+                    10000,
                     p.belowThresholdShopCount,
                     p.atOrAboveThresholdShopCount,
                   ].map((value, index) => (
@@ -413,7 +448,7 @@ export default function Page() {
               {(!data || data.periods.length === 0) && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     {loading
@@ -428,7 +463,8 @@ export default function Page() {
           </table>
         </div>
         <p className="px-5 py-4 text-xs text-muted-foreground">
-          จำนวนร้านนับจากยอดขายที่ล็อกไว้ในรอบ โดยแบ่งที่ 10,000 บาท · Coins
+          จำนวนร้านนับจากยอดขายที่ล็อกไว้ในรอบ โดยแบ่งตามเกณฑ์ในตาราง
+          ร้านที่ยอดเท่ากับเกณฑ์รวมอยู่ในกลุ่มตั้งแต่เกณฑ์ขึ้นไป · Coins
           ที่แจกนับจาก ledger ตามเวลาแจกในรอบ ก่อนหักรายการย้อนคืน
           หากยังไม่มีรายการแจกจะแสดง 0
         </p>

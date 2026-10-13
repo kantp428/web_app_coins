@@ -93,6 +93,10 @@ export type CoinRuleInput = {
   newOtherCoins: number;
 };
 export type CoinRule = {
+  calculationDetail?: {
+    formula: string;
+    examples: { sales: string; coins: number }[];
+  };
   rule_id: string;
   version: number;
   effective_from: string;
