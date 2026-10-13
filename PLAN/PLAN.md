@@ -503,3 +503,31 @@
 
 - ตั้ง SelectContent ของ apps/web/src/components/wallet/customer-main-quest.tsx เป็น side=bottom, align=start, alignItemWithTrigger=false เพื่อให้รายการเปิดใต้ช่องเดือนแทนจัด selected item ทับ trigger. F09 คง PARTIAL; ไม่มี API/business change
 - ตรวจผ่าน web Prettier write/check, pnpm --filter web lint/build (33 routes), browser screenshot ยืนยัน dropdown อยู่ใต้ trigger. ไม่เพิ่ม tests สำหรับ positioning; next: customer history/AI integration ตามบอร์ด
+
+### 2026-10-13 17:53 Asia/Bangkok — R1-D3-A/F04: remove area selector and verify web
+
+- ตรวจสถานะ `/wallet/explore` หลังเอาช่องเลือกพื้นที่ที่แสดงค่า “manual” ออกแล้ว; ยังคงปุ่มใช้ตำแหน่งปัจจุบันและช่องกรอกละติจูด/ลองจิจูด/รัศมีไว้
+- ตรวจผ่าน Prettier write/check ของ `nearby-stores.tsx`, web ESLint และ production build 32 routes; ยังไม่ได้ทำ browser QA. F04 คง PARTIAL. Next: เปิด `/wallet/explore` ตรวจว่าไม่มี dropdown “manual” และค้นหาด้วยพิกัดได้ตามเดิม
+
+### 2026-10-13 19:23 Asia/Bangkok — R1-D3-A/F04: rebuild customer Explore
+
+- ทำ `/wallet/explore` ใหม่โดยไม่มี dropdown “manual”: คง geolocation แบบกดอนุญาตและกรอกพิกัดเอง, เชื่อมร้าน approved จาก `GET /stores`, เพิ่มค้นหาชื่อ/หมวด/พื้นที่ กรองหมวด เลือกร้านจากรายการ และ React Leaflet/OpenStreetMap พร้อมหมุดตำแหน่งค้นหา/ร้าน โดยโหลด tiles เมื่อกดเปิดแผนที่
+- เพิ่มโหมดร้านตัวอย่างที่ติดป้ายชัดเจนพร้อม Coins ตัวอย่างสำหรับกรณียังไม่มีร้านจริง; ร้านจาก API แสดง Coins ว่า “รอเชื่อมระบบ” ไม่คำนวณใน frontend และไม่เพิ่ม Database/API/Postman
+- ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA 360/1920 px. F04 คง PARTIAL. Next: ทดสอบปฏิเสธตำแหน่ง→กรอกพิกัด→ค้นหา→เปิดแผนที่→เลือกหมุดใน browser จริง
+
+### 2026-10-13 19:28 Asia/Bangkok — R1-D3-A/F04 + R1-D4-A/F09: FR-C02/FR-C04 combined UI preview
+
+- ยืนยัน FR-C02 บน `/wallet/explore` มี Interactive Map, หมุดร้านจริง/ตัวอย่าง, ค้นหาชื่อ/พื้นที่, กรองหมวด, เลือกร้านดูระยะ/หมวด/Coins และกรอกพิกัดเองเมื่อไม่อนุญาตตำแหน่ง โดยไม่มี dropdown “manual”
+- ปรับ `/wallet/scan` ให้ preview จาก QR จริงแสดงยอดซื้อ/ช่วยจ่าย/จ่ายเองจาก API และ Coins “รอเชื่อมระบบ”; เพิ่ม UI Preview ที่ไม่ยิง pay สำหรับพร้อมยืนยัน, ยอดเงินไม่พอ, สิทธิ์ช่วยจ่ายหมด และยืนยันซ้ำ พร้อม loading/pending label และข้อความไม่ตัดเงินจริง
+- ไม่เพิ่ม Database/API/Postman. ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA กล้อง/แผนที่. F04 คง PARTIAL และ F09 คง UI PREVIEW. Next: ทดสอบ flow จริงใน browser ที่ 360/1920 px และเชื่อม Coin estimate เมื่อ F06/F08 พร้อม
+
+### 2026-10-13 20:28 Asia/Bangkok — R1-D4-A/F09: remove purchase mock controls
+
+- เอากล่อง “ทดลองหน้าพรีวิว”, badge “ไม่ตัดเงินจริง” และปุ่มสถานะจำลองพร้อมยืนยัน/ยอดเงินไม่พอ/หมดสิทธิ์ช่วยจ่าย/ยืนยันซ้ำออกจาก `/wallet/scan` พร้อมล้าง state/handler mock ที่เกี่ยวข้อง
+- คงหน้าพรีวิว QR จริงจาก API ซึ่งแสดงยอดซื้อ/ช่วยจ่าย/จ่ายเอง, loading, error และ Coins “รอเชื่อมระบบ” ไว้ตามเดิม; ไม่แก้ Database/API/Postman
+- ตรวจผ่าน Prettier write/check, web ESLint, production build 32 routes และ `git diff --check`; ยังไม่ได้ทำ browser QA. F09 คง UI PREVIEW. Next: ทดสอบ QR/payment request จริงและค่อยเพิ่ม error-state UI จาก response จริงเมื่อ contract รองรับ
+
+### 2026-10-13 20:44 Asia/Bangkok — cross-cutting maintenance: resolve PLAN merge conflict
+
+- รวม conflict ใน `PLAN/PLAN.md`: ใช้ Feature/Daily Flag ฝั่งที่มีหลักฐานล่าสุดเรื่อง Coins/Main Quest และเก็บ collaboration handoff log จากทั้งสองฝั่งครบถ้วนโดยเรียงตามเวลา; ไม่เปลี่ยนสถานะ Feature เพิ่มจากหลักฐานเดิม
+- ตรวจ conflict markers, Markdown format/check และ `git diff --check`; ไม่รัน app build/test เพราะแก้เฉพาะเอกสารแผน. Next: ดำเนินการ merge commit ต่อหลังตรวจ staged diff
