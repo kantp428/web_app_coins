@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { sqlTable } from '../prisma/sql-table.js';
 import { ruleScaleDetail } from '../coin-rules/coin-scale.js';
 
 export async function readSellerCoinRates(
@@ -52,7 +53,10 @@ export async function quotePurchaseCoins(
   shopId: bigint,
   amount: Prisma.Decimal,
   now: Date,
+  schema = 'public',
 ) {
+  // Regeneration locks this row exclusively; settlement holds it until its award commits.
+  await tx.$queryRaw`SELECT period_id FROM ${sqlTable('coin_rate_periods', schema)} WHERE starts_at <= ${now} AND ends_at > ${now} FOR SHARE`;
   const rate = await tx.shop_coin_rates.findFirst({
     where: {
       shop_id: shopId,

@@ -621,6 +621,7 @@ export class WalletsService {
             request.shop_id,
             request.amount,
             new Date(),
+            this.databaseSchema,
           )
         : { coins: 0, coinReason: 'NO_RATE', coinRuleVersion: null };
       return {
@@ -704,6 +705,7 @@ export class WalletsService {
             shop.shop_id,
             request.amount,
             now,
+            this.databaseSchema,
           );
           const purchase = await tx.purchases.create({
             data: {

@@ -27,6 +27,7 @@ function fixture(config: Record<string, string> = {}, role = 'GOVERNMENT') {
       findUnique: vi.fn().mockResolvedValue(null),
       findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ period_id: 9n }),
+      update: vi.fn().mockResolvedValue({ period_id: 9n }),
     },
     coin_rule_versions: { findFirst: vi.fn().mockResolvedValue(rule) },
     shops: {
@@ -40,7 +41,11 @@ function fixture(config: Record<string, string> = {}, role = 'GOVERNMENT') {
         { shop_id: 2n, _sum: { total_amount: new Prisma.Decimal('10000.00') } },
       ]),
     },
-    shop_coin_rates: { createMany: vi.fn().mockResolvedValue({ count: 3 }) },
+    coin_entries: { findFirst: vi.fn().mockResolvedValue(null) },
+    shop_coin_rates: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 3 }),
+      createMany: vi.fn().mockResolvedValue({ count: 3 }),
+    },
   };
   const db = {
     $transaction: vi.fn((fn: (value: typeof tx) => unknown) => fn(tx)),
@@ -144,6 +149,51 @@ describe('shop Coin rate generation', () => {
     });
     expect(tx.coin_rule_versions.findFirst).not.toHaveBeenCalled();
     expect(tx.shop_coin_rates.createMany).not.toHaveBeenCalled();
+  });
+
+  it('regenerates only explicitly and blocks rounds with any award', async () => {
+    const { service, tx } = fixture();
+    tx.coin_rate_periods.findUnique.mockResolvedValue({
+      period_id: 9n,
+      ends_at: currentRatePeriod(now).endsAt,
+      _count: { shop_coin_rates: 3 },
+    });
+    expect(await service.generateCurrent(now, true)).toMatchObject({
+      periodId: '9',
+      created: false,
+      regenerated: true,
+      shopCount: 3,
+    });
+    expect(tx.coin_rate_periods.update).toHaveBeenCalledWith({
+      where: { period_id: 9n },
+      data: { created_at: now },
+    });
+    expect(tx.shop_coin_rates.deleteMany).toHaveBeenCalledWith({
+      where: { period_id: 9n },
+    });
+    tx.shop_coin_rates.deleteMany.mockClear();
+    tx.coin_entries.findFirst.mockResolvedValue({ coin_entry_id: 1n });
+    await expect(service.generateCurrent(now, true)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(tx.shop_coin_rates.deleteMany).not.toHaveBeenCalled();
+  });
+  it('forbids regeneration in production and rejects malformed regeneration bodies', async () => {
+    await expect(
+      fixture({ NODE_ENV: 'production' }).service.generateCurrent(now, true),
+    ).rejects.toMatchObject({ status: 403 });
+    const { service } = fixture();
+    for (const body of [
+      { regenerate: false },
+      { regenerate: 'true' },
+      { regenerate: true, other: 1 },
+    ])
+      await expect(service.generateManual(body)).rejects.toMatchObject({
+        status: 400,
+      });
+    const generate = vi.spyOn(service, 'generateCurrent');
+    await service.generateManual({ regenerate: true });
+    expect(generate).toHaveBeenCalledWith(expect.any(Date), true);
   });
 
   it('rejects overlaps and missing effective rules without writes', async () => {

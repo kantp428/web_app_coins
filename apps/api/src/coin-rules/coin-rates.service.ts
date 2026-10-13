@@ -46,15 +46,18 @@ export class CoinRatesService
       !body ||
       typeof body !== 'object' ||
       Array.isArray(body) ||
-      Object.keys(body).length
+      Object.keys(body).some((key) => key !== 'regenerate') ||
+      ('regenerate' in body && body.regenerate !== true)
     )
       throw new BadRequestException(
-        'ส่งข้อมูลว่าง {} เท่านั้น ระบบกำหนดรอบและเรตให้',
+        'ส่ง {} หรือ {regenerate:true} เท่านั้น ระบบกำหนดรอบและเรตให้',
       );
-    return this.generateCurrent();
+    return this.generateCurrent(new Date(), 'regenerate' in body);
   }
 
-  async generateCurrent(now = new Date()) {
+  async generateCurrent(now = new Date(), regenerate = false) {
+    if (regenerate && this.config.get<string>('NODE_ENV') === 'production')
+      throw new ForbiddenException('สร้างรอบใหม่ใช้ได้เฉพาะระบบทดสอบ');
     return this.db.$transaction(
       async (tx) => {
         // Shared with rule writers; concurrent workers/manual requests reuse the winner.
@@ -64,7 +67,7 @@ export class CoinRatesService
           where: { starts_at: startsAt },
           include: { _count: { select: { shop_coin_rates: true } } },
         });
-        if (existing) {
+        if (existing && !regenerate) {
           if (existing.ends_at.getTime() !== endsAt.getTime())
             throw new ConflictException('ช่วงรอบเดิมไม่ตรงกับรอบอัตโนมัติ');
           return {
@@ -75,8 +78,31 @@ export class CoinRatesService
             shopCount: existing._count.shop_coin_rates,
           };
         }
+        if (existing && regenerate) {
+          if (existing.ends_at.getTime() !== endsAt.getTime())
+            throw new ConflictException('ช่วงรอบเดิมไม่ตรงกับรอบอัตโนมัติ');
+          await tx.coin_rate_periods.update({
+            where: { period_id: existing.period_id },
+            data: { created_at: now },
+          });
+          const awarded = await tx.coin_entries.findFirst({
+            where: { awarded_at: { gte: startsAt, lt: endsAt } },
+            select: { coin_entry_id: true },
+          });
+          if (awarded)
+            throw new ConflictException(
+              'รอบนี้แจก Coins แล้ว ไม่สามารถสร้างทับได้ กรุณารอรอบถัดไป',
+            );
+          await tx.shop_coin_rates.deleteMany({
+            where: { period_id: existing.period_id },
+          });
+        }
         const overlap = await tx.coin_rate_periods.findFirst({
-          where: { starts_at: { lt: endsAt }, ends_at: { gt: startsAt } },
+          where: {
+            starts_at: { lt: endsAt },
+            ends_at: { gt: startsAt },
+            ...(existing ? { period_id: { not: existing.period_id } } : {}),
+          },
           select: { period_id: true },
         });
         if (overlap) throw new ConflictException('มีรอบเดิมทับช่วงเวลานี้');
@@ -113,9 +139,11 @@ export class CoinRatesService
         const sales = new Map(
           totals.map((row) => [row.shop_id, row._sum.total_amount]),
         );
-        const period = await tx.coin_rate_periods.create({
-          data: { starts_at: startsAt, ends_at: endsAt },
-        });
+        const period =
+          existing ??
+          (await tx.coin_rate_periods.create({
+            data: { starts_at: startsAt, ends_at: endsAt },
+          }));
         if (shops.length)
           await tx.shop_coin_rates.createMany({
             data: shops.map((shop) => {
@@ -141,7 +169,8 @@ export class CoinRatesService
           periodId: period.period_id.toString(),
           startsAt: startsAt.toISOString(),
           endsAt: endsAt.toISOString(),
-          created: true,
+          created: !existing,
+          regenerated: Boolean(existing && regenerate),
           shopCount: shops.length,
         };
       },

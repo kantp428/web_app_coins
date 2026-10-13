@@ -8,6 +8,7 @@ import {
 
 function fixture(rate: boolean = true, repeat: boolean = false) {
   const tx = {
+    $queryRaw: vi.fn().mockResolvedValue([]),
     shop_coin_rates: {
       findFirst: vi.fn().mockResolvedValue(
         rate

@@ -82,6 +82,7 @@ export default function Page() {
   const { data, loading, saving, save, retry, generating, generate } =
     useCoinRules();
   const [confirmGeneration, setConfirmGeneration] = useState(false);
+  const [forceGeneration, setForceGeneration] = useState(false);
   const [pending, setPending] = useState<CoinRuleInput | null>(null);
   const {
     register,
@@ -364,17 +365,41 @@ export default function Page() {
             ประวัติอัปเดตเรต Coins
           </h2>
           <p className="text-sm text-muted-foreground">ล่าสุด 10 รอบ</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={retry}
+            disabled={loading || saving || generating}
+          >
+            {loading ? "กำลังรีเฟรช…" : "รีเฟรช"}
+          </Button>
           {data?.manualGenerationEnabled && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={loading || saving || generating}
-              onClick={() => setConfirmGeneration(true)}
-            >
-              {generating
-                ? "กำลังสร้างเรต…"
-                : "สร้างเรตรอบปัจจุบันทันที (ทดสอบ)"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading || saving || generating}
+                onClick={() => {
+                  setForceGeneration(false);
+                  setConfirmGeneration(true);
+                }}
+              >
+                {generating
+                  ? "กำลังสร้างเรต…"
+                  : "สร้างเรตรอบปัจจุบันทันที (ทดสอบ)"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading || saving || generating}
+                onClick={() => {
+                  setForceGeneration(true);
+                  setConfirmGeneration(true);
+                }}
+              >
+                สร้างรอบปัจจุบันใหม่ (ทดสอบ)
+              </Button>
+            </div>
           )}
         </div>
         {data && (
@@ -405,9 +430,11 @@ export default function Page() {
                   "เริ่มใช้งาน",
                   "สิ้นสุด",
                   "ร้านทั้งหมด",
-                  "เกณฑ์ (บาท)",
-                  "น้อยกว่าเกณฑ์",
-                  "ตั้งแต่เกณฑ์ขึ้นไป",
+                  "Stage 1",
+                  "Stage 2",
+                  "Stage 3",
+                  "Stage 4",
+                  "Stage 5",
                   "Coins ที่แจก",
                 ].map((title, index) => (
                   <th
@@ -436,17 +463,25 @@ export default function Page() {
                       </td>
                     ),
                   )}
-                  {[
-                    p.shopCount,
-                    10000,
-                    p.belowThresholdShopCount,
-                    p.atOrAboveThresholdShopCount,
-                  ].map((value, index) => (
+                  {[p.shopCount, ...p.stageShopCounts].map((value, index) => (
                     <td
                       key={index}
                       className="whitespace-nowrap px-4 py-4 text-right font-mono tabular-nums"
                     >
                       {value.toLocaleString("th-TH")}
+                      {index > 0 && " ร้าน"}
+                      {index > 0 && p.stageSalesRanges[index - 1] && (
+                        <div className="mt-1 text-xs font-sans text-muted-foreground">
+                          {Number(
+                            p.stageSalesRanges[index - 1].minimum,
+                          ).toLocaleString("th-TH", {
+                            maximumFractionDigits: 4,
+                          })}
+                          {p.stageSalesRanges[index - 1].maximum === null
+                            ? " บาทขึ้นไป"
+                            : ` – <${Number(p.stageSalesRanges[index - 1].maximum).toLocaleString("th-TH", { maximumFractionDigits: 4 })} บาท`}
+                        </div>
+                      )}
                     </td>
                   ))}
                   <td className="whitespace-nowrap px-4 py-4 text-right font-mono tabular-nums">
@@ -457,7 +492,7 @@ export default function Page() {
               {(!data || data.periods.length === 0) && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={11}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     {loading
@@ -472,21 +507,30 @@ export default function Page() {
           </table>
         </div>
         <p className="px-5 py-4 text-xs text-muted-foreground">
-          จำนวนร้านนับจากยอดขายที่ล็อกไว้ในรอบ โดยแบ่งตามเกณฑ์ในตาราง
-          ร้านที่ยอดเท่ากับเกณฑ์รวมอยู่ในกลุ่มตั้งแต่เกณฑ์ขึ้นไป · Coins
-          ที่แจกนับจาก ledger ตามเวลาแจกในรอบ ก่อนหักรายการย้อนคืน
-          หากยังไม่มีรายการแจกจะแสดง 0
+          จำนวนร้านจากยอดขายที่ล็อกไว้เทียบเกณฑ์ของกฎในรอบ: Stage 1 ต่ำกว่า 25%,
+          Stage 2 ตั้งแต่ 25% ถึงต่ำกว่า 50%, Stage 3 ตั้งแต่ 50% ถึงต่ำกว่า
+          75%, Stage 4 ตั้งแต่ 75% ถึงต่ำกว่า 100%, Stage 5 ตั้งแต่ 100% ขึ้นไป
+          (เกณฑ์ 0 อยู่ Stage 5) · Coins ที่แจกนับจาก ledger ตามเวลาแจกในรอบ
+          ก่อนหักรายการย้อนคืน หากยังไม่มีรายการแจกจะแสดง 0
         </p>
       </section>
       <ConfirmDialog
         open={confirmGeneration}
         onOpenChange={setConfirmGeneration}
-        title="สร้างเรตรอบปัจจุบันสำหรับทดสอบ"
-        description="คำนวณจากยอดขายก่อนเวลาเริ่มรอบและกฎที่มีผลตอนเริ่มรอบ หากสร้างรอบนี้แล้วจะใช้เรตเดิม ไม่มีการแจก Coins ให้ลูกค้า"
+        title={
+          forceGeneration
+            ? "สร้างเรตรอบปัจจุบันใหม่"
+            : "สร้างเรตรอบปัจจุบันสำหรับทดสอบ"
+        }
+        description={
+          forceGeneration
+            ? "แทนที่เรตรอบปัจจุบันและรวมร้านที่อนุมัติล่าสุด โดยใช้กฎและยอดขายก่อนเริ่มรอบ หากรอบนี้เคยแจก Coins แล้วระบบจะไม่ให้สร้างทับ"
+            : "คำนวณจากยอดขายก่อนเวลาเริ่มรอบและกฎที่มีผลตอนเริ่มรอบ หากสร้างรอบนี้แล้วจะใช้เรตเดิม ไม่มีการแจก Coins ให้ลูกค้า"
+        }
         pending={generating}
-        confirmLabel="สร้างเรตทันที"
+        confirmLabel={forceGeneration ? "ยืนยันสร้างรอบใหม่" : "สร้างเรตทันที"}
         onConfirm={() => {
-          void generate().then((ok) => {
+          void generate(forceGeneration).then((ok) => {
             if (ok) setConfirmGeneration(false);
           });
         }}

@@ -81,6 +81,8 @@ type RatePeriodSummary = {
   shopCount: number;
   belowThresholdShopCount: number;
   atOrAboveThresholdShopCount: number;
+  stageShopCounts: number[];
+  stageSalesRanges: { minimum: string; maximum: string | null }[];
   coinsAwarded: string;
 };
 export function readRatePeriodSummaries(
@@ -92,10 +94,16 @@ export function readRatePeriodSummaries(
           SELECT period_id, starts_at, ends_at, created_at
           FROM ${sqlTable('coin_rate_periods', schema)} ORDER BY starts_at DESC LIMIT 10
         ), shop_counts AS (
-          SELECT r.period_id, COUNT(*)::int AS shop_count,
+          SELECT r.period_id, COUNT(*)::int AS shop_count, MIN(v.low_sales_threshold) AS threshold,
             COUNT(*) FILTER (WHERE r.sales_total_snapshot < 10000)::int AS below_count,
-            COUNT(*) FILTER (WHERE r.sales_total_snapshot >= 10000)::int AS above_count
+            COUNT(*) FILTER (WHERE r.sales_total_snapshot >= 10000)::int AS above_count,
+            COUNT(*) FILTER (WHERE v.low_sales_threshold > 0 AND GREATEST(r.sales_total_snapshot,0)*4 < v.low_sales_threshold)::int AS stage_1,
+            COUNT(*) FILTER (WHERE v.low_sales_threshold > 0 AND GREATEST(r.sales_total_snapshot,0)*4 >= v.low_sales_threshold AND GREATEST(r.sales_total_snapshot,0)*2 < v.low_sales_threshold)::int AS stage_2,
+            COUNT(*) FILTER (WHERE v.low_sales_threshold > 0 AND GREATEST(r.sales_total_snapshot,0)*2 >= v.low_sales_threshold AND GREATEST(r.sales_total_snapshot,0)*4 < v.low_sales_threshold*3)::int AS stage_3,
+            COUNT(*) FILTER (WHERE v.low_sales_threshold > 0 AND GREATEST(r.sales_total_snapshot,0)*4 >= v.low_sales_threshold*3 AND GREATEST(r.sales_total_snapshot,0) < v.low_sales_threshold)::int AS stage_4,
+            COUNT(*) FILTER (WHERE v.low_sales_threshold <= 0 OR GREATEST(r.sales_total_snapshot,0) >= v.low_sales_threshold)::int AS stage_5
           FROM ${sqlTable('shop_coin_rates', schema)} r JOIN recent_periods p ON p.period_id = r.period_id
+          JOIN ${sqlTable('coin_rule_versions', schema)} v ON v.rule_id = r.rule_id
           GROUP BY r.period_id
         ), coin_totals AS (
           SELECT p.period_id, SUM(c.coins) AS awarded
@@ -106,6 +114,14 @@ export function readRatePeriodSummaries(
         SELECT p.*, COALESCE(s.shop_count, 0) AS "shopCount",
           COALESCE(s.below_count, 0) AS "belowThresholdShopCount",
           COALESCE(s.above_count, 0) AS "atOrAboveThresholdShopCount",
+          ARRAY[COALESCE(s.stage_1,0), COALESCE(s.stage_2,0), COALESCE(s.stage_3,0), COALESCE(s.stage_4,0), COALESCE(s.stage_5,0)] AS "stageShopCounts",
+          CASE WHEN s.threshold IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(
+            jsonb_build_object('minimum', '0', 'maximum', (s.threshold/4)::text),
+            jsonb_build_object('minimum', (s.threshold/4)::text, 'maximum', (s.threshold/2)::text),
+            jsonb_build_object('minimum', (s.threshold/2)::text, 'maximum', (s.threshold*3/4)::text),
+            jsonb_build_object('minimum', (s.threshold*3/4)::text, 'maximum', s.threshold::text),
+            jsonb_build_object('minimum', s.threshold::text, 'maximum', NULL)
+          ) END AS "stageSalesRanges",
           COALESCE(c.awarded, 0)::text AS "coinsAwarded"
         FROM recent_periods p
         LEFT JOIN shop_counts s ON s.period_id = p.period_id

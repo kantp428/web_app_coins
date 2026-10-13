@@ -122,6 +122,8 @@ export type CoinRulesData = {
     shopCount: number;
     belowThresholdShopCount: number;
     atOrAboveThresholdShopCount: number;
+    stageShopCounts: number[];
+    stageSalesRanges: { minimum: string; maximum: string | null }[];
     coinsAwarded: string;
   }[];
 };
@@ -133,15 +135,20 @@ export async function createCoinRule(body: CoinRuleInput) {
   return (await api.post<CoinRule>("/government/coin-rules", body)).data;
 }
 
-export async function generateCoinRates() {
+export async function generateCoinRates(regenerate = false) {
   return (
     await api.post<{
       periodId: string;
       startsAt: string;
       endsAt: string;
       created: boolean;
+      regenerated?: boolean;
       shopCount: number;
-    }>("/government/coin-rules/generate-rates", {}, { timeout: 50000 })
+    }>(
+      "/government/coin-rules/generate-rates",
+      regenerate ? { regenerate: true } : {},
+      { timeout: 50000 },
+    )
   ).data;
 }
 

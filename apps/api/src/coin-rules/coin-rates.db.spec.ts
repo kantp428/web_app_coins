@@ -227,6 +227,78 @@ describe.skipIf(process.env.RUN_COIN_RATES_DB_TESTS !== 'true')(
       ).toBe(true);
     }, 60000);
 
+    it('regenerates explicitly, includes approved shops and rolls back failed replacement', async () => {
+      const before = await db.shop_coin_rates.findMany({
+        orderBy: { shop_id: 'asc' },
+      });
+      const beforePeriod = await db.coin_rate_periods.findFirstOrThrow();
+      await sql.query(
+        `CREATE FUNCTION "${schema}".reject_regeneration() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'intentional regeneration failure'; END $$`,
+      );
+      await sql.query(
+        `CREATE TRIGGER reject_regeneration BEFORE INSERT ON "${schema}".shop_coin_rates FOR EACH ROW EXECUTE FUNCTION "${schema}".reject_regeneration()`,
+      );
+      try {
+        await expect(service.generateCurrent(now, true)).rejects.toThrow();
+        expect(
+          await db.shop_coin_rates.findMany({ orderBy: { shop_id: 'asc' } }),
+        ).toEqual(before);
+        expect(await db.coin_rate_periods.findFirstOrThrow()).toEqual(
+          beforePeriod,
+        );
+      } finally {
+        await sql.query(
+          `DROP TRIGGER reject_regeneration ON "${schema}".shop_coin_rates`,
+        );
+      }
+      await db.shops.update({
+        where: { shop_id: pendingShopId },
+        data: { participation_status: 'APPROVED' },
+      });
+      expect(await service.generateCurrent(now, true)).toMatchObject({
+        created: false,
+        regenerated: true,
+        shopCount: 4,
+      });
+      expect(await db.coin_rate_periods.count()).toBe(1);
+      await db.shops.update({
+        where: { shop_id: pendingShopId },
+        data: { participation_status: 'PENDING' },
+      });
+      expect(await service.generateCurrent(now, true)).toMatchObject({
+        shopCount: 3,
+      });
+    }, 60000);
+
+    it('waits for the same period share lock used by settlement before regeneration', async () => {
+      const ready = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      const reader = db.$transaction(
+        async (tx) => {
+          await tx.$queryRawUnsafe(
+            `SELECT period_id FROM "${schema}".coin_rate_periods WHERE starts_at=$1 FOR SHARE`,
+            cutoff,
+          );
+          ready.resolve();
+          await release.promise;
+        },
+        { timeout: 20000 },
+      );
+      await ready.promise;
+      let completed = false;
+      const rebuild = service.generateCurrent(now, true).finally(() => {
+        completed = true;
+      });
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(completed).toBe(false);
+      } finally {
+        release.resolve();
+        await Promise.all([reader, rebuild]);
+      }
+      expect(completed).toBe(true);
+    }, 60000);
+
     it('does not mutate an existing round after approval; next round includes the shop', async () => {
       const before = await db.shop_coin_rates.findMany({
         orderBy: { shop_id: 'asc' },
@@ -299,6 +371,8 @@ describe.skipIf(process.env.RUN_COIN_RATES_DB_TESTS !== 'true')(
       });
       expect(summaries[2]).toMatchObject({
         shopCount: 0,
+        stageShopCounts: [0, 0, 0, 0, 0],
+        stageSalesRanges: [],
         belowThresholdShopCount: 0,
         atOrAboveThresholdShopCount: 0,
         coinsAwarded: '0',
@@ -307,9 +381,100 @@ describe.skipIf(process.env.RUN_COIN_RATES_DB_TESTS !== 'true')(
         summaries.every(
           (p) =>
             p.belowThresholdShopCount + p.atOrAboveThresholdShopCount ===
-            p.shopCount,
+              p.shopCount &&
+            p.stageShopCounts.length === 5 &&
+            p.stageShopCounts.reduce((sum, count) => sum + count, 0) ===
+              p.shopCount,
         ),
       ).toBe(true);
+    }, 60000);
+
+    it('classifies exact quarter boundaries and zero thresholds into five stages', async () => {
+      const rollback = new Error('rollback reporting fixtures');
+      await expect(
+        db.$transaction(
+          async (tx) => {
+            await tx.coin_rule_versions.updateMany({
+              data: { low_sales_threshold: '10000' },
+            });
+            for (const [sales, stage] of [
+              ['0', 0],
+              ['2499.99', 0],
+              ['2500', 1],
+              ['4999.99', 1],
+              ['5000', 2],
+              ['7499.99', 2],
+              ['7500', 3],
+              ['9999.99', 3],
+              ['10000', 4],
+              ['15000', 4],
+            ] as const) {
+              await tx.shop_coin_rates.updateMany({
+                data: { sales_total_snapshot: sales },
+              });
+              const summaries = await readRatePeriodSummaries(tx, schema);
+              for (const summary of summaries) {
+                if (summary.shopCount > 0)
+                  expect(summary.stageSalesRanges).toEqual([
+                    { minimum: '0', maximum: '2500.0000000000000000' },
+                    {
+                      minimum: '2500.0000000000000000',
+                      maximum: '5000.0000000000000000',
+                    },
+                    {
+                      minimum: '5000.0000000000000000',
+                      maximum: '7500.0000000000000000',
+                    },
+                    { minimum: '7500.0000000000000000', maximum: '10000.00' },
+                    { minimum: '10000.00', maximum: null },
+                  ]);
+                expect(summary.stageShopCounts).toEqual(
+                  Array.from({ length: 5 }, (_, i) =>
+                    i === stage ? summary.shopCount : 0,
+                  ),
+                );
+              }
+            }
+            await tx.coin_rule_versions.updateMany({
+              data: { low_sales_threshold: '0' },
+            });
+            await tx.shop_coin_rates.updateMany({
+              data: { sales_total_snapshot: '0' },
+            });
+            for (const summary of await readRatePeriodSummaries(tx, schema)) {
+              expect(summary.stageShopCounts).toEqual([
+                0,
+                0,
+                0,
+                0,
+                summary.shopCount,
+              ]);
+            }
+            throw rollback;
+          },
+          { timeout: 60000 },
+        ),
+      ).rejects.toBe(rollback);
+    }, 60000);
+
+    it('blocks regeneration after an award and preserves the round', async () => {
+      const before = await db.shop_coin_rates.findMany({
+        orderBy: { shop_coin_rate_id: 'asc' },
+      });
+      const periods = await db.coin_rate_periods.findMany({
+        orderBy: { period_id: 'asc' },
+      });
+      await expect(service.generateCurrent(now, true)).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(
+        await db.shop_coin_rates.findMany({
+          orderBy: { shop_coin_rate_id: 'asc' },
+        }),
+      ).toEqual(before);
+      expect(
+        await db.coin_rate_periods.findMany({ orderBy: { period_id: 'asc' } }),
+      ).toEqual(periods);
     }, 60000);
 
     it('rolls back the period when rate insertion fails', async () => {

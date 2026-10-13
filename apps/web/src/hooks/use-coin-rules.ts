@@ -47,14 +47,16 @@ export function useCoinRules() {
       setSaving(false);
     }
   }
-  async function generate() {
+  async function generate(regenerate = false) {
     setGenerating(true);
     try {
-      const result = await generateCoinRates();
+      const result = await generateCoinRates(regenerate);
       toast.success(
-        result.created
-          ? `สร้างเรตรอบปัจจุบันแล้ว ${result.shopCount} ร้าน`
-          : `รอบนี้มีเรตแล้ว ${result.shopCount} ร้าน ไม่มีการเปลี่ยนเรตเดิม`,
+        result.regenerated
+          ? `สร้างเรตรอบปัจจุบันใหม่แล้ว ${result.shopCount} ร้าน`
+          : result.created
+            ? `สร้างเรตรอบปัจจุบันแล้ว ${result.shopCount} ร้าน`
+            : `รอบนี้มีเรตแล้ว ${result.shopCount} ร้าน ไม่มีการเปลี่ยนเรตเดิม`,
       );
       return true;
     } catch (error) {

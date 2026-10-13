@@ -629,6 +629,22 @@
                   "if (pm.response.code === 200) { pm.test(\"Server rule scale details\", () => { for (const rule of pm.response.json().rules) { pm.expect(rule.calculationDetail.formula).to.be.a(\"string\"); pm.expect(rule.calculationDetail.examples).to.be.an(\"array\").that.is.not.empty; for (const example of rule.calculationDetail.examples) { pm.expect(example.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(example.coins).to.be.a(\"number\").within(rule.new_other_coins, rule.new_low_sales_coins); } } }); }"
                 ]
               }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Five stage counts reconcile to shop count\", function () {",
+                  "    pm.response.json().periods.forEach(p => {",
+                  "      pm.expect(p.stageShopCounts).to.have.lengthOf(5); pm.expect(p.stageSalesRanges).to.have.lengthOf(p.shopCount ? 5 : 0);",
+                  "      pm.expect(p.stageShopCounts.reduce((a,b) => a+b,0)).to.eql(p.shopCount);",
+                  "    });",
+                  "  });",
+                  "}"
+                ]
+              }
             }
           ],
           "request": {
@@ -705,6 +721,22 @@
                   "if (pm.response.code === 200) { pm.test(\"Server rule scale details\", () => { for (const rule of pm.response.json().rules) { pm.expect(rule.calculationDetail.formula).to.be.a(\"string\"); pm.expect(rule.calculationDetail.examples).to.be.an(\"array\").that.is.not.empty; for (const example of rule.calculationDetail.examples) { pm.expect(example.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(example.coins).to.be.a(\"number\").within(rule.new_other_coins, rule.new_low_sales_coins); } } }); }"
                 ]
               }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Five stage counts reconcile to shop count\", function () {",
+                  "    pm.response.json().periods.forEach(p => {",
+                  "      pm.expect(p.stageShopCounts).to.have.lengthOf(5); pm.expect(p.stageSalesRanges).to.have.lengthOf(p.shopCount ? 5 : 0);",
+                  "      pm.expect(p.stageShopCounts.reduce((a,b) => a+b,0)).to.eql(p.shopCount);",
+                  "    });",
+                  "  });",
+                  "}"
+                ]
+              }
             }
           ],
           "request": {
@@ -741,6 +773,22 @@
                 "type": "text/javascript",
                 "exec": [
                   "if (pm.response.code === 200) { pm.test(\"Server rule scale details\", () => { for (const rule of pm.response.json().rules) { pm.expect(rule.calculationDetail.formula).to.be.a(\"string\"); pm.expect(rule.calculationDetail.examples).to.be.an(\"array\").that.is.not.empty; for (const example of rule.calculationDetail.examples) { pm.expect(example.sales).to.match(/^\\d+\\.\\d{2}$/); pm.expect(example.coins).to.be.a(\"number\").within(rule.new_other_coins, rule.new_low_sales_coins); } } }); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Five stage counts reconcile to shop count\", function () {",
+                  "    pm.response.json().periods.forEach(p => {",
+                  "      pm.expect(p.stageShopCounts).to.have.lengthOf(5); pm.expect(p.stageSalesRanges).to.have.lengthOf(p.shopCount ? 5 : 0);",
+                  "      pm.expect(p.stageShopCounts.reduce((a,b) => a+b,0)).to.eql(p.shopCount);",
+                  "    });",
+                  "  });",
+                  "}"
                 ]
               }
             }
@@ -1959,6 +2007,88 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Test current round regeneration",
+      "item": [
+        {
+          "name": "Regenerate unused current round (test only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"regenerate\": true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "GOVERNMENT non-production explicit regeneration. 200 replaces unused current snapshots/includes approved shops; 409 protects any round with Coins already awarded. Production403. Atomic rollback; old rounds/ledger unchanged."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Regenerate or protect awarded round\", () => pm.expect([200,409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 200) { const r=pm.response.json(); pm.test(\"Explicit regeneration\", () => { pm.expect(r.created || r.regenerated).to.eql(true); pm.expect(r.shopCount).to.be.a(\"number\"); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid regeneration flag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/government/coin-rules/generate-rates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"regenerate\": false}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "GOVERNMENT non-production explicit regeneration. 200 replaces unused current snapshots/includes approved shops; 409 protects any round with Coins already awarded. Production403. Atomic rollback; old rounds/ledger unchanged."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Reject invalid flag\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
