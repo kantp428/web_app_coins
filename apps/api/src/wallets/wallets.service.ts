@@ -384,6 +384,13 @@ export class WalletsService {
             include: {
               shop: { select: { name: true } },
               seller: { select: { display_name: true } },
+              purchase: {
+                include: {
+                  coin_entries: {
+                    select: { coins: true, reversed_at: true },
+                  },
+                },
+              },
             },
           },
         },
@@ -401,6 +408,7 @@ export class WalletsService {
         helpAmount?: string;
         customerAmount?: string;
         rewardAmount?: string;
+        coinsEarned?: number;
       }> = [];
       const payments = new Map<
         string,
@@ -415,6 +423,7 @@ export class WalletsService {
           helpCents: number;
           customerCents: number;
           rewardCents: number;
+          coinsEarned: number;
         }
       >();
       for (const entry of entries) {
@@ -444,6 +453,11 @@ export class WalletsService {
           helpCents: 0,
           customerCents: 0,
           rewardCents: 0,
+          coinsEarned:
+            user.role === 'CUSTOMER' &&
+            entry.payment_requests.purchase?.coin_entries?.reversed_at === null
+              ? entry.payment_requests.purchase.coin_entries.coins
+              : 0,
         };
         existing.amountCents += amountCents;
         if (entry.wallet_type === 'REWARD' && amountCents < 0)
@@ -472,6 +486,7 @@ export class WalletsService {
           ...(entry.customerCents > 0
             ? { customerAmount: money(entry.customerCents) }
             : {}),
+          ...(entry.coinsEarned > 0 ? { coinsEarned: entry.coinsEarned } : {}),
         })),
       );
       return history.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
