@@ -1,0 +1,342 @@
+{
+  "info": {
+    "name": "THAI Please — For AI (Explore shop search)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Focused collection verified against commit 421c916beb70cb1f575d6ddbfbea3088c128713c. Nest API only; no payments, Coins, seller/government writes, OSRM or direct provider endpoints. Set baseUrl and CUSTOMER credentials, run01→02→03→04→05→06. GET discovery is paginated; categoryIds is CSV and empty means all. Scope must stay identical across search/descriptions/hydration. Never export saved tokens/passwords. Runtime/provider/DB availability has not been verified by creating this collection."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{customerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "customerUsername",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "latitude",
+      "value": "14.020894",
+      "type": "string"
+    },
+    {
+      "key": "longitude",
+      "value": "99.991808",
+      "type": "string"
+    },
+    {
+      "key": "radiusKm",
+      "value": "5",
+      "type": "string"
+    },
+    {
+      "key": "categoryIds",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "page",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "pageSize",
+      "value": "50",
+      "type": "string"
+    },
+    {
+      "key": "searchText",
+      "value": "กาแฟและขนม",
+      "type": "string"
+    },
+    {
+      "key": "descriptionShopIds",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "recommendedShopIds",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "hydrateShopIds",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "remainingShopIds",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "hasNextPage",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "nextPage",
+      "value": "2",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const csv = String(pm.variables.get('categoryIds') || '').trim();",
+          "pm.variables.set('categoryIdsJson', JSON.stringify(csv ? csv.split(',').map(s => s.trim()).filter(Boolean) : []));",
+          "pm.variables.set('searchQueryJson', JSON.stringify(String(pm.variables.get('searchText') || '')));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Login CUSTOMER (save customerToken)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "description": "Setup only: enter your existing CUSTOMER credentials. No registration or business writes.",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{customerUsername}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"CUSTOMER\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Access token', () => pm.expect(r.accessToken).to.be.a('string').and.not.empty); if (r.accessToken) pm.collectionVariables.set('customerToken', r.accessToken); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 List categories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories",
+        "description": "Use returned IDs in categoryIds (comma-separated). Empty categoryIds means all categories.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) pm.test('Category list', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Nearby candidates (one page)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/stores?latitude={{latitude}}&longitude={{longitude}}&radiusKm={{radiusKm}}&categoryIds={{categoryIds}}&page={{page}}&pageSize={{pageSize}}",
+        "description": "Empty-search discovery. Saves at most 20 IDs from this page for description inspection. This is ONE page, not all shops: while hasNextPage=true set page=nextPage and rerun. LLM orchestration independently rebuilds the complete scope on the server."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Stores and pagination', () => { pm.expect(r.stores).to.be.an('array'); pm.expect(r.meta.hasNextPage).to.be.a('boolean'); }); pm.collectionVariables.set('hasNextPage', String(r.meta.hasNextPage)); pm.collectionVariables.set('nextPage', String(Number(r.meta.page) + 1)); pm.collectionVariables.set('descriptionShopIds', JSON.stringify(r.stores.slice(0, 20).map(s => s.id))); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Semantic search (save recommendedShopIds)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/recommendations/search",
+        "description": "Backend orchestrates Ollama + internal get_shop_descriptions tool. source=fallback is a valid lexical fallback, not proof of a live LLM success. Empty query returns discovery without provider calls. Saves first 100 IDs for hydration and the remainder separately; hydrate remaining IDs in batches <=100.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": {{searchQueryJson}},\n  \"latitude\": {{latitude}}, \"longitude\": {{longitude}}, \"radiusKm\": {{radiusKm}}, \"categoryIds\": {{categoryIdsJson}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Scoped unique IDs and source', () => { pm.expect(r.shopIds).to.be.an('array'); pm.expect(['llm', 'fallback', 'discovery']).to.include(r.source); pm.expect(new Set(r.shopIds).size).to.eql(r.shopIds.length); r.shopIds.forEach(id => pm.expect(id).to.match(/^[1-9][0-9]*$/)); }); pm.collectionVariables.set('recommendedShopIds', JSON.stringify(r.shopIds)); pm.collectionVariables.set('hydrateShopIds', JSON.stringify(r.shopIds.slice(0, 100))); pm.collectionVariables.set('remainingShopIds', JSON.stringify(r.shopIds.slice(100))); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Batch descriptions (tool-equivalent data API)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/stores/descriptions",
+        "description": "Scoped CUSTOMER HTTP API for inspection/external integration; max100 unique decimal IDs. The actual LLM tool is internal, max20 IDs and request-bound scope; this request does not itself run the LLM. descriptionShopIds is populated by nearby discovery.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"shopIds\": {{descriptionShopIds}},\n  \"latitude\": {{latitude}}, \"longitude\": {{longitude}}, \"radiusKm\": {{radiusKm}}, \"categoryIds\": {{categoryIdsJson}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Description data', () => { pm.expect(r.shops).to.be.an('array'); r.shops.forEach(s => { pm.expect(s.id).to.be.a('string'); pm.expect(s.description === null || typeof s.description === 'string').to.eql(true); }); }); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Hydrate recommended IDs for existing UI",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/stores/batch",
+        "description": "Max100 IDs per call. Returns existing Explore store DTO in requested order; stores that left APPROVED/radius/category scope are omitted. Keep scope identical to search. An empty result is valid.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"shopIds\": {{hydrateShopIds}},\n  \"latitude\": {{latitude}}, \"longitude\": {{longitude}}, \"radiusKm\": {{radiusKm}}, \"categoryIds\": {{categoryIdsJson}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const r = pm.response.json(); const ids = JSON.parse(pm.variables.get('hydrateShopIds')); pm.test('Hydrated stores preserve requested order and scope', () => { pm.expect(r.stores).to.be.an('array'); let previous = -1; r.stores.forEach(s => { const index = ids.indexOf(s.id); pm.expect(index).to.be.above(previous); previous = index; pm.expect(s.distanceKm).to.be.a('number'); pm.expect(s.categories).to.be.an('array'); }); }); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Empty query bypasses LLM",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/recommendations/search",
+        "description": "Does not overwrite recommendation IDs from request04. Use GET /stores for the actual empty-query shop list.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"\",\n  \"latitude\": {{latitude}}, \"longitude\": {{longitude}}, \"radiusKm\": {{radiusKm}}, \"categoryIds\": {{categoryIdsJson}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Discovery bypass', () => { pm.expect(r.source).to.eql('discovery'); pm.expect(r.shopIds).to.eql([]); }); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
