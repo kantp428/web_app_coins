@@ -423,3 +423,9 @@
 - สร้าง apps/api/postman/For-AI.postman.json ตาม HEAD421c916 (feat: implement LLM-assisted shop search and recommendations): 7requests เฉพาะ CUSTOMERlogin/categories/paginated discovery/search/batch descriptions/hydration/empty-query bypass. มี inherited customerToken, scope variables, CSVcategoryIds→JSON, safe query JSON escaping, capture description IDs/recommendation IDs/hydration100+remaining และ assertions. อธิบาย internal tool vs HTTP API, pagination/fallback และไม่รวมpayment/Coins/admin/provider endpoints. ไฟล์เป้าหมายเดิมเป็น untracked empty file; ไม่แก้ runtime/API/main collection
 - ตรวจ JSON parse, 7request scope, 8test/prerequest scripts syntax และ substituted request bodies ผ่านด้วย pnpm --filter api exec node. API-package Prettier write/check สำหรับcollection/PLAN และ git diff --check ผ่าน. ไม่รัน appbuild/unit หรือ liveHTTP/DB/Ollama เพราะ collection/docs-only; collectionยังไม่ใช่หลักฐานliveLLM
 - F04/F07 คง PARTIALตามบอร์ด; ไม่มี blocker/decision ใหม่. Next: importcollection ตั้ง CUSTOMERcredentials/baseUrl/scope แล้วรัน01→06; discoveryตามhasNextPageและhydrateรายการเกิน100เป็นหลายbatch
+
+### 2026-10-15 02:14 Asia/Bangkok — cross-cutting maintenance/F00: default install and Prisma generation
+
+- เพิ่ม root package.json scripts: setup=pnpm install --frozen-lockfile && pnpm run prisma:generate; prisma:generate=pnpm --filter api exec prisma generate. README clone setup ใช้ pnpm run setup (ระบุ run เพื่อไม่ชน pnpm setup builtin) พร้อมอธิบาย generate-only/fail-fast และไม่ migrate/seed/เขียน env. ไม่แก้ dependencies/lockfile/schema/API
+- รัน pnpm run setup จริงผ่าน: install3workspaceจากlockfileและPrismaClient7.10.0generateสำเร็จ. API-package Prettier write/check package.json/README/PLAN และ git diff --check ผ่าน. ไม่รัน appbuild/unit เพราะ scripts/docs-only และไม่มี runtime change
+- F00คงPARTIALตามacceptanceเดิม; ไม่มีblocker/decisionใหม่. Next: fresh clone ติดตั้ง Node/pnpm ตาม README แล้ว pnpm run setup ก่อนตั้ง env/เริ่ม dev
