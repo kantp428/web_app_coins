@@ -43,7 +43,7 @@
 | D2 / 8 ต.ค.  | [`R1-D2-B`](APP_DEV_B.md)   | F05         | DOING                                                                                    | F01/F02; role switch ต้นแบบไม่ใช่ auth guard                                                                   | —          |
 | D2 / 8 ต.ค.  | [`R1-D2-AI`](AI_DEV.md)     | F07         | TODO                                                                                     | F01 + PrismaService; DB candidate filter ทดสอบได้โดยไม่รอ provider                                             | —          |
 | D2 / 8 ต.ค.  | [`R1-D2-I`](INTEGRATION.md) | F02         | PARTIAL: wallet ส่งยอดช่วยเหลือคงเหลือรายวัน/เดือนจาก ledger จริง                        | F00/F01; current-month Coins read มีแล้ว; Main Quest API จริง; monthly history ยังไม่ครบ                       | —          |
-| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | PARTIAL: DB search/map pin/OSRM route/Google Maps จริง                                   | F03; drag/card-marker route/filter/360–1920 ผ่าน; GPS permission QA ยังไม่รัน                                  | —          |
+| D3 / 9 ต.ค.  | [`R1-D3-A`](APP_DEV_A.md)   | F04         | PARTIAL: DB search/separate pin-shop maps/OSRM/Google Maps จริง                          | F03; drag/card-marker route/filter/360–1920 ผ่าน; GPS permission QA ยังไม่รัน                                  | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-B`](APP_DEV_B.md)   | F05         | DOING                                                                                    | F03; owner isolation, validation/error และสถานะ pending/approved                                               | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-AI`](AI_DEV.md)     | F07         | TODO                                                                                     | F03 + F06 interface ที่ตกลง; scoring adapter ชั่วคราวยังไม่ใช่ endpoint DONE                                   | —          |
 | D3 / 9 ต.ค.  | [`R1-D3-I`](INTEGRATION.md) | F03         | DOING                                                                                    | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน                                                | —          |
@@ -647,3 +647,75 @@
 
 - เพิ่มstageSalesRangesจากกฎfrozenของแต่ละรอบในcoin-rules.service.ts และweb API type; ตารางแสดงช่วงยอดขายบาทใต้จำนวนร้านStage1–5ในแต่ละแถว. ตัวอย่างเกณฑ์10000: 0–<2500 / 2500–<5000 / 5000–<7500 / 7500–<10000 / 10000ขึ้นไป. ไม่มีrate/ledger/schemawrites; ช่วงempty roundเป็น[]และthreshold0เป็นช่วงว่างStage1–4/Stage5ตั้งแต่0. ปรับcontract/Postman assertionsและDBspec
 - ผ่าน API lint/build และ opt-in coin-rates DB8/8 รวมranges/count/boundary assertions; web lint/build34routes; owning-packagePrettier write/check และgit diff --check. ไม่ทำbrowser/screenshotตามความต้องการผู้ใช้และไม่รันfullPostman. F06/F10คงPARTIALตามacceptanceที่เหลือ; ไม่มีblocker/กติกาใหม่. Next: reviewตารางช่วงยอดขายพร้อมflagsที่เหลือ
+
+### 2026-10-14 09:39 Asia/Bangkok — R1-D3-A/F04: separate Explore origin picker and shop map
+
+- `/wallet/explore`: แยกแผนที่เลือกจุดค้นหา (คลิก/ลาก pin) จากแผนที่ร้านและเส้นทาง; shop map ไม่ย้าย origin. เอา LAT/LONG inputs/state ออก แสดงพิกัด pin 6 ตำแหน่งแบบอ่านอย่างเดียวใต้ picker และใน popup; คง radius/search/category/GPS แบบ explicit และ route เดิม. แก้ apps/web/src/components/wallet/nearby-stores.tsx, nearby-stores-map.tsx และ docs/api-contract.md (UI description); ไม่มี API/backend/business-rule change หรือ decision ใหม่
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. Build ที่เรียกซ้ำระหว่าง build แรกถูก lock ปฏิเสธ; build แรกจบผ่าน. ไม่เพิ่ม tests สำหรับ reversible UI change; ยังไม่รัน browser/keyboard/responsive/GPS QA รอบนี้
+- F04/R1-D3-A คง PARTIAL ตาม review/acceptance ที่เหลือ. ไม่มี blocker; next: ตรวจ click/drag picker, shop marker selection และ layout 360/1920 px ใน browser พร้อม GPS permission QA
+
+### 2026-10-14 09:40 Asia/Bangkok — R1-D3-A/F04: dedicated manual pin button
+
+- `/wallet/explore` เพิ่มปุ่ม “ปักหมุดตำแหน่งเอง” เปิด/ปิดเฉพาะ origin picker ซึ่งซ่อนตอนเริ่ม; แยก state/ปุ่ม “ดูแผนที่ร้าน” อิสระ. GPS/เลือก card ร้านเปิดเฉพาะ shop map ไม่เปิด picker. คง LAT/LONG แบบอ่านอย่างเดียวและ click/drag search เดิม; เพิ่ม aria-expanded/controls. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี API หรือกติกาธุรกิจใหม่
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), web Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ UI toggle; browser/keyboard/360–1920 QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker. Next: ตรวจปุ่มเปิด/ปิดสองแผนที่แยกกัน, picker click/drag และ GPS flow ใน browser
+
+### 2026-10-14 09:44 Asia/Bangkok — R1-D3-A/F04: pin details above inline radius/search
+
+- `/wallet/explore` ย้าย picker เหนือรัศมี; เมื่อเลือก pin/GPS แสดง LAT/LONG 6 ตำแหน่ง และจังหวัด/อำเภอ/ตำบล/รหัสไปรษณีย์จาก useReverseGeocode เดิมผ่าน BFF. ไม่ hardcode ที่อยู่ตัวอย่าง; เคลียร์ address เมื่อจุดเปลี่ยน, debounce/abort เดิมป้องกันผลเก่า, มี loading/toast/retry และค่าที่ไม่มีแสดง —. รายละเอียดคงอยู่เมื่อปิด picker. รัศมีและปุ่มค้นหาอยู่ flex row เดียวกัน. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี endpoint/schema/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ UI presentation; ยังไม่รัน browser/GPS/live reverse lookup/360–1920 QA รอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจ pin หลายตำแหน่งและ missing-address/error/retry พร้อม layout ใน browser
+
+### 2026-10-14 09:50 Asia/Bangkok — R1-D3-A/F04: two-row Explore search controls
+
+- `/wallet/explore` แถวแรกช่องค้นหาชื่อร้าน/พื้นที่ขยายเต็มพื้นที่กับปุ่ม submit ค้นหา; แถวสองรัศมีและหมวดหมู่กว้างเท่ากัน พร้อม labels/h-10/min-w-0. รวม controls ใน form เดียว Enter/ปุ่มใช้ origin/radius เดิม; คง text/category filtering เดิม. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), web Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ layout; browser/keyboard/360–1920 QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจสองแถวบน mobile/desktop และ Enter/search/category flow ใน browser
+
+### 2026-10-14 10:00 Asia/Bangkok — R1-D3-A/F04: debounce search and matching control heights
+
+- `/wallet/explore` เพิ่ม text filter debounce300ms พร้อม cleanup timer; submit/Enter ใช้ query ปัจจุบันทันทีและ refresh radius เดิม, category ยังทันที. พิมพ์ไม่เพิ่มAPI calls. เพิ่ม label ค้นหาร้านผูก input id และจัด search input/button/radius/category สูง40pxเท่ากัน แถวแรกชิดล่าง. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ local debounce/UI; browser timing/keyboard/360–1920 QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจพิมพ์เร็ว/ล้าง query/Enter และความสูง controls บน mobile/desktop ใน browser
+
+### 2026-10-14 10:03 Asia/Bangkok — R1-D3-A/F04: fix Select height override and remove search button
+
+- `/wallet/explore` ลบปุ่มค้นหา ช่องชื่อร้านเต็มแถวและคง debounce300ms/Enter. พบ SelectTrigger ใช้ data-[size=default]:h-8 ซึ่ง specificity ทับ h-10; override variant เป็น h-10 เฉพาะหมวดหมู่หน้า Explore พร้อม block label. รัศมีเปลี่ยนแล้ว refresh เมื่อ blur/Enter เพื่อใช้ได้โดยไม่มีปุ่ม. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี shared UI/API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ presentation; browser computed-height/keyboard/360–1920 QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: วัด radius/category 40px ใน browser และตรวจ radius blur/Enter กับ debounce flow
+
+### 2026-10-14 10:07 Asia/Bangkok — R1-D3-A/F04: align field labels and colocate map toggle
+
+- จากภาพผู้ใช้ radius/category เริ่มคนละแนว: เปลี่ยน wrappers ทั้งคู่เป็น flex-col/gap-1 พร้อมหัวข้อ block/leading-5 เหมือนกัน แทน text node/inline span กับ space-y. คง40px variant override. ย้ายปุ่มดู/ซ่อนแผนที่ร้านจากกลุ่มGPS/pin มาเป็นคอลัมน์ที่สามแถว radius/category และชิดล่าง; radius/category แบ่งพื้นที่ที่เหลือเท่ากัน. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ตรวจภาพผู้ใช้และ source layout; ยังไม่รัน browser computed bounds/360–1920 QA รอบนี้ ไม่เพิ่ม tests สำหรับ presentation
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจขอบบน/ล่างของ radius/category/map toggle ใน browser mobile/desktop และ toggle flow
+
+### 2026-10-14 10:10 Asia/Bangkok — R1-D3-A/F04: location details before location actions
+
+- `/wallet/explore` ย้ายรายละเอียดตำแหน่งที่เลือกขึ้นเหนือกลุ่มปุ่มใช้ตำแหน่งปัจจุบัน/ปักหมุดตำแหน่งเอง/ดูหรือซ่อนแผนที่ร้าน; นำ map toggle กลับกลุ่มเดิม. Picker อยู่ใต้ปุ่มและเหนือ search; radius/category กลับสองคอลัมน์เท่ากัน คง aligned labels/40px/debounce เดิม. แก้ apps/web/src/components/wallet/nearby-stores.tsx และ docs/api-contract.md; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ reorder UI; browser/keyboard/360–1920 QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจลำดับรายละเอียด/ปุ่ม/picker/search และ responsive ใน browser
+
+### 2026-10-14 10:14 Asia/Bangkok — R1-D3-A/F04: compact shop-marker popup with application font
+
+- `/wallet/explore` popup หมุดร้านใช้ font-sans ตามระบบ (Bai Jamjuree), text-sm/leading-6; เหลือหมวดหมู่และระยะเส้นตรงจาก API เท่านั้น พร้อมไม่มีหมวดหมู่ fallback. เอาชื่อร้านและข้อความแนะนำเส้นทางออกจาก popup; marker title และ card/route เดิมคงอยู่. ใช้ div แทน p เพื่อหลีกเลี่ยง paragraph margins ของ Leaflet. แก้ apps/web/src/components/wallet/nearby-stores-map.tsx; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ presentation; browser popup/font/responsive QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: กดหมุดร้านตรวจ popup สองบรรทัดและฟอนต์ใน browser
+
+### 2026-10-14 10:21 Asia/Bangkok — R1-D3-A/F04: category Lucide icons
+
+- `/wallet/explore` เพิ่ม category-icon.tsx mapping slug/ชื่อไทย: food/Soup, cafe/Coffee, bakery/Cookie, beverages/Wine, household/Lamp, services/Bath, other/Ellipsis. ใช้ใน dropdown/selected value, list card, popup และแทน ฿ บน shop marker ด้วย Lucide SVG (หมวดแรกของร้าน, unknown/empty fallback Ellipsis); cache Leaflet icons ตามหมวด. คงชื่อไทย/ทุกหมวด/ไม่มีหมวดและ search behavior. แก้ nearby-stores.tsx, nearby-stores-map.tsx และเพิ่ม category-icon.tsx; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ icon mapping/presentation; browser dropdown/marker/popup/responsive QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจ7หมวดและร้านหลายหมวดใน browser ทั้ง marker/dropdown/card
+
+### 2026-10-14 10:25 Asia/Bangkok — R1-D3-A/F04: routing failure Google Maps dialog
+
+- `/wallet/explore` เมื่อ route request ล้มเหลวเปิด Dialog “ไม่สามารถแสดงเส้นทางได้” พร้อม MapPin และลิงก์ “เปิดโดยใช้ Google Maps” ของร้านที่เลือก target blank/noopener/noreferrer กับปุ่มปิด. แทน route-error toast ด้วย dialog; คง inline retry/straight distance เดิม. Dialog ผูก current routeKey ไม่แสดง failure ของ aborted/stale request; ปิดแล้วไม่เปิดซ้ำเองสำหรับ key เดิม, retry key ใหม่เปิดได้. แก้ apps/web/src/components/wallet/nearby-stores.tsx; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ presentation; browser forced-route-failure/dialog keyboard/external-link QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: จำลอง route API failure ตรวจ dialog/ปิด/retry และ Google Maps link ใน browser
+
+### 2026-10-14 10:29 Asia/Bangkok — R1-D3-A/F04: numeric radius input
+
+- `/wallet/explore` เปลี่ยนรัศมีเป็น type=number, required, min0.1/max50 ตาม validation เดิมและ step0.1; คง decimal keyboard/blur/Enter search. แก้ apps/web/src/components/wallet/nearby-stores.tsx; ไม่มี API/business-rule change
+- ผ่าน pnpm --filter web lint, pnpm --filter web build (34 routes), owning-package Prettier write/check และ git diff --check. ไม่เพิ่ม tests สำหรับ native input attributes; browser numeric/empty/out-of-range QA ยังไม่รันรอบนี้
+- F04/R1-D3-A คง PARTIAL; ไม่มี blocker/decision ใหม่. Next: ตรวจ numeric input/step และ blur/Enter validation ใน browser

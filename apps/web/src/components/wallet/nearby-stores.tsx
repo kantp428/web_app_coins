@@ -1,10 +1,25 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map, MapPin, Search, Store, ExternalLink, Route } from "lucide-react";
 import { toast } from "sonner";
-import { api, getApiError, getCategories, type ShopCategory } from "@/lib/api";
+import {
+  api,
+  getApiError,
+  getCategories,
+  type ShopCategory,
+  type NearbyStore,
+  type ShopAddress,
+} from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,7 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useReverseGeocode } from "@/hooks/use-reverse-geocode";
 import { useNearbyStores } from "@/hooks/use-nearby-stores";
+import { CategoryIcon, CategoryLabels } from "./category-icon";
 import type { DrivingRoute } from "./nearby-stores-map";
 
 const ExploreMap = dynamic(() => import("./nearby-stores-map"), {
@@ -25,22 +42,39 @@ const ExploreMap = dynamic(() => import("./nearby-stores-map"), {
     </div>
   ),
 });
+const noStores: NearbyStore[] = [];
 const initialPoint: [number, number] = [14.020894, 99.991808];
 
 export function NearbyStores() {
   const { stores, loading, loaded, error, search } = useNearbyStores();
-  const [latitude, setLatitude] = useState(String(initialPoint[0]));
-  const [longitude, setLongitude] = useState(String(initialPoint[1]));
   const [radius, setRadius] = useState("5");
   const [origin, setOrigin] = useState<[number, number]>(initialPoint);
   const [searchRadius, setSearchRadius] = useState(5);
+  const [hasLocation, setHasLocation] = useState(false);
+  const [locationAddress, setLocationAddress] = useState<ShopAddress | null>(
+    null,
+  );
+  const receiveAddress = useCallback((address: ShopAddress) => {
+    setLocationAddress(address);
+  }, []);
+  const { loading: addressLoading, retry: retryAddress } = useReverseGeocode(
+    String(origin[0]),
+    String(origin[1]),
+    hasLocation,
+    receiveAddress,
+  );
   const [locating, setLocating] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [dismissedRouteError, setDismissedRouteError] = useState<string | null>(
+    null,
+  );
   const [routeState, setRouteState] = useState<{
     key: string;
     data: DrivingRoute | null;
@@ -61,8 +95,16 @@ export function NearbyStores() {
     };
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setSelectedId(null);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
   const filtered = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase("th");
+    const needle = debouncedQuery.trim().toLocaleLowerCase("th");
     return stores.filter(
       (store) =>
         (category === "all" || store.categories.includes(category)) &&
@@ -74,7 +116,7 @@ export function NearbyStores() {
             ...Object.values(store.address ?? {}),
           ].some((text) => text.toLocaleLowerCase("th").includes(needle))),
     );
-  }, [stores, category, query]);
+  }, [stores, category, debouncedQuery]);
   const selected = filtered.find((store) => store.id === selectedId) ?? null;
   const routeKey = selected
     ? `${origin.join(",")}:${selected.id}:${selected.latitude},${selected.longitude}:${retry}`
@@ -101,10 +143,9 @@ export function NearbyStores() {
         if (!controller.signal.aborted)
           setRouteState({ key: routeKey, data, failed: false });
       })
-      .catch((error) => {
+      .catch(() => {
         if (!controller.signal.aborted) {
           setRouteState({ key: routeKey, data: null, failed: true });
-          toast.error(getApiError(error));
         }
       });
     return () => controller.abort();
@@ -125,9 +166,11 @@ export function NearbyStores() {
       Number(lat.toFixed(6)),
       Number(lng.toFixed(6)),
     ];
+    if (!hasLocation || point[0] !== origin[0] || point[1] !== origin[1]) {
+      setLocationAddress(null);
+    }
+    setHasLocation(true);
     setOrigin(point);
-    setLatitude(String(point[0]));
-    setLongitude(String(point[1]));
     setSearchRadius(km);
     setSelectedId(null);
     void search(point[0], point[1], km);
@@ -135,7 +178,7 @@ export function NearbyStores() {
   function locate() {
     if (validRadius() === null) return;
     if (!navigator.geolocation) {
-      toast.error("อุปกรณ์ไม่รองรับตำแหน่ง กรุณากรอกพิกัด");
+      toast.error("อุปกรณ์ไม่รองรับตำแหน่ง กรุณาปักหมุดบนแผนที่");
       return;
     }
     setLocating(true);
@@ -149,7 +192,7 @@ export function NearbyStores() {
       () => {
         if (active.current) {
           setLocating(false);
-          toast.error("หาตำแหน่งไม่ได้ กรุณาปักหมุดหรือกรอกพิกัดแทน");
+          toast.error("หาตำแหน่งไม่ได้ กรุณาปักหมุดบนแผนที่แทน");
         }
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
@@ -170,9 +213,41 @@ export function NearbyStores() {
       <div>
         <h2 className="text-xl font-semibold">ร้านใกล้ฉัน</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          เลือกจุดค้นหาบนแผนที่ ลากหมุด หรือกรอกพิกัดเพื่อค้นหาร้านจริงในขอบเขต
+          เลือกจุดค้นหาบนแผนที่หรือลากหมุดเพื่อค้นหาร้านจริงในขอบเขต
         </p>
       </div>
+      {hasLocation && (
+        <div
+          className="space-y-2 rounded-xl border p-4 text-sm"
+          aria-live="polite"
+        >
+          <h3 className="font-semibold">รายละเอียดตำแหน่งที่เลือก</h3>
+          <p className="tabular-nums">
+            LAT {origin[0].toFixed(6)} · LONG {origin[1].toFixed(6)}
+          </p>
+          {addressLoading && <p role="status">กำลังค้นหารายละเอียดตำแหน่ง…</p>}
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1">
+            <dt className="font-semibold">จังหวัด:</dt>
+            <dd>{locationAddress?.province || "—"}</dd>
+            <dt className="font-semibold">อำเภอ:</dt>
+            <dd>{locationAddress?.district || "—"}</dd>
+            <dt className="font-semibold">ตำบล:</dt>
+            <dd>{locationAddress?.subDistrict || "—"}</dd>
+            <dt className="font-semibold">รหัสไปรษณีย์:</dt>
+            <dd>{locationAddress?.postcode || "—"}</dd>
+          </dl>
+          {!addressLoading && !locationAddress && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={retryAddress}
+            >
+              ค้นหารายละเอียดตำแหน่งอีกครั้ง
+            </Button>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <Button type="button" onClick={locate} disabled={locating}>
           <MapPin className="size-4" />
@@ -181,110 +256,134 @@ export function NearbyStores() {
         <Button
           type="button"
           variant="outline"
+          aria-expanded={showPicker}
+          aria-controls="explore-origin-picker"
+          onClick={() => setShowPicker((value) => !value)}
+        >
+          <MapPin className="size-4" />
+          {showPicker ? "ปิดแผนที่ปักหมุด" : "ปักหมุดตำแหน่งเอง"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          aria-expanded={showMap}
+          aria-controls="explore-store-map"
           onClick={() => setShowMap((value) => !value)}
         >
           <Map className="size-4" />
-          {showMap ? "ซ่อนแผนที่" : "เปิดแผนที่เพื่อปักหมุด"}
+          {showMap ? "ซ่อนแผนที่ร้าน" : "ดูแผนที่ร้าน"}
         </Button>
       </div>
+      {showPicker && (
+        <div id="explore-origin-picker" className="space-y-2">
+          <h3 className="font-semibold">เลือกจุดค้นหา</h3>
+          <ExploreMap
+            mode="picker"
+            center={origin}
+            radiusKm={searchRadius}
+            stores={noStores}
+            selectedId={null}
+            onSelect={choose}
+            onOriginChange={commitPoint}
+            route={null}
+          />
+          <p className="text-xs text-muted-foreground">
+            คลิกพื้นที่ว่างหรือลากหมุดเพื่อเปลี่ยนจุดค้นหา · Ctrl +
+            เลื่อนเมาส์เพื่อซูม
+          </p>
+        </div>
+      )}
       <form
         className="space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
-          const lat = Number(latitude),
-            lng = Number(longitude);
-          if (
-            !latitude.trim() ||
-            !longitude.trim() ||
-            !Number.isFinite(lat) ||
-            Math.abs(lat) > 90 ||
-            !Number.isFinite(lng) ||
-            Math.abs(lng) > 180
-          ) {
-            toast.error("กรุณากรอกพิกัดให้ถูกต้อง");
-            return;
-          }
-          commitPoint(lat, lng);
+          setDebouncedQuery(query);
+          commitPoint(...origin);
         }}
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="space-y-1 text-sm">
-            Latitude
-            <Input
-              aria-label="Latitude"
-              value={latitude}
-              onChange={(event) => setLatitude(event.target.value)}
-              inputMode="decimal"
-            />
+        <div className="min-w-0">
+          <label
+            className="block min-w-0 space-y-1 text-sm"
+            htmlFor="explore-shop-search"
+          >
+            ค้นหาร้าน
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="explore-shop-search"
+                className="h-10 pl-9"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ค้นหาชื่อร้านหรือพื้นที่"
+              />
+            </div>
           </label>
-          <label className="space-y-1 text-sm">
-            Longitude
+        </div>
+        <div className="grid min-w-0 grid-cols-2 items-end gap-2">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="block leading-5">รัศมี (กม.)</span>
             <Input
-              aria-label="Longitude"
-              value={longitude}
-              onChange={(event) => setLongitude(event.target.value)}
-              inputMode="decimal"
-            />
-          </label>
-          <label className="space-y-1 text-sm">
-            รัศมี (กม.)
-            <Input
+              className="h-10"
               aria-label="รัศมี (กม.)"
+              type="number"
+              min={0.1}
+              max={50}
+              step={0.1}
+              required
               value={radius}
               onChange={(event) => setRadius(event.target.value)}
+              onBlur={() => {
+                if (Number(radius) !== searchRadius) commitPoint(...origin);
+              }}
               inputMode="decimal"
             />
           </label>
+          <div className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="block leading-5" id="explore-category-label">
+              หมวดหมู่
+            </span>
+            <Select
+              items={[
+                { value: "all", label: "ทุกหมวดหมู่" },
+                ...categoryNames.map((name) => ({ value: name, label: name })),
+              ]}
+              value={category}
+              onValueChange={(value) => {
+                setCategory(value ?? "all");
+                setSelectedId(null);
+              }}
+            >
+              <SelectTrigger
+                className="h-10 w-full min-w-0 data-[size=default]:h-10"
+                aria-labelledby="explore-category-label"
+              >
+                <SelectValue>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    {category !== "all" && <CategoryIcon category={category} />}
+                    <span className="truncate">
+                      {category === "all" ? "ทุกหมวดหมู่" : category}
+                    </span>
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} side="bottom">
+                <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+                {categoryNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    <CategoryIcon category={name} />
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Button type="submit" variant="outline" disabled={locating}>
-          <Search className="size-4" />
-          {loading ? "ค้นหาใหม่จากพิกัด" : "ค้นหาจากพิกัด"}
-        </Button>
       </form>
-      <div className="grid min-w-0 grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2">
-        <div className="relative min-w-0">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setSelectedId(null);
-            }}
-            placeholder="ค้นหาชื่อร้านหรือพื้นที่"
-            aria-label="ค้นหาร้าน"
-          />
-        </div>
-        <Select
-          items={[
-            { value: "all", label: "ทุกหมวดหมู่" },
-            ...categoryNames.map((name) => ({ value: name, label: name })),
-          ]}
-          value={category}
-          onValueChange={(value) => {
-            setCategory(value ?? "all");
-            setSelectedId(null);
-          }}
-        >
-          <SelectTrigger
-            className="h-10 w-full min-w-0"
-            aria-label="กรองหมวดหมู่"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false} side="bottom">
-            <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-            {categoryNames.map((name) => (
-              <SelectItem key={name} value={name}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       {showMap && (
-        <div className="space-y-2">
+        <div id="explore-store-map" className="space-y-2">
+          <h3 className="pt-4 font-semibold">ร้านในพื้นที่และเส้นทาง</h3>
           <ExploreMap
+            mode="stores"
             center={origin}
             radiusKm={searchRadius}
             stores={filtered}
@@ -294,11 +393,47 @@ export function NearbyStores() {
             route={route}
           />
           <p className="text-xs text-muted-foreground">
-            หมุดสีน้ำเงินคือจุดค้นหา · คลิกพื้นที่ว่างหรือลากหมุดเพื่อเปลี่ยนจุด
-            · Ctrl + เลื่อนเมาส์เพื่อซูม
+            เลือกหมุดร้านเพื่อดูเส้นทาง · หมุดสีน้ำเงินคือจุดค้นหาที่เลือกไว้
           </p>
         </div>
       )}
+      <Dialog
+        open={routeFailed && dismissedRouteError !== routeKey}
+        onOpenChange={(open) => {
+          if (!open) setDismissedRouteError(routeKey);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <MapPin className="size-6" aria-hidden="true" />
+            <DialogTitle>ไม่สามารถแสดงเส้นทางได้</DialogTitle>
+            <DialogDescription>
+              เปิดตำแหน่งร้านที่เลือกโดยใช้ Google Maps ได้
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDismissedRouteError(routeKey)}
+            >
+              ปิด
+            </Button>
+            {selected && (
+              <a
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm text-primary-foreground"
+                href={`https://www.google.com/maps/place/${encodeURIComponent(`${selected.latitude},${selected.longitude}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setDismissedRouteError(routeKey)}
+              >
+                <MapPin className="size-4" aria-hidden="true" />
+                เปิดโดยใช้ Google Maps
+              </a>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {selected && (
         <div
           className="space-y-3 rounded-xl border bg-muted/20 p-4"
@@ -360,7 +495,7 @@ export function NearbyStores() {
         </div>
       ) : !loaded ? (
         <p className="text-sm text-muted-foreground">
-          กดค้นหาจากพิกัด หรือเปิดแผนที่แล้วลากหมุดเพื่อเริ่มค้นหา
+          กด “ปักหมุดตำแหน่งเอง” เพื่อเลือกจุดค้นหา หรือใช้ตำแหน่งปัจจุบัน
         </p>
       ) : (
         <p className="text-sm text-muted-foreground">
@@ -394,7 +529,7 @@ export function NearbyStores() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {store.categories.join(", ") || "ไม่มีหมวดหมู่"}
+                  <CategoryLabels categories={store.categories} />
                 </p>
                 {store.description && (
                   <p className="mt-2 text-sm text-muted-foreground">
