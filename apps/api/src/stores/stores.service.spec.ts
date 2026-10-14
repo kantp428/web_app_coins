@@ -1,11 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { nearbyScope } from './stores.service.js';
+import {
+  parsePagination,
+  parseShopIds,
+  parseStoreScope,
+} from './stores.service.js';
 describe('nearby scope', () => {
   it('requires coordinates and defaults to5km', () => {
-    expect(nearbyScope({ latitude: '13.75', longitude: '100.5' })).toEqual({
+    expect(parseStoreScope({ latitude: '13.75', longitude: '100.5' })).toEqual({
       latitude: 13.75,
       longitude: 100.5,
       radiusKm: 5,
+      categoryIds: [],
     });
   });
   it('rejects invalid/missing/array values, radius and obsolete area filter', () => {
@@ -17,13 +22,29 @@ describe('nearby scope', () => {
       { latitude: 'NaN', longitude: '0' },
       { latitude: '0', longitude: '0', radiusKm: '0' },
       { latitude: '0', longitude: '0', radiusKm: '51' },
-      { latitude: '0', longitude: '0', areaCode: 'BKK' },
     ])
-      expect(() => nearbyScope(query)).toThrow();
+      expect(() => parseStoreScope(query)).toThrow();
   });
   it('supports zero coordinates and bounded radius', () => {
     expect(
-      nearbyScope({ latitude: '0', longitude: '0', radiusKm: '0.1' }).radiusKm,
+      parseStoreScope({ latitude: '0', longitude: '0', radiusKm: '0.1' })
+        .radiusKm,
     ).toBe(0.1);
+  });
+  it('validates categories, pagination and batch IDs', () => {
+    expect(
+      parseStoreScope({ latitude: 0, longitude: 0, categoryIds: '1,2' })
+        .categoryIds,
+    ).toEqual(['1', '2']);
+    expect(parsePagination({ page: '2', pageSize: '100' })).toEqual({
+      page: 2,
+      pageSize: 100,
+    });
+    expect(parseShopIds(['2', '1'])).toEqual(['2', '1']);
+    expect(() =>
+      parseStoreScope({ latitude: 0, longitude: 0, categoryIds: '1,1' }),
+    ).toThrow();
+    expect(() => parsePagination({ pageSize: '101' })).toThrow();
+    expect(() => parseShopIds(['1', '1'])).toThrow();
   });
 });

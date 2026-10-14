@@ -166,13 +166,67 @@ export async function getNearbyStores(
   latitude: number,
   longitude: number,
   radiusKm: number,
+  categoryIds: string[] = [],
+  page = 1,
   signal?: AbortSignal,
 ) {
   return (
-    await api.get<{ radiusKm: number; stores: NearbyStore[] }>("/stores", {
-      params: { latitude, longitude, radiusKm },
+    await api.get<{
+      radiusKm: number;
+      stores: NearbyStore[];
+      meta: {
+        page: number;
+        pageSize: number;
+        total: number;
+        hasNextPage: boolean;
+      };
+    }>("/stores", {
+      params: {
+        latitude,
+        longitude,
+        radiusKm,
+        categoryIds: categoryIds.join(","),
+        page,
+        pageSize: 100,
+      },
       signal,
     })
+  ).data;
+}
+
+export type ShopSearchScope = {
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+  categoryIds: string[];
+};
+export async function searchRecommendedStores(
+  query: string,
+  scope: ShopSearchScope,
+  signal?: AbortSignal,
+) {
+  return (
+    await api.post<{
+      shopIds: string[];
+      source: "llm" | "fallback" | "discovery";
+    }>(
+      "/recommendations/search",
+      { query, ...scope },
+      { signal, timeout: 30000 },
+    )
+  ).data;
+}
+export async function hydrateStores(
+  shopIds: string[],
+  scope: ShopSearchScope,
+  signal?: AbortSignal,
+) {
+  return (
+    await api.post<{ stores: NearbyStore[] }>(
+      "/stores/batch",
+      { shopIds, ...scope },
+      { signal },
+    )
   ).data;
 }
 

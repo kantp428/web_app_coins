@@ -18,6 +18,9 @@ import { WalletsService } from './wallets/wallets.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { GovernmentStoresController } from './government-stores/government-stores.controller.js';
 import { GovernmentStoresService } from './government-stores/government-stores.service.js';
+import { RecommendationsController } from './recommendations/recommendations.controller.js';
+import { RecommendationsService } from './recommendations/recommendations.service.js';
+import { OllamaShopSearchProvider } from './recommendations/shop-search.provider.js';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule],
@@ -30,6 +33,7 @@ import { GovernmentStoresService } from './government-stores/government-stores.s
     CategoriesController,
     WalletsController,
     GovernmentStoresController,
+    RecommendationsController,
   ],
   providers: [
     StoresService,
@@ -41,6 +45,8 @@ import { GovernmentStoresService } from './government-stores/government-stores.s
     CoinRatesService,
     WalletsService,
     GovernmentStoresService,
+    RecommendationsService,
+    OllamaShopSearchProvider,
   ],
 })
 export class AppModule {}

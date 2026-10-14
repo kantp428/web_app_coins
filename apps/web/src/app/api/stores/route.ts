@@ -6,7 +6,14 @@ export async function GET(request: NextRequest) {
   if (!token)
     return NextResponse.json({ message: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
   const query = new URLSearchParams();
-  for (const key of ["latitude", "longitude", "radiusKm"]) {
+  for (const key of [
+    "latitude",
+    "longitude",
+    "radiusKm",
+    "categoryIds",
+    "page",
+    "pageSize",
+  ]) {
     const value = request.nextUrl.searchParams.get(key);
     if (value !== null) query.set(key, value);
   }

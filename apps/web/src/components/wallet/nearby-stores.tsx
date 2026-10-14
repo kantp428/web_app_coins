@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Map, MapPin, Search, Store, ExternalLink, Route } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -46,7 +46,7 @@ const noStores: NearbyStore[] = [];
 const initialPoint: [number, number] = [14.020894, 99.991808];
 
 export function NearbyStores() {
-  const { stores, loading, loaded, error, search } = useNearbyStores();
+  const { stores, loading, loaded, error, source, search } = useNearbyStores();
   const [radius, setRadius] = useState("5");
   const [origin, setOrigin] = useState<[number, number]>(initialPoint);
   const [searchRadius, setSearchRadius] = useState(5);
@@ -102,21 +102,20 @@ export function NearbyStores() {
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
-
-  const filtered = useMemo(() => {
-    const needle = debouncedQuery.trim().toLocaleLowerCase("th");
-    return stores.filter(
-      (store) =>
-        (category === "all" || store.categories.includes(category)) &&
-        (!needle ||
-          [
-            store.name,
-            store.description ?? "",
-            ...store.categories,
-            ...Object.values(store.address ?? {}),
-          ].some((text) => text.toLocaleLowerCase("th").includes(needle))),
+  useEffect(() => {
+    if (!hasLocation) return;
+    void search(
+      {
+        latitude: origin[0],
+        longitude: origin[1],
+        radiusKm: searchRadius,
+        categoryIds: category === "all" ? [] : [category],
+      },
+      debouncedQuery,
     );
-  }, [stores, category, debouncedQuery]);
+  }, [category, debouncedQuery, hasLocation, origin, search, searchRadius]);
+
+  const filtered = stores;
   const selected = filtered.find((store) => store.id === selectedId) ?? null;
   const routeKey = selected
     ? `${origin.join(",")}:${selected.id}:${selected.latitude},${selected.longitude}:${retry}`
@@ -173,7 +172,6 @@ export function NearbyStores() {
     setOrigin(point);
     setSearchRadius(km);
     setSelectedId(null);
-    void search(point[0], point[1], km);
   }
   function locate() {
     if (validRadius() === null) return;
@@ -202,12 +200,7 @@ export function NearbyStores() {
     setSelectedId(id);
     setShowMap(true);
   }
-  const categoryNames = Array.from(
-    new Set([
-      ...categories.map((item) => item.name),
-      ...stores.flatMap((store) => store.categories),
-    ]),
-  );
+  const selectedCategory = categories.find((item) => item.id === category);
   return (
     <section className="space-y-4">
       <div>
@@ -313,8 +306,13 @@ export function NearbyStores() {
                 id="explore-shop-search"
                 className="h-10 pl-9"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="ค้นหาชื่อร้านหรือพื้นที่"
+                maxLength={500}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setQuery(value);
+                  if (!value.trim()) setDebouncedQuery("");
+                }}
+                placeholder="เช่น อยากกินขนมกับกาแฟ"
               />
             </div>
           </label>
@@ -345,7 +343,10 @@ export function NearbyStores() {
             <Select
               items={[
                 { value: "all", label: "ทุกหมวดหมู่" },
-                ...categoryNames.map((name) => ({ value: name, label: name })),
+                ...categories.map((item) => ({
+                  value: item.id,
+                  label: item.name,
+                })),
               ]}
               value={category}
               onValueChange={(value) => {
@@ -359,19 +360,21 @@ export function NearbyStores() {
               >
                 <SelectValue>
                   <span className="flex min-w-0 items-center gap-1.5">
-                    {category !== "all" && <CategoryIcon category={category} />}
+                    {selectedCategory && (
+                      <CategoryIcon category={selectedCategory.name} />
+                    )}
                     <span className="truncate">
-                      {category === "all" ? "ทุกหมวดหมู่" : category}
+                      {selectedCategory?.name ?? "ทุกหมวดหมู่"}
                     </span>
                   </span>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} side="bottom">
                 <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-                {categoryNames.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    <CategoryIcon category={name} />
-                    {name}
+                {categories.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    <CategoryIcon category={item.name} />
+                    {item.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -506,6 +509,15 @@ export function NearbyStores() {
       {loaded && !loading && filtered.length === 0 && (
         <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
           ไม่พบร้านที่ตรงกับขอบเขต คำค้นหา หรือหมวดหมู่ที่เลือก
+        </p>
+      )}
+      {loaded && !loading && debouncedQuery.trim() && source === "fallback" && (
+        <p
+          className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          role="status"
+        >
+          ระบบ AI ไม่พร้อมใช้งาน จึงใช้การค้นหาพื้นฐานจากข้อมูลร้าน
+          ซึ่งอาจไม่เข้าใจความหมายของคำค้นหาทั้งหมด
         </p>
       )}
       <div className="grid gap-3">

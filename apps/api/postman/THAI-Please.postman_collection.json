@@ -2095,6 +2095,121 @@
           ]
         }
       ]
+    },
+    {
+      "name": "LLM-assisted Explore search",
+      "item": [
+        {
+          "name": "Nearby stores page with category",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": "{{baseUrl}}/stores?latitude=14.020894&longitude=99.991808&radiusKm=5&categoryIds={{categoryId}}&page=1&pageSize=50",
+            "description": "CUSTOMER only. APPROVED shops in DB scope, backend Haversine distance, pagination metadata. Follow hasNextPage before claiming the result is complete."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r=pm.response.json(); pm.test('Pagination metadata', () => { pm.expect(r.stores).to.be.an('array'); pm.expect(r.meta.hasNextPage).to.be.a('boolean'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Semantic shop search",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/recommendations/search",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"query\":\"อยากกินขนมกับกาแฟ\",\"latitude\":14.020894,\"longitude\":99.991808,\"radiusKm\":5,\"categoryIds\":[]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Server builds the scoped candidate set. source is llm, fallback or discovery; no unvisited/Coins ranking."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r=pm.response.json(); pm.test('Structured IDs', () => { pm.expect(r.shopIds).to.be.an('array'); pm.expect(['llm','fallback','discovery']).to.include(r.source); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Batch scoped descriptions",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/stores/descriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"shopIds\":[\"1\",\"2\"],\"latitude\":14.020894,\"longitude\":99.991808,\"radiusKm\":5,\"categoryIds\":[]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Returns only still-in-scope descriptions; missing descriptions remain null."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Batch descriptions', () => pm.expect(pm.response.json().shops).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Batch hydrate ordered stores",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/stores/batch",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"shopIds\":[\"2\",\"1\"],\"latitude\":14.020894,\"longitude\":99.991808,\"radiusKm\":5,\"categoryIds\":[]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Revalidates APPROVED/radius/category, recalculates distance and preserves surviving requested ID order."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Hydrated stores', () => pm.expect(pm.response.json().stores).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
