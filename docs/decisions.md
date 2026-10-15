@@ -191,3 +191,7 @@ User requests overwriting the current round to include newly mocked approved sho
 ### 2026-10-14 — Coin rate history five sales stages
 
 Stage 1–5 are reporting buckets using each frozen rate's rule threshold and sales snapshot: <25%, [25%,50%), [50%,75%), [75%,100%), >=100%. Clamp negative sales to zero; a zero threshold places all shops in Stage 5. These are sales bands, not five discrete Coin rewards; linear ceil awards remain unchanged. Keep legacy count fields for compatibility. Refresh reads summaries only and never regenerates rates.
+
+### 2026-10-15 — Explicit public origin behind a tunnel
+
+Web mutation handlers retain same-origin CSRF checks. Reverse proxies can expose HTTPS while NextRequest sees an internal HTTP origin. Add server-only WEB_PUBLIC_ORIGIN as one exact trusted origin alongside request.nextUrl.origin; do not trust arbitrary forwarded headers, wildcard domains, missing Origin or null Origin. Configure the current tunnel URL locally and restart when it changes. This is deployment configuration, not a business-rule change.

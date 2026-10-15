@@ -1,7 +1,8 @@
+import { hasTrustedOrigin } from "@/lib/request-origin";
 import { NextRequest, NextResponse } from "next/server";
 import { apiUrl, destinations } from "@/lib/auth";
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== request.nextUrl.origin)
+  if (!hasTrustedOrigin(request))
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   let body: unknown;
   try {

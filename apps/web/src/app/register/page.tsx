@@ -265,6 +265,7 @@ export default function RegisterPage() {
           ))}
         </div>
         <form
+          method="post"
           id="register-form"
           role="tabpanel"
           aria-labelledby={`register-${role}`}

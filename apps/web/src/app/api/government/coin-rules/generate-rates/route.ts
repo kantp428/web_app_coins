@@ -1,9 +1,10 @@
+import { hasTrustedOrigin } from "@/lib/request-origin";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { apiUrl } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== request.nextUrl.origin)
+  if (!hasTrustedOrigin(request))
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   const token = (await cookies()).get("session")?.value;
   if (!token)

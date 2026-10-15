@@ -429,3 +429,22 @@
 - เพิ่ม root package.json scripts: setup=pnpm install --frozen-lockfile && pnpm run prisma:generate; prisma:generate=pnpm --filter api exec prisma generate. README clone setup ใช้ pnpm run setup (ระบุ run เพื่อไม่ชน pnpm setup builtin) พร้อมอธิบาย generate-only/fail-fast และไม่ migrate/seed/เขียน env. ไม่แก้ dependencies/lockfile/schema/API
 - รัน pnpm run setup จริงผ่าน: install3workspaceจากlockfileและPrismaClient7.10.0generateสำเร็จ. API-package Prettier write/check package.json/README/PLAN และ git diff --check ผ่าน. ไม่รัน appbuild/unit เพราะ scripts/docs-only และไม่มี runtime change
 - F00คงPARTIALตามacceptanceเดิม; ไม่มีblocker/decisionใหม่. Next: fresh clone ติดตั้ง Node/pnpm ตาม README แล้ว pnpm run setup ก่อนตั้ง env/เริ่ม dev
+
+### 2026-10-15 08:08 Asia/Bangkok — cross-cutting maintenance/F02/F13: tunnel HMR and credential URL fallback
+
+- ใช้ web-frontend และ format-prettier skills ตรวจ login/register, auth hook/JSON POST, BFF Origin guard และ installed Next blockCrossSiteDEV. HMR ที่ hostname ไม่อยู่ใน allowedDevOrigins ตอบ Unauthorized ตรง log; login/register form ไม่ระบุ method จึง native GET ได้เมื่อ JS ไม่ทำงาน. ยังไม่มี browser/network evidence ว่า hydration ล้มเหลวหรือ POST login status ใด.
+- แก้ login/register form ให้ method=post เพื่อไม่ส่ง credentials เป็น query string เมื่อ client handler ไม่ทำงาน (native fallback ไม่รองรับ login และอาจ405); เพิ่ม DEV_ALLOWED_HOSTS แบบ exact comma-separated hostname ใน next.config.ts/.env.example สำหรับ dev HMR เท่านั้น ไม่เปลี่ยน auth Origin policy/backend/contracts. ไม่มี business rule ใหม่; ไม่ปิด Feature/Daily Flag.
+- Checks: web Prettier write/check ทั้ง3 source/config ผ่าน; pnpm --filter web lint ผ่าน. Production build กำลังตรวจและบันทึกผลต่อท้าย; ยังไม่ได้ทดสอบ live tunnel/browser หรือจำลอง no-JS. Next: ตั้ง hostname ปัจจุบันใน apps/web/.env.local, restart dev, เปิด /login ที่ไม่มี query แล้วตรวจ POST /api/auth/login หากยังล้มเหลว โดยไม่ส่ง credentials/log URL จริง.
+- ผลตรวจต่อท้าย: pnpm --filter web build ผ่าน compile/TypeScript และ37 routes; PLAN Prettier write/check และ git diff --check ผ่าน. Live tunnel/browser acceptance ยังไม่ตรวจ.
+
+### 2026-10-15 08:09 Asia/Bangkok — cross-cutting maintenance: align local web environment
+
+- ปรับ ignored apps/web/.env.local ตาม .env.example: รักษา API_URL เดิม เติม OSRM/map settings และ DEV_ALLOWED_HOSTS สำหรับ tunnel ปัจจุบันที่ผู้ใช้ส่งมา. ไม่บันทึก env values/credentials ใน handoff และไม่เปลี่ยน Feature/Daily Flags.
+- ตรวจ key parity ด้วย PowerShell ผ่านครบทุก example key; .env ไม่อยู่ในรูปแบบที่ Prettier รองรับ จึงตรวจโครงสร้าง key แทน. ไม่รัน build/test ซ้ำเพราะแก้ local config เท่านั้น; build/lint source ผ่านในงานก่อนหน้า. PLAN ใช้ package Prettier write/check และ git diff --check ก่อนส่งผล.
+- ไม่มี decision/blocker ใหม่. Next: restart pnpm dev แล้วเปิด /login ผ่าน tunnel; hostname ต้องอัปเดตเมื่อสร้าง Quick Tunnel ใหม่.
+
+### 2026-10-15 08:13 Asia/Bangkok — cross-cutting maintenance/F02/F13: proxy mutation Origin checks
+
+- Console evidence: HMR connected, /api/auth/login403. BFF compares browser Origin with NextRequest origin; proxy HTTPS/internal HTTP mismatch is consistent with this403 but actual request headers not captured. Added shared hasTrustedOrigin helper to all7 existing guarded mutation handlers (auth, wallet, government); WEB_PUBLIC_ORIGIN trusts one explicit external origin without trusting forwarded headers/wildcards. Missing/null/other origins rejected. Set local public origin for current tunnel; updated env example, decisions before implementation, and web contract. No Nest endpoint/main Postman change because backend contract unchanged.
+- Checks: Node strip-types harness12 assertions passed (same internal/external origin, missing/null/foreign/scheme/suffix mismatch, malformed/path/credentials/query config). Web lint/build37routes passed; changed source/docs Prettier write/check passed; env syntax manual. No live login/browser/DB verification; F02/F13 remain PARTIAL and no flags closed.
+- Next: restart pnpm dev then retry public /login; inspect response status/message if failure persists. Update WEB_PUBLIC_ORIGIN and DEV_ALLOWED_HOSTS together when tunnel hostname changes. Preload/React DevTools notices are separate from login403.
