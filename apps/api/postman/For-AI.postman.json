@@ -2,7 +2,7 @@
   "info": {
     "name": "THAI Please — For AI (Explore shop search)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Focused collection verified against commit 421c916beb70cb1f575d6ddbfbea3088c128713c. Nest API only; no payments, Coins, seller/government writes, OSRM or direct provider endpoints. Set baseUrl and CUSTOMER credentials, run01→02→03→04→05→06. GET discovery is paginated; categoryIds is CSV and empty means all. Scope must stay identical across search/descriptions/hydration. Never export saved tokens/passwords. Runtime/provider/DB availability has not been verified by creating this collection."
+    "description": "CURRENT STATUS (2026-10-28): POST /recommendations/search is commented out and returns404. Requests04/07 only check this disabled status; no search IDs are captured, so the semantic search-to-hydration flow is unavailable. Discovery, descriptions and batch hydration remain available with manually supplied in-scope IDs. Focused collection verified against commit 421c916beb70cb1f575d6ddbfbea3088c128713c. Nest API only; no payments, Coins, seller/government writes, OSRM or direct provider endpoints. Set baseUrl and CUSTOMER credentials, run01→02→03→04→05→06. GET discovery is paginated; categoryIds is CSV and empty means all. Scope must stay identical across search/descriptions/hydration. Never export saved tokens/passwords. Runtime/provider/DB availability has not been verified by creating this collection."
   },
   "auth": {
     "type": "bearer",
@@ -199,7 +199,7 @@
       ]
     },
     {
-      "name": "04 Semantic search (save recommendedShopIds)",
+      "name": "[DISABLED] 04 Semantic search (save recommendedShopIds)",
       "request": {
         "method": "POST",
         "header": [
@@ -209,7 +209,7 @@
           }
         ],
         "url": "{{baseUrl}}/recommendations/search",
-        "description": "Backend orchestrates Ollama + internal get_shop_descriptions tool. source=fallback is a valid lexical fallback, not proof of a live LLM success. Empty query returns discovery without provider calls. Saves first 100 IDs for hydration and the remainder separately; hydrate remaining IDs in batches <=100.",
+        "description": "Temporarily unavailable at user request (2026-10-28). POST route decorator is commented out; expected HTTP 404. Method/service retained for future activation. No recommendation IDs are saved; search/hydration chaining is unavailable.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"query\": {{searchQueryJson}},\n  \"latitude\": {{latitude}}, \"longitude\": {{longitude}}, \"radiusKm\": {{radiusKm}}, \"categoryIds\": {{categoryIdsJson}}\n}",
@@ -226,12 +226,12 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Scoped unique IDs and source', () => { pm.expect(r.shopIds).to.be.an('array'); pm.expect(['llm', 'fallback', 'discovery']).to.include(r.source); pm.expect(new Set(r.shopIds).size).to.eql(r.shopIds.length); r.shopIds.forEach(id => pm.expect(id).to.match(/^[1-9][0-9]*$/)); }); pm.collectionVariables.set('recommendedShopIds', JSON.stringify(r.shopIds)); pm.collectionVariables.set('hydrateShopIds', JSON.stringify(r.shopIds.slice(0, 100))); pm.collectionVariables.set('remainingShopIds', JSON.stringify(r.shopIds.slice(100))); }"
+              "pm.test('Reserved search route is unavailable (404)', () => pm.response.to.have.status(404));"
             ]
           }
         }
-      ]
+      ],
+      "response": []
     },
     {
       "name": "05 Batch descriptions (tool-equivalent data API)",
@@ -304,7 +304,7 @@
       ]
     },
     {
-      "name": "07 Empty query bypasses LLM",
+      "name": "[DISABLED] 07 Empty query bypasses LLM",
       "request": {
         "method": "POST",
         "header": [
@@ -314,7 +314,7 @@
           }
         ],
         "url": "{{baseUrl}}/recommendations/search",
-        "description": "Does not overwrite recommendation IDs from request04. Use GET /stores for the actual empty-query shop list.",
+        "description": "Temporarily unavailable at user request (2026-10-28). POST route decorator is commented out; expected HTTP 404. Method/service retained for future activation. No recommendation IDs are saved; search/hydration chaining is unavailable.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"query\": \"\",\n  \"latitude\": {{latitude}}, \"longitude\": {{longitude}}, \"radiusKm\": {{radiusKm}}, \"categoryIds\": {{categoryIdsJson}}\n}",
@@ -331,12 +331,12 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "if (pm.response.code === 200) { const r = pm.response.json(); pm.test('Discovery bypass', () => { pm.expect(r.source).to.eql('discovery'); pm.expect(r.shopIds).to.eql([]); }); }"
+              "pm.test('Reserved search route is unavailable (404)', () => pm.response.to.have.status(404));"
             ]
           }
         }
-      ]
+      ],
+      "response": []
     }
   ]
 }

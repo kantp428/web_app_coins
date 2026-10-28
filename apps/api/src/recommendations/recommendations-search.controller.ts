@@ -1,18 +1,12 @@
-import {
-  Body,
-  Controller,
-  Header,
-  Headers,
-  HttpCode,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Header, Headers, HttpCode } from '@nestjs/common';
 import { RecommendationsService } from './recommendations.service.js';
 
 @Controller('recommendations')
 export class RecommendationsSearchController {
   constructor(private readonly recommendations: RecommendationsService) {}
 
-  @Post('search')
+  // Not in use yet. Restore this decorator when Explore search is enabled.
+  // @Post('search')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   search(

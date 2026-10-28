@@ -17,6 +17,18 @@ class ChatRequest(BaseModel):
     )
 
 
+class StoreLocation(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    radiusKm: float = Field(default=5, ge=0.1, le=50, allow_inf_nan=False)
+
+
+class RecommendationChatRequest(ChatRequest):
+    location: StoreLocation | None = None
+
+
 class Source(BaseModel):
     title: str
     url: str

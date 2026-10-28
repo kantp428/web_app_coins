@@ -132,10 +132,8 @@ export class StoresService {
       AND filter_sc.category_id IN (${Prisma.join(ids.map((id) => BigInt(id)))})
     )`;
   }
-  private scopedQuery(
-    scope: StoreScope,
-    tail: Prisma.Sql = Prisma.empty,
-  ): Prisma.Sql {
+  // Shared with recommendation ranking to apply discovery scope in one snapshot.
+  scopedQuery(scope: StoreScope, tail: Prisma.Sql = Prisma.empty): Prisma.Sql {
     const { latitude, longitude, radiusKm } = scope;
     return Prisma.sql`WITH scoped AS (
       SELECT s.shop_id,s.name,s.description,s.address,s.latitude::text AS latitude,s.longitude::text AS longitude,

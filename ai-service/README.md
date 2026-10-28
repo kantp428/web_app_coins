@@ -125,7 +125,7 @@ $headers = @{ Authorization = "Bearer $accessToken" }
 $body = @{ message = "สวัสดี คุณช่วยเรื่องอะไรได้บ้าง" } | ConvertTo-Json
 Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 
-$body = @{ message = "ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย" } | ConvertTo-Json
+$body = @{ message = "ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย"; location = @{ latitude = 13.75; longitude = 100.5; radiusKm = 5 } } | ConvertTo-Json
 Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```
 
@@ -155,7 +155,9 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers
 
 การแนะนำคืน `storeIds` อย่างเดียวสำหรับข้อมูลการ์ด: สูงสุด **ร้านใหม่ 3 + ร้านที่เคยซื้อ 2**, ไม่ครบคืนเท่าที่มี ไม่เติมข้ามกลุ่ม ทั้งสองกลุ่มต้องตรงประเภทที่ตีความได้ (หลายประเภทใช้ OR). จัดอันดับตาม Coins ที่ทราบจากอัตรารอบปัจจุบัน สูงไปต่ำ; ไม่ทราบอยู่ท้าย; เสมอกันใช้รหัสร้านตามตัวเลข. ถ้าไม่มีอัตราเลยใช้รหัสร้านเรียงตามตัวเลข ไม่คำนวณ Coins ขึ้นใหม่ เช่น `{ "reply":"พบร้านใหม่ 2 ร้านและร้านที่เคยซื้อ 1 ร้านครับ", "storeIds":["101","205","310"], "sources":[], "mode":"model", "model":"qwen3:4b" }` เป็นตัวอย่างรูปแบบเท่านั้น
 
-`message` ต้องเป็น string หลัง trim ยาว 1–2000 ตัวอักษร; ไม่รับฟิลด์อื่น ข้อผิดพลาดใช้ FastAPI `detail` ตาม [contract](../docs/api-contract.md) Postman อยู่ใน `apps/api/postman/THAI-Please.postman_collection.json` หมวด **AI service (Qwen3 4B)** ใช้ตัวแปร `aiBaseUrl` แยกจาก NestJS
+`message` ต้องเป็น string หลัง trim ยาว 1–2000 ตัวอักษร; `/chat` รับ `location:{latitude,longitude,radiusKm}` เพิ่มได้ โดยพิกัดต้องเป็น JSON number ในช่วง [-90,90]/[-180,180], radiusKm 0.1–50 ค่าเริ่มต้น 5 กม. ต้องส่ง location ทุกคำขอที่ต้องการค้นร้านเพราะ chat เป็น stateless หากไม่มี location/null ยังคุยทั่วไปหรือค้นเว็บได้ แต่ไม่มี shop tool และจะขอให้เลือกจุดค้นหาก่อน ไม่รับฟิลด์อื่น; `/chat/test` ยังรับเฉพาะ message และปฏิเสธ location
+
+AI ส่ง location ไป `POST /recommendations/candidates` โดยตรง ไม่ส่งพิกัดเข้า prompt หรือรับพิกัดจาก tool arguments Backend ใช้ SQL ของ `GET /stores` ร่วมกันกรองร้านในระยะก่อนจัดอันดับ 3+2 โดยไม่จำกัดแค่หน้าแรก พิกัดตัวอย่างต้องเปลี่ยนเป็นจุดที่ผู้ใช้เลือกเอง ไม่มีการขอ GPS หรือขยายรัศมีอัตโนมัติ ข้อผิดพลาดใช้ FastAPI `detail` ตาม [contract](../docs/api-contract.md) Postman อยู่ใน `apps/api/postman/THAI-Please.postman_collection.json` หมวด **AI service (Qwen3 4B)** ใช้ตัวแปร `aiBaseUrl` แยกจาก NestJS และตัวแปร `recommendationLatitude/recommendationLongitude/recommendationRadiusKm` สำหรับแนะนำร้าน
 
 ใน Postman ตั้ง `baseUrl` เป็น NestJS, `aiBaseUrl` เป็น `http://127.0.0.1:8000`, `aiModel` ให้ตรงกับ OLLAMA_MODEL แล้ว Login CUSTOMER เพื่อบันทึกตัวแปร `token`. หมวด AI มี chat/recommend/auth/validation/provider cases; หมวด Recommendation read tools มี context/candidates/auth/filter cases ใช้ `categoryId` จาก List shop categories. Provider error scenarios ต้องมี Backend/context ที่พร้อมและตั้ง model server ตามคำอธิบายแต่ละ request
 
@@ -185,7 +187,7 @@ Postman มีหมวด **AI service (Qwen3 4B) → Token-free model test (/c
 
 ## ตัวอย่างคำถามครบ 4 รูปแบบ
 
-ตัวอย่างใช้ body มีเฉพาะ `message`. กรณี 1/3/4 ทดสอบได้ด้วย `POST /chat/test` โดยไม่แนบ token; กรณี 2 และคำถามที่รวมแนะนำร้านต้องใช้ `POST /chat` พร้อม CUSTOMER Bearer token. ทุกกรณียังใช้ `/chat` แบบมี token ได้ตามเดิม. คัดลอก JSON ไปใช้ใน Swagger ได้ ข้อความตอบขึ้นกับโมเดลและข้อมูลจริง; รหัสร้านในตัวอย่างเป็นสมมติ ไม่มีการรับรองเงื่อนไขโครงการจากตัวอย่างเหล่านี้
+กรณี 1/3/4 ใช้ body มีเฉพาะ `message` และทดสอบได้ด้วย `POST /chat/test` โดยไม่แนบ token; กรณี 2 และคำถามที่รวมแนะนำร้านต้องใช้ `POST /chat` พร้อม CUSTOMER Bearer token และ `location` ตามตัวอย่าง. ทุกกรณียังใช้ `/chat` แบบมี token ได้ตามเดิม. คัดลอก JSON ไปใช้ใน Swagger ได้ ข้อความตอบขึ้นกับโมเดลและข้อมูลจริง; รหัสร้านในตัวอย่างเป็นสมมติ ไม่มีการรับรองเงื่อนไขโครงการจากตัวอย่างเหล่านี้
 
 ### 1. ถามอย่างเดียว ไม่แนะนำร้าน
 
@@ -198,7 +200,10 @@ Postman มีหมวด **AI service (Qwen3 4B) → Token-free model test (/c
 ### 2. ถามและขอแนะนำร้าน
 
 ```json
-{ "message": "คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย" }
+{
+  "message": "คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย",
+  "location": { "latitude": 13.75, "longitude": 100.5, "radiusKm": 5 }
+}
 ```
 
 ตัวอย่างอื่น: “วันนี้อยากกินก๋วยเตี๋ยว ช่วยแนะนำร้านหน่อย”, “แนะนำร้านอาหารกับร้านเครื่องดื่มให้หน่อย”. โมเดลเทียบความหมายกับประเภทจริง เรียก `search_system_shops` และตอบพร้อม `storeIds` จาก Backend

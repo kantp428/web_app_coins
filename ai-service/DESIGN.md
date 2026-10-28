@@ -13,7 +13,7 @@
 | ถามข้อมูลสาธารณะพร้อมขอร้าน                  | ใช้ Search และ DB tools อย่างละหนึ่งครั้ง                                             | reply, sources, storeIds      |
 | นอกเรื่อง เช่น “หมาผมน่ารักไหม”              | แจ้งขอบเขตอย่างสุภาพ                                                                  | reply, storeIds ว่าง          |
 
-ทุก `/chat` ต้องใช้ CUSTOMER Bearer token. ไม่มีการรับ userId, role, ประวัติที่ผู้ใช้ส่งเอง หรือ arbitrary URL/SQL ใน body/tool. Request มีเฉพาะ `message`; Backend อ่านตัวตนและประวัติจาก token
+ทุก `/chat` ต้องใช้ CUSTOMER Bearer token. ไม่มีการรับ userId, role, ประวัติที่ผู้ใช้ส่งเอง หรือ arbitrary URL/SQL ใน body/tool. Request มี `message` และ optional `location:{latitude,longitude,radiusKm}`; Backend อ่านตัวตนและประวัติจาก token. ไม่มี location จะปิด shop tool และขอให้เลือกจุดค้นหาก่อน โดยยังคุยทั่วไป/ค้นเว็บได้ พิกัดไม่เข้า prompt และโมเดลเปลี่ยนขอบเขตไม่ได้ `/chat/test` ยังเป็น message-only
 
 ## Token-free model test
 
@@ -24,7 +24,7 @@
 1. FastAPI เรียก `GET /recommendations/context` ด้วย token. NestJS ตรวจ JWT และ ACTIVE account ผ่าน AuthService.me รวมทั้ง CUSTOMER role **ก่อน** อ่านข้อมูล. ถ้าตรวจไม่ได้ หยุดก่อน inference
 2. Context ประกอบด้วย category masters และประวัติ 20 ร้านล่าสุดแบบสรุป (storeId/categoryIds/count/date). ไม่ส่ง credential หรือ user profile เข้า prompt. Purchase schema ไม่มีสินค้าเป็นรายการ จึงรู้ว่าเคยซื้อจากร้าน/ประเภทใด แต่ระบุสินค้าที่ซื้อจริงไม่ได้
 3. Qwen3 ตีความ message; ถ้าขอร้าน ใช้ `search_system_shops({categoryIds})`. คำถามที่มี public-topic marker จะมี `search_related_web({query})` ให้เลือกเพิ่ม. Server ตรวจ allowlist/arguments/ประเภทจริงสูงสุด 10 ประเภท; ไม่รับ actor/URL/SQL. ใช้แต่ละ tool ได้หนึ่งครั้ง รวมสอง read calls และสาม inference calls. เรียกต่าง tool ใน batch เดียวหรือสองรอบได้; ปฏิเสธการเรียกซ้ำ/ไม่รู้จัก/เกินงบ
-4. Tool ส่ง `POST /recommendations/candidates` ด้วย token เดิม. Backend คัดร้าน APPROVED ที่มีประเภทตรงอย่างน้อยหนึ่งประเภท (OR). SQL ตรวจประวัติทุกเดือน แบ่งใหม่/เคยซื้อ แล้วเลือก **ใหม่ไม่เกิน 3 + เคยซื้อไม่เกิน 2**. ขาดโควตาใดไม่เติมจากอีกกลุ่ม
+4. Tool ส่ง `POST /recommendations/candidates` ด้วย token เดิม categoryIds จากโมเดล และ latitude/longitude/radiusKm จาก request.location ที่ server ผูกไว้ Backend ใช้ StoresService scope SQL เดียวกับ `GET /stores` คัดร้าน APPROVED ที่มีประเภทตรงอย่างน้อยหนึ่งประเภท (OR) ในรัศมี 0.1–50 กม. ค่าเริ่มต้น 5 กม. จากทุกหน้า ก่อนตรวจประวัติทุกเดือน แบ่งใหม่/เคยซื้อ แล้วเลือก **ใหม่ไม่เกิน 3 + เคยซื้อไม่เกิน 2**. ขาดโควตาใดไม่เติมจากอีกกลุ่มหรือขยายระยะ
 5. “เคยซื้อ” สำหรับ recommendation คือรายการ SUCCEEDED/REFUNDED ที่มี confirmed_at; PENDING/FAILED ไม่ใช่การเคยซื้อ. เป็นนิยามการเคยไปร้าน ไม่เปลี่ยนกฎ award/reversal ของ Coins
 6. อ่าน new_customer_coins หรือ repeat_customer_coins จาก shop_coin_rates ในรอบ active แบบ `[starts_at, ends_at)`. จัดอันดับ Coins ที่ทราบสูงก่อน, ไม่ทราบท้าย, เสมอเรียง numeric shop ID. เลือกภายในแต่ละกลุ่มแล้วเรียงผลรวมด้วยหลักเดียวกัน. ไม่มี rate ไม่คำนวณหรือรับประกัน Coins ขึ้นเอง
 7. FastAPI ตรวจ candidate DTO/โควตา/IDs ไม่ซ้ำ. รหัสตอบกลับมาจาก Backend เท่านั้น. ส่งเฉพาะจำนวนร้านใหม่/ร้านเดิมให้โมเดลเรียบเรียง ไม่ส่งชื่อ/รหัสร้านจาก candidates. ถ้าไม่มีร้านและไม่ได้ถามข้อมูลภายนอก คืน empty จาก server; ถ้าถามข้อมูลภายนอกด้วย ให้ทำ tool ที่เหลือได้
@@ -49,19 +49,19 @@ Search คืน `sources: [{title,url}]` จากผลจริง; plain cha
 
 ตรวจจาก controllers/services ไม่ใช่ยืนยันว่า deployment/DB พร้อม. NestJS ไม่มี global prefix; PORT default3000
 
-| API                              | ใช้ทำอะไร                                        | Token / Auth                         |
-| -------------------------------- | ------------------------------------------------ | ------------------------------------ |
-| GET /                            | Scaffold Hello World                             | ไม่ต้อง                              |
-| POST /auth/register              | สมัครสามบทบาท คืน user ไม่มี token               | ไม่ต้อง                              |
-| POST /auth/login                 | ตรวจบัญชี คืน accessToken อายุ 1 ชั่วโมง         | ไม่ต้องแนบ token เดิม                |
-| GET /me                          | ตรวจ session คืน id/role/displayName             | Bearer ทั้งสามบทบาท                  |
-| GET /categories                  | category masters                                 | ไม่ต้อง                              |
-| GET /geocoding/reverse           | แปลงพิกัดเป็นที่อยู่สำหรับสมัครร้าน              | ไม่ต้อง                              |
-| GET /stores                      | APPROVED ในรัศมี สูงสุด50 เรียงใกล้ก่อน          | CUSTOMER Bearer                      |
-| GET /government/coin-rules       | อ่าน rules/periods/rates                         | GOVERNMENT Bearer                    |
-| POST /government/coin-rules      | เขียนกฎรอบถัดไป                                  | GOVERNMENT Bearer ไม่ใช่ tool ของ AI |
-| GET /recommendations/context     | ตัวตน, categories, ประวัติร้านที่ซื้อแบบสรุป     | CUSTOMER Bearer                      |
-| POST /recommendations/candidates | กรองประเภท/visited/3+2 และจัดอันดับ rates จาก DB | CUSTOMER Bearer                      |
+| API                              | ใช้ทำอะไร                                                                     | Token / Auth                         |
+| -------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------ |
+| GET /                            | Scaffold Hello World                                                          | ไม่ต้อง                              |
+| POST /auth/register              | สมัครสามบทบาท คืน user ไม่มี token                                            | ไม่ต้อง                              |
+| POST /auth/login                 | ตรวจบัญชี คืน accessToken อายุ 1 ชั่วโมง                                      | ไม่ต้องแนบ token เดิม                |
+| GET /me                          | ตรวจ session คืน id/role/displayName                                          | Bearer ทั้งสามบทบาท                  |
+| GET /categories                  | category masters                                                              | ไม่ต้อง                              |
+| GET /geocoding/reverse           | แปลงพิกัดเป็นที่อยู่สำหรับสมัครร้าน                                           | ไม่ต้อง                              |
+| GET /stores                      | APPROVED ในรัศมี แบ่งหน้า default50/max100 เรียงใกล้ก่อน                      | CUSTOMER Bearer                      |
+| GET /government/coin-rules       | อ่าน rules/periods/rates                                                      | GOVERNMENT Bearer                    |
+| POST /government/coin-rules      | เขียนกฎรอบถัดไป                                                               | GOVERNMENT Bearer ไม่ใช่ tool ของ AI |
+| GET /recommendations/context     | ตัวตน, categories, ประวัติร้านที่ซื้อแบบสรุป                                  | CUSTOMER Bearer                      |
+| POST /recommendations/candidates | ใช้ discovery scope พิกัด/รัศมีร่วมกันก่อนกรอง visited/3+2 และจัดอันดับ rates | CUSTOMER Bearer                      |
 
 JWT ตรวจ signature/issuer/audience/expiry และ ACTIVE/current role ซ้ำจาก DB. Token หาย/ผิด/หมดอายุ401, ข้าม role403. ไม่มี Backend logout/refresh; Next logout ล้าง HttpOnly cookie. ไม่มีการใช้ government token ข้ามสิทธิ์ให้ลูกค้า
 

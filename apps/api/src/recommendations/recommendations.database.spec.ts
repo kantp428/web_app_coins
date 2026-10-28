@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { AuthService } from '../auth/auth.service.js';
 import { RecommendationsService } from './recommendations.controller.js';
+import { StoresService } from '../stores/stores.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 // Opt-in real PostgreSQL test. Only session-local TEMP tables are written;
 // business tables/ledgers/users are never modified. Requires two master categories.
@@ -16,13 +18,15 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
       const config = new ConfigService({
         DATABASE_URL: process.env.DATABASE_URL,
       });
-      const service = new RecommendationsService(config, {
+      const auth = {
         me: async () => ({
           id: '99',
           role: 'CUSTOMER',
           displayName: 'Fixture',
         }),
-      } as unknown as AuthService);
+      } as unknown as AuthService;
+      const stores = new StoresService({} as PrismaService, auth);
+      const service = new RecommendationsService(config, auth, stores);
       const db = (service as unknown as { db: PrismaClient }).db;
       try {
         const categories = await db.categories.findMany({
@@ -34,21 +38,24 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
         await db.$transaction(
           async (tx) => {
             for (const ddl of [
-              'CREATE TEMP TABLE shops (shop_id bigint PRIMARY KEY, participation_status text) ON COMMIT DROP',
+              "CREATE TEMP TABLE shops (shop_id bigint PRIMARY KEY, participation_status text, name text DEFAULT 'Fixture', description text, address jsonb, latitude numeric DEFAULT 13.75, longitude numeric DEFAULT 100.5) ON COMMIT DROP",
               'CREATE TEMP TABLE purchases (shop_id bigint, customer_id bigint, status text, confirmed_at timestamptz) ON COMMIT DROP',
               'CREATE TEMP TABLE shop_categories (shop_id bigint, category_id bigint) ON COMMIT DROP',
               'CREATE TEMP TABLE coin_rate_periods (period_id bigint, starts_at timestamptz, ends_at timestamptz) ON COMMIT DROP',
               'CREATE TEMP TABLE shop_coin_rates (shop_id bigint, period_id bigint, new_customer_coins smallint, repeat_customer_coins smallint) ON COMMIT DROP',
             ])
               await tx.$executeRawUnsafe(ddl);
-            await tx.$executeRaw`INSERT INTO shops SELECT i, CASE WHEN i=9 THEN 'PENDING' ELSE 'APPROVED' END FROM generate_series(1,9) i`;
+            await tx.$executeRaw`INSERT INTO shops (shop_id,participation_status) SELECT i, CASE WHEN i=9 THEN 'PENDING' ELSE 'APPROVED' END FROM generate_series(1,9) i`;
             await tx.$executeRaw`INSERT INTO shop_categories SELECT i, CASE WHEN i=8 THEN ${b} ELSE ${a} END FROM generate_series(1,9) i`;
             await tx.$executeRaw`INSERT INTO shop_categories VALUES (1,${b})`;
             await tx.$executeRaw`INSERT INTO purchases VALUES (5,99,'SUCCEEDED',now()-interval '400 days'), (6,99,'REFUNDED',now()-interval '40 days'), (7,99,'PENDING',null), (8,42,'SUCCEEDED',now())`;
             await tx.$executeRaw`INSERT INTO coin_rate_periods VALUES (1,now()-interval '1 day',now()+interval '1 day'), (2,now()+interval '2 days',now()+interval '3 days')`;
             await tx.$executeRaw`INSERT INTO shop_coin_rates VALUES (1,1,10,1),(2,1,8,1),(3,1,7,1),(5,1,8,1),(7,1,9,1),(8,1,6,1),(9,1,10,1),(4,2,10,1)`;
             Object.assign(service, { db: tx });
+            Object.assign(stores, { db: tx });
+            const scope = { latitude: 13.75, longitude: 100.5, radiusKm: 5 };
             const filtered = await service.candidates({
+              ...scope,
               categoryIds: [String(a)],
             });
             expect(filtered.stores).toEqual([
@@ -59,6 +66,7 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
               { id: '6', visited: true, coins: null },
             ]);
             const short = await service.candidates({
+              ...scope,
               categoryIds: [String(b)],
             });
             expect(short.stores.map((store) => store.id)).toEqual(['1', '8']);
@@ -81,6 +89,7 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
             ).toEqual(['5', '6']);
             await tx.$executeRaw`DELETE FROM shop_coin_rates`;
             const unknown = await service.candidates({
+              ...scope,
               categoryIds: [String(a)],
             });
             expect(unknown.stores.map((store) => store.id)).toEqual([
@@ -93,9 +102,42 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
             expect(unknown.stores.every((store) => store.coins === null)).toBe(
               true,
             );
+            // Farther shops must not consume the quota before radius filtering.
+            await tx.$executeRaw`UPDATE shops SET latitude=14.75 WHERE shop_id IN (1,5)`;
+            const inRange = await service.candidates({
+              ...scope,
+              categoryIds: [String(a)],
+            });
+            expect(inRange.stores.map((store) => store.id)).toEqual([
+              '2',
+              '3',
+              '4',
+              '6',
+            ]);
+            const discovery = await stores.list({
+              ...scope,
+              categoryIds: [String(a)],
+              pageSize: 100,
+            });
+            const discoveryIds = new Set(
+              discovery.stores.map((store) => store.id),
+            );
+            expect(
+              inRange.stores.every((store) => discoveryIds.has(store.id)),
+            ).toBe(true);
+            expect(
+              (
+                await service.candidates({
+                  ...scope,
+                  latitude: -13.75,
+                  categoryIds: [String(a)],
+                })
+              ).stores,
+            ).toEqual([]);
             await tx.$executeRaw`UPDATE shops SET participation_status='PENDING'`;
             expect(
-              (await service.candidates({ categoryIds: [String(a)] })).stores,
+              (await service.candidates({ ...scope, categoryIds: [String(a)] }))
+                .stores,
             ).toEqual([]);
           },
           { timeout: 60000 },

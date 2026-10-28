@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from schemas.chat import ChatRequest, ChatResponse
+from schemas.chat import ChatRequest, ChatResponse, RecommendationChatRequest
 from services.llm import LLMService, LLMServiceError, get_llm_service
 from services.backend import BackendService, BackendServiceError, get_backend_service
 from services.web_search import WebSearchService, get_web_search_service
@@ -24,7 +24,7 @@ bearer = HTTPBearer(auto_error=False)
     },
 )
 async def chat(
-    request: ChatRequest,
+    request: RecommendationChatRequest,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     service: LLMService = Depends(get_llm_service),
     backend: BackendService = Depends(get_backend_service),
@@ -39,10 +39,13 @@ async def chat(
         context = await backend.context(token)
 
         async def search(category_ids: list[str]):
-            return await backend.search(token, category_ids)
+            return await backend.search(token, category_ids, request.location)
 
         reply, store_ids, sources = await service.generate_chat(
-            request.message, context, search, web_search
+            request.message,
+            context,
+            search if request.location is not None else None,
+            web_search,
         )
     except (LLMServiceError, BackendServiceError) as error:
         raise HTTPException(

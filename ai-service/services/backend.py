@@ -7,6 +7,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from config import get_settings
+from schemas.chat import StoreLocation
 
 Identifier = Annotated[str, Field(pattern=r"^[1-9][0-9]{0,18}$", strict=True)]
 
@@ -101,9 +102,14 @@ class BackendService:
                 502, "Backend ส่งบริบทผู้ใช้ไม่ถูกต้อง"
             ) from error
 
-    async def search(self, token: str, category_ids: list[str]) -> Candidates:
+    async def search(
+        self, token: str, category_ids: list[str], location: StoreLocation
+    ) -> Candidates:
         body = await self._read(
-            "POST", "recommendations/candidates", token, {"categoryIds": category_ids}
+            "POST",
+            "recommendations/candidates",
+            token,
+            {"categoryIds": category_ids, **location.model_dump()},
         )
         try:
             return Candidates.model_validate(body)

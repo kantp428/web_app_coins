@@ -11,6 +11,8 @@ Use the relevant project skill in `.agent/skills/` when working in that area:
 
 Keep the API contract in `docs/api-contract.md` aligned across web, API, and Postman. Backend/API changes require the matching `apps/api/postman/THAI-Please.postman_collection.json` change under `PLAN/PLAN.md`.
 
+Whenever adding or changing backend code under `apps/api`, update root `Summary-api.md` in the same task to reflect the available endpoints, permissions, inputs, outputs, and concise descriptions. Remove obsolete endpoints when routes are removed. This is a local Thai-language quick reference intentionally ignored by Git; if it is missing, recreate it from the registered controllers and their services. Keep it consistent with `docs/api-contract.md` and Postman, and distinguish test-only routes from normal routes.
+
 ## Service usage documentation
 
 When a service has its own README, keep installation, startup/shutdown, configuration, API testing, and automated check commands there and update it in the same task when usage changes. For `ai-service/`, use `ai-service/README.md`; do not duplicate its usage instructions in root `Test.md`. Use `Test.md` for shared testing guidance or services without their own README. Keep service documentation aligned with the API contract and Postman, and distinguish previously recorded checks from newly verified results.

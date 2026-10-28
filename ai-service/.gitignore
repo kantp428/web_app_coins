@@ -1,4 +1,54 @@
+# Python virtual environments
 .venv/
+venv/
+env/
+ENV/
+
+# Local Ollama runtime, model weights and download/cache files
 .tools/
+.ollama/
+.cache/
+
+# Python bytecode
 __pycache__/
 *.py[cod]
+*$py.class
+
+# Local configuration (keep shareable examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Test, type-checker and linter caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+
+# Coverage and test reports
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit.xml
+
+# Python packaging output
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+
+# Local runtime logs and process files
+logs/
+*.log
+*.pid
+*.pid.lock
+
+DESIGN.md

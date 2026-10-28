@@ -34,10 +34,9 @@ describe('merged recommendation routes', () => {
     ).toEqual([ShopSearchService]);
   });
 
-  it('preserves context, candidates and search paths', () => {
+  it('preserves context and candidates paths', () => {
     for (const [controller, methods] of [
       [RecommendationsController, ['context', 'candidates']],
-      [RecommendationsSearchController, ['search']],
     ] as const) {
       expect(Reflect.getMetadata('path', controller)).toBe('recommendations');
       for (const method of methods) {
@@ -49,6 +48,16 @@ describe('merged recommendation routes', () => {
         ).toBe(method);
       }
     }
+  });
+
+  it('keeps the reserved search method unavailable as an HTTP route', () => {
+    const method = Object.getOwnPropertyDescriptor(
+      RecommendationsSearchController.prototype,
+      'search',
+    )?.value as object;
+    expect(method).toBeTypeOf('function');
+    expect(Reflect.getMetadata('method', method)).toBeUndefined();
+    expect(Reflect.getMetadata('path', method)).toBeUndefined();
   });
 
   it('forwards Explore search body and actor token to the search service', async () => {

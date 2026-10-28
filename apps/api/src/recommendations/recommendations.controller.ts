@@ -12,9 +12,10 @@ import {
   Post,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AuthService } from '../auth/auth.service.js';
+import { parseStoreScope, StoresService } from '../stores/stores.service.js';
 
 export function categoryFilter(body: unknown): string[] {
   if (!body || typeof body !== 'object' || Array.isArray(body))
@@ -22,7 +23,10 @@ export function categoryFilter(body: unknown): string[] {
   const input = body as Record<string, unknown>;
   const ids = input.categoryIds;
   if (
-    Object.keys(input).length !== 1 ||
+    Object.keys(input).some(
+      (key) =>
+        !['categoryIds', 'latitude', 'longitude', 'radiusKm'].includes(key),
+    ) ||
     !Array.isArray(ids) ||
     ids.length < 1 ||
     ids.length > 10 ||
@@ -46,6 +50,7 @@ export class RecommendationsService implements OnModuleDestroy {
   constructor(
     config: ConfigService,
     private readonly auth: AuthService,
+    private readonly stores: StoresService,
   ) {
     this.db = new PrismaClient({
       adapter: new PrismaPg({
@@ -102,6 +107,7 @@ export class RecommendationsService implements OnModuleDestroy {
   async candidates(body: unknown, authorization?: string) {
     const user = await this.customer(authorization);
     const categoryIds = categoryFilter(body).map(BigInt);
+    const scope = parseStoreScope(body as Record<string, unknown>);
     if (
       (await this.db.categories.count({
         where: { category_id: { in: categoryIds } },
@@ -114,15 +120,13 @@ export class RecommendationsService implements OnModuleDestroy {
     const stores = await this.db.$queryRaw<
       { shop_id: bigint; visited: boolean; coins: number | null }[]
     >`
-      WITH eligible AS (
+      WITH scoped_stores AS (${this.stores.scopedQuery(scope)}), eligible AS (
         SELECT s.shop_id, EXISTS (
           SELECT 1 FROM purchases p WHERE p.customer_id = ${BigInt(user.id)}
             AND p.shop_id = s.shop_id AND p.status IN ('SUCCEEDED', 'REFUNDED')
             AND p.confirmed_at IS NOT NULL
         ) AS visited
-        FROM shops s WHERE s.participation_status = 'APPROVED'
-          AND EXISTS (SELECT 1 FROM shop_categories sc WHERE sc.shop_id = s.shop_id
-            AND sc.category_id IN (${Prisma.join(categoryIds)}))
+        FROM scoped_stores s
       ), rated AS (
         SELECT e.*, CASE WHEN e.visited THEN r.repeat_customer_coins
           ELSE r.new_customer_coins END AS coins

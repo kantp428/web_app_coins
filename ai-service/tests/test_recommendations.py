@@ -7,6 +7,8 @@ import httpx
 
 import test_api
 
+LOCATION = {"latitude": 13.75, "longitude": 100.5, "radiusKm": 5}
+
 
 def assistant(content="", calls=None):
     message = {"role": "assistant", "content": content}
@@ -39,7 +41,8 @@ class RecommendationTests(unittest.TestCase):
 
     def post(self):
         return self.client.post(
-            "/chat", json={"message": "ช่วยแนะนำร้านอาหารหรือกาแฟหน่อย"}
+            "/chat",
+            json={"message": "ช่วยแนะนำร้านอาหารหรือกาแฟหน่อย", "location": LOCATION},
         )
 
     def test_tool_categories_and_verified_ids_only(self):
@@ -60,7 +63,8 @@ class RecommendationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["storeIds"], ["3", "4", "5", "6", "7"])
         self.assertEqual(
-            json.loads(self.backend_requests[-1].content), {"categoryIds": ["1", "2"]}
+            json.loads(self.backend_requests[-1].content),
+            {"categoryIds": ["1", "2"], **LOCATION},
         )
         self.assertEqual(len(self.payloads), 2)
         self.assertNotIn("tools", self.payloads[-1])
@@ -68,6 +72,8 @@ class RecommendationTests(unittest.TestCase):
         self.assertIn("purchaseHistory", model_data)
         self.assertNotIn("test-customer-token", model_data)
         self.assertNotIn("displayName", model_data)
+        self.assertNotIn("latitude", model_data)
+        self.assertNotIn("longitude", model_data)
         self.assertEqual(
             set(response.json()), {"reply", "storeIds", "sources", "mode", "model"}
         )
@@ -79,6 +85,57 @@ class RecommendationTests(unittest.TestCase):
             assistant("พบร้านใหม่ 1 ร้านครับ"),
         ]
         self.assertEqual(self.post().json()["storeIds"], ["3"])
+
+    def test_location_defaults_radius_and_binds_request_scope(self):
+        self.model_responses = [assistant(calls=[tool()]), assistant("พบร้านในระยะ")]
+        response = self.client.post(
+            "/chat",
+            json={
+                "message": "ช่วยแนะนำร้านอาหาร",
+                "location": {"latitude": 0, "longitude": 0},
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            json.loads(self.backend_requests[-1].content),
+            {"categoryIds": ["1"], "latitude": 0, "longitude": 0, "radiusKm": 5},
+        )
+
+    def test_missing_location_disables_shops_but_preserves_chat(self):
+        self.model_responses = [assistant("กรุณาเลือกจุดค้นหาและรัศมี")]
+        response = self.client.post("/chat", json={"message": "แนะนำร้านอาหาร"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["storeIds"], [])
+        self.assertEqual(len(self.backend_requests), 1)
+        self.assertNotIn("tools", self.payloads[0])
+        self.assertIn("ยังไม่มีจุดค้นหาร้าน", str(self.payloads[0]))
+
+    def test_location_validation_before_backend_or_model(self):
+        for location in (
+            {},
+            {"latitude": 0},
+            {**LOCATION, "latitude": 91},
+            {**LOCATION, "longitude": -181},
+            {**LOCATION, "latitude": "13.75"},
+            {**LOCATION, "latitude": True},
+            {**LOCATION, "radiusKm": 0},
+            {**LOCATION, "radiusKm": 50.1},
+            {**LOCATION, "shopIds": ["1"]},
+        ):
+            with self.subTest(location=location):
+                response = self.client.post(
+                    "/chat", json={"message": "แนะนำร้าน", "location": location}
+                )
+                self.assertEqual(response.status_code, 422)
+        self.assertEqual(self.backend_requests, [])
+        self.assertEqual(self.payloads, [])
+
+    def test_model_cannot_override_location_in_tool_arguments(self):
+        self.model_responses = [
+            assistant(calls=[tool(latitude=0, longitude=0, radiusKm=50)])
+        ]
+        self.assertEqual(self.post().status_code, 502)
+        self.assertEqual(len(self.backend_requests), 1)
 
     def test_empty_search_returns_grounded_empty_without_second_inference(self):
         self.model_responses = [assistant(calls=[tool()])]

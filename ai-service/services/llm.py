@@ -67,6 +67,13 @@ class LLMService:
                     + json.dumps(data, ensure_ascii=False),
                 }
             )
+            if search is None:
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": "ยังไม่มีจุดค้นหาร้าน หากขอแนะนำร้านให้ขอเลือกพิกัดหรือปักหมุดและรัศมีก่อน ไม่ค้นหรือแต่งร้านจากประวัติซื้อ",
+                    }
+                )
         else:
             messages.append(
                 {

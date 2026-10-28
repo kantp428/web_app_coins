@@ -11,23 +11,23 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                             | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ----------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                           | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                        | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth/role + wallet/Coins reads; live E2E pending               | D2                     | I               | F01                   |
-| F03     | PARTIAL: registration + approval/search; owner CRUD/E2E pending         | D3                     | I               | F02                   |
-| F04     | PARTIAL: DB Explore pin/routes + paginated scoped discovery/LLM search  | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview             | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: rules API/UI + rate generation; live DB/review pending         | D4                     | I               | F02/F03               |
-| F07     | PARTIAL: HEAD chat 3+2/DDGS + separate Explore search; live E2E pending | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: wallet/payment lifecycle + unit tests; live DB gates pending   | D5                     | I               | F06                   |
-| F09     | PARTIAL: Explore AI เชื่อมจริง; acceptance/browser QA รวมยังค้าง        | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: rules UI + seller payment API; full UI/E2E pending             | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                               | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                    | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                    | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                              | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | ------------------------------------------------------------------------ | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                            | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                         | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth/role + wallet/Coins reads; live E2E pending                | D2                     | I               | F01                   |
+| F03     | PARTIAL: registration + approval/search; owner CRUD/E2E pending          | D3                     | I               | F02                   |
+| F04     | PARTIAL: DB Explore/discovery; semantic search HTTP route paused         | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview              | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: rules API/UI + rate generation; live DB/review pending          | D4                     | I               | F02/F03               |
+| F07     | PARTIAL: radius-scoped chat 3+2/DDGS; Explore search paused; E2E pending | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: wallet/payment lifecycle + unit tests; live DB gates pending    | D5                     | I               | F06                   |
+| F09     | PARTIAL: Explore AI เชื่อมจริง; acceptance/browser QA รวมยังค้าง         | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: rules UI + seller payment API; full UI/E2E pending              | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                                | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                     | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                 | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                     | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
@@ -45,7 +45,7 @@
 | D2 / 8 ต.ค. | [`R1-D2-I`](INTEGRATION.md) | F02 | DOING | F00/F01; ยอดมาจาก ledger/DB จริง | — |
 | D3 / 9 ต.ค. | [`R1-D3-A`](APP_DEV_A.md) | F04 | TODO | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้ | — |
 | D3 / 9 ต.ค. | [`R1-D3-B`](APP_DEV_B.md) | F05 | DOING | F03; owner isolation, validation/error และสถานะ pending/approved | — |
-| D3 / 9 ต.ค. | [`R1-D3-AI`](AI_DEV.md) | F07 | PARTIAL: Backend context/candidates + FastAPI/Postman | ไม่มี location filter; live Backend/model E2E และ review pending | — |
+| D3 / 9 ต.ค. | [`R1-D3-AI`](AI_DEV.md) | F07 | PARTIAL: shared stores radius scope + FastAPI location/Postman | API104/AI54 tests pass; live SQL needs development DATABASE_URL; Backend/model E2E/review pending | — |
 | D3 / 9 ต.ค. | [`R1-D3-I`](INTEGRATION.md) | F03 | DOING | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน | — |
 | D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md) | F09 | TODO | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม | — |
 | D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md) | F10 | PARTIAL: rules UI + seller payment API; full UI/E2E pending | D5 | B | F06/F08 |
@@ -464,3 +464,41 @@
 - Updated affected Feature rows and R1-D2-I/R1-D3-I/R1-D4-I/R1-D4-B/R1-D5-I source progress; historical October 11 snapshot explicitly remains historical. No DONE/PR claims. Remaining live DB, integrated UI, concurrency and review acceptance is pending; no new business rule unresolved in this merge.
 - Checks newly verified: installed API Prettier write/check for changed TS/JSON/Markdown; API oxlint --type-aware src/ test/ PASS; Nest build PASS; Vitest 101 PASS / 19 SKIP (16 suites passed / 3 skipped), including 3 merge regression tests. Initial build failed with stale generated Prisma Client; node node_modules/prisma/build/index.js generate from apps/api then build PASS, without migration/seed/database writes. pnpm launch reported store-lock permission warnings; final checks used installed package CLIs directly. HEAD parity, Postman preservation/uniqueness/JSON/script syntax and git diff --check PASS.
 - Next: run opt-in database tests and authenticated AI/Explore/payment browser smoke against a development database, then review and commit the merge. Only task files are marked resolved/staged; no merge commit created.
+
+### 2026-10-28 16:47 Asia/Bangkok - cross-cutting maintenance / API quick reference
+
+- Inspected all 10 registered NestJS controllers and response services against docs/api-contract.md. Created root [Summary-api.md](../Summary-api.md), a local Thai reference for all 30 implemented endpoints with method/path, permissions, key inputs, success output and concise descriptions. Covers auth, discovery, both recommendation flows, wallets/QR/quest and government/test routes; distinguishes Nest APIs from Next BFF/FastAPI and code inspection from live verification.
+- Added /Summary-api.md to .gitignore at user request. Updated [AGENTS.md](../AGENTS.md) to require updating/recreating the ignored local summary whenever apps/api backend code changes. No runtime, route, contract, Postman or business-rule changes; Feature/Daily Flag statuses unchanged.
+- Checks: Python route inventory matches all 30 unique method/path pairs in summary against all 10 controllers; installed API-package Prettier write/check PASS for Summary-api.md, AGENTS.md and PLAN/PLAN.md (explicit empty temporary ignore file used to format the intentionally Git-ignored summary); git check-ignore -v Summary-api.md confirms root rule; git diff --check PASS. No app build/tests/live HTTP/DB run because documentation/ignore-only; earlier merge test results are historical and not rerun.
+- No blocker or unresolved business rule. Next: update this quick reference alongside the next backend change; recreate from controllers/services on machines without the ignored file.
+
+### 2026-10-28 17:00 Asia/Bangkok - F04/F07 maintenance: pause unused recommendation search
+
+- User requests commenting out POST /recommendations/search for future use. Commented only the @Post decorator in recommendations-search.controller.ts, removed unused Post import, and kept the method/service/DI registration. HEAD context/candidates stay active. Updated merge regression to assert the reserved method has no HTTP route metadata while retained delegation still works.
+- Updated local ignored Summary-api.md (29 active routes + 1 reserved), API README, contract and decisions. Main Postman has 1 disabled search example and For-AI has 2; each retains its request with explicit expected404 and no success/ID-capture tests. Existing Explore/BFF callers now receive upstream404; discovery/batch/descriptions remain available. F04/F07 source status reflects the pause; no Feature marked DONE.
+- Newly verified: API lint via installed oxlint --type-aware src/ test/ PASS with no warnings after test adjustment; Nest build PASS; focused recommendation tests 12 PASS across3 suites, then final changed merge suite4 PASS. Prettier write/check all modified TS/JSON/Markdown PASS including ignored summary through a temporary empty ignore file; Postman JSON and110+8 script syntax checks PASS; git diff --check PASS. No live HTTP/DB/provider/browser checks or web build performed.
+- No unresolved business rule/blocker. Next: deliberately restore the route decorator and Post import, restore success expectations in both Postman collections and docs, then verify authenticated Explore search before using it.
+
+### 2026-10-28 17:16 Asia/Bangkok - cross-cutting maintenance / AI service ignore rules
+
+- Expanded [ai-service/.gitignore](../ai-service/.gitignore) for Python virtual environments/bytecode, local Ollama runtime/models/cache, local .env files with example exceptions, test/type/linter caches, coverage/reports, packaging outputs and runtime logs/PID files. Preserved source/tests/docs and requirements.txt, requirements-dev.txt, requirements.lock.txt. Used project fastapi-ai guidance; no runtime/API/business-rule or usage-command changes, Feature/Daily Flags unchanged.
+- Newly verified: Python harness calling git check-ignore --no-index validated26 representative generated/local paths are ignored and10 source/example/requirements paths remain visible; git diff --check PASS. PLAN formatted/checked with installed API-package Prettier; .gitignore has no supported Prettier parser and was checked through Git pattern behavior/whitespace instead. No Python tests/build/live calls run because ignore/documentation-only.
+- No blocker or new decision. Next: keep local runtimes/config/caches outside Git and extend specific ignore patterns if another tool generates files.
+
+### 2026-10-28 17:22 Asia/Bangkok - cross-cutting maintenance / AI listening port explanation
+
+- Checked ai-service README startup command (line97), config.py, main.py, .env.example and root launch/task files using rg/Get-Content. Documented startup listens on127.0.0.1:8000 through Uvicorn --port8000; config.py configures outbound Backend3000/Ollama11434, not the listening port. No service/config changes or live listener verification; Feature/Daily Flags unchanged.
+- Checks: source inspection and installed API Prettier write/check on PLAN PASS; no tests/build needed for explanation-only. No blocker/decision. Next: change Uvicorn --port when another listening port is needed and align client aiBaseUrl.
+
+### 2026-10-28 17:39 Asia/Bangkok - F07 / R1-D3-AI: radius-scoped candidates and AI chat
+
+- User confirms updating both candidates and AI /chat. [Candidates](../apps/api/src/recommendations/recommendations.controller.ts) now requires latitude/longitude and optional radiusKm (default5, 0.1–50), reusing [StoresService](../apps/api/src/stores/stores.service.ts) scope SQL from GET /stores inside one ranking statement. All APPROVED/category/radius matches qualify before existing Coins/all-time visits/3+2 quotas; no page truncation, supplied shop-ID scope or radius expansion. [Decision](../docs/decisions.md#2026-10-28---radius-scoped-chatbot-candidates-f07--r1-d3-ai) recorded before implementation.
+- AI schemas/router/backend bind optional location:{latitude,longitude,radiusKm} to candidate reads outside model messages/tool arguments. Missing/null location keeps normal/web chat and disables shop tools with a location-selection instruction. /chat/test stays message-only. Added location validation, forwarding/defaults, missing-location and tool-override regressions; SQL fixture now includes coordinates/out-of-radius replacement/GET discovery parity. Used nest-api and fastapi-ai project skills; kept F07/Daily Flag PARTIAL and preserved unrelated working-tree changes.
+- Updated [contract](../docs/api-contract.md), API/AI READMEs, AI DESIGN, ignored local [Summary-api.md](../Summary-api.md) and main [Postman](../apps/api/postman/THAI-Please.postman_collection.json). Postman recommendation requests share coordinate variables; success verifies IDs against GET /stores across all pages. Added6 API scope400 and2 AI location cases; structural JSON/unique names/variables and118 script syntax checks PASS (122 requests). No live collection runner executed.
+- Newly verified from apps/api using installed package CLIs: node node_modules/oxlint/bin/oxlint --type-aware src/ test/ PASS; node node_modules/@nestjs/cli/bin/nest.js build PASS; node node_modules/vitest/vitest.mjs run:104 PASS/19 SKIP across16 passed/3 skipped suites. AI .venv/Scripts/python.exe -m unittest discover -s tests -v:54 PASS. API-package Prettier write/check on edited TS/JSON/Markdown and Black --no-cache --workers1 write/check on6 edited Python files PASS; default Black cache stalled, interrupted those formatter sessions and successfully reran without cache. git diff --check PASS.
+- Attempted RECOMMENDATION_DB_TEST=1 node node_modules/vitest/vitest.mjs run src/recommendations/recommendations.database.spec.ts: failed immediately at the development DATABASE_URL guard; no SQL/database writes ran. Live PostgreSQL/radius result correctness and live Backend/Ollama/browser E2E remain unverified. No unresolved business decision. Next: configure a development DATABASE_URL, rerun opt-in SQL fixture, then run authenticated /chat with selected location and the matching GET /stores/Postman scope before review.
+
+### 2026-10-28 17:48 Asia/Bangkok - F07 / R1-D3-AI: clarify history and category selection
+
+- Inspected [system prompt](../ai-service/prompts/system.py), chat router/LLM context and [candidate SQL](../apps/api/src/recommendations/recommendations.controller.ts). Broad recommendation requests may use history category IDs; absent a usable category the prompt asks for clarification. Specific requests map to category master name/slug. Current /chat always loads context and sends categories plus recent20-shop history to the model, even for specific requests; it does not conditionally omit history categories. Actual visited status comes from all-time confirmed SUCCEEDED/REFUNDED purchases in backend SQL, independent of the limited prompt history; current Coins/3+2/radius rules stay unchanged.
+- Explanation/source inspection only; changed PLAN handoff, no runtime/API/Postman/business-rule change or feature status advancement. Checks: Get-Content/rg source trace; installed API Prettier write/check on PLAN and git diff --check PASS. No build/unit/live calls rerun because no runtime changes; previous test results remain historical. No new blocker/decision. Next: if category selection must be enforced beyond prompt guidance, define explicit-category precedence and broad-request fallback before implementation and semantic tests.

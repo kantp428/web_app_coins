@@ -2,7 +2,7 @@
   "info": {
     "name": "THAI Please",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "THAI Please auth, wallet, QR payments, frozen Coin rates and monthly Main Quest reward contracts."
+    "description": "THAI Please auth, wallet, QR payments, frozen Coin rates and monthly Main Quest reward contracts. Recommendation candidates now require the GET /stores coordinate/radius scope; AI /chat accepts location for shop reads. Configure recommendationLatitude/Longitude/RadiusKm."
   },
   "variable": [
     {
@@ -64,6 +64,18 @@
     {
       "key": "aiModel",
       "value": "qwen3:4b"
+    },
+    {
+      "key": "recommendationLatitude",
+      "value": "13.75"
+    },
+    {
+      "key": "recommendationLongitude",
+      "value": "100.5"
+    },
+    {
+      "key": "recommendationRadiusKm",
+      "value": "5"
     }
   ],
   "item": [
@@ -2134,7 +2146,7 @@
           ]
         },
         {
-          "name": "Semantic shop search",
+          "name": "[DISABLED] Semantic shop search",
           "request": {
             "method": "POST",
             "header": [
@@ -2157,7 +2169,7 @@
                 }
               }
             },
-            "description": "Server builds the scoped candidate set. source is llm, fallback or discovery; no unvisited/Coins ranking."
+            "description": "Temporarily unavailable at user request (2026-10-28). POST route decorator is commented out; expected HTTP 404. Method/service retained for future activation. No recommendation IDs are saved; search/hydration chaining is unavailable."
           },
           "event": [
             {
@@ -2165,12 +2177,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "const r=pm.response.json(); pm.test('Structured IDs', () => { pm.expect(r.shopIds).to.be.an('array'); pm.expect(['llm','fallback','discovery']).to.include(r.source); });"
+                  "pm.test('Reserved search route is unavailable (404)', () => pm.response.to.have.status(404));"
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Batch scoped descriptions",
@@ -2899,13 +2911,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\"\n}",
+              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\",\n  \"location\": {\n    \"latitude\": {{recommendationLatitude}},\n    \"longitude\": {{recommendationLongitude}},\n    \"radiusKm\": {{recommendationRadiusKm}}\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Supply the selected location on every request. AI binds it server-side to discovery scope; the model chooses categories only."
           },
           "event": [
             {
@@ -3112,14 +3125,14 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"message\": \"ช่วยค้นข้อมูลโครงการคนละครึ่งจากเว็บทางการ แล้วแนะนำร้านอาหารในระบบด้วย\"\n}",
+                  "raw": "{\n  \"message\": \"ช่วยค้นข้อมูลโครงการคนละครึ่งจากเว็บทางการ แล้วแนะนำร้านอาหารในระบบด้วย\",\n  \"location\": {\n    \"latitude\": {{recommendationLatitude}},\n    \"longitude\": {{recommendationLongitude}},\n    \"radiusKm\": {{recommendationRadiusKm}}\n  }\n}",
                   "options": {
                     "raw": {
                       "language": "json"
                     }
                   }
                 },
-                "description": "Two distinct tools, at most one call each. storeIds from Backend only, max3 new/max2 repeat, fewer when unavailable. Search failures keep valid IDs and use sources:[]. Requires approved food shops for a nonempty shop response."
+                "description": "Supply the selected location on every request. AI binds it server-side to discovery scope; the model chooses categories only."
               },
               "event": [
                 {
@@ -3475,6 +3488,89 @@
               ]
             }
           ]
+        },
+        {
+          "name": "Chat requests selected location when missing (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Supply the selected location on every request. AI binds it server-side to discovery scope; the model chooses categories only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No shop recommendations without selected location', () => pm.expect(pm.response.json().storeIds).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat rejects invalid location (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\",\n  \"location\": {\n    \"latitude\": 91,\n    \"longitude\": 100.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Supply the selected location on every request. AI binds it server-side to discovery scope; the model chooses categories only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -3530,13 +3626,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Uses the same scope SQL as GET /stores across all pages before Coins/3+2 ranking. Missing coordinates are rejected."
           },
           "event": [
             {
@@ -3545,7 +3642,20 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Expected 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Quotas, unique IDs and ranking',()=>{const s=pm.response.json().stores;pm.expect(s.length).to.be.at.most(5);pm.expect(s.filter(x=>!x.visited).length).to.be.at.most(3);pm.expect(s.filter(x=>x.visited).length).to.be.at.most(2);pm.expect(new Set(s.map(x=>x.id)).size).to.eql(s.length);s.forEach(x=>{pm.expect(x.id).to.be.a('string');pm.expect(x.visited).to.be.a('boolean');if(x.coins!==null)pm.expect(x.coins).to.be.within(1,10);});for(let i=1;i<s.length;i++)pm.expect(s[i-1].coins??-1).to.be.at.least(s[i].coins??-1);});"
+                  "pm.test('Quotas, unique IDs and ranking',()=>{const s=pm.response.json().stores;pm.expect(s.length).to.be.at.most(5);pm.expect(s.filter(x=>!x.visited).length).to.be.at.most(3);pm.expect(s.filter(x=>x.visited).length).to.be.at.most(2);pm.expect(new Set(s.map(x=>x.id)).size).to.eql(s.length);s.forEach(x=>{pm.expect(x.id).to.be.a('string');pm.expect(x.visited).to.be.a('boolean');if(x.coins!==null)pm.expect(x.coins).to.be.within(1,10);});for(let i=1;i<s.length;i++)pm.expect(s[i-1].coins??-1).to.be.at.least(s[i].coins??-1);});",
+                  "pm.test('Candidates belong to GET /stores scope across all pages', async () => {",
+                  "  if (pm.response.code !== 200) return;",
+                  "  const request = JSON.parse(pm.variables.replaceIn(pm.request.body.raw));",
+                  "  const ids = new Set(); let page = 1, more;",
+                  "  do {",
+                  "    const query = 'latitude=' + request.latitude + '&longitude=' + request.longitude + '&radiusKm=' + request.radiusKm + '&categoryIds=' + request.categoryIds.join(',') + '&page=' + page + '&pageSize=100';",
+                  "    const response = await pm.sendRequest({url: pm.variables.replaceIn('{{baseUrl}}') + '/stores?' + query, method: 'GET', header: {Authorization: pm.variables.replaceIn('Bearer {{token}}')}});",
+                  "    pm.expect(response.code).to.eql(200); const data = response.json();",
+                  "    data.stores.forEach(store => { pm.expect(store.distanceKm).to.be.at.most(request.radiusKm); ids.add(store.id); });",
+                  "    more = data.meta.hasNextPage; page++;",
+                  "  } while (more);",
+                  "  pm.response.json().stores.forEach(store => pm.expect(ids.has(store.id), 'in-scope shop ' + store.id).to.eql(true));",
+                  "});"
                 ]
               }
             }
@@ -3643,7 +3753,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3683,7 +3793,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3723,7 +3833,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": []\n}",
+              "raw": "{\n  \"categoryIds\": [],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3763,7 +3873,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\",\n    \"{{categoryId}}\"\n  ]\n}",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\",\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3803,7 +3913,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": [\n    \"0\"\n  ]\n}",
+              "raw": "{\n  \"categoryIds\": [\n    \"0\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3843,7 +3953,247 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"userId\": \"another-user\"\n}",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"userId\": \"another-user\",\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject missing coordinates (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject latitude outside range (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": 91,\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject longitude outside range (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": 181,\n  \"radiusKm\": {{recommendationRadiusKm}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject radius below minimum (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject radius above maximum (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": 51\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject client shop scope override (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ],\n  \"latitude\": {{recommendationLatitude}},\n  \"longitude\": {{recommendationLongitude}},\n  \"radiusKm\": {{recommendationRadiusKm}},\n  \"shopIds\": [\n    \"1\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

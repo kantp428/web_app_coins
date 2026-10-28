@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service.js';
+import { StoresService } from '../stores/stores.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
   categories: vi.fn(),
@@ -24,6 +26,7 @@ import {
 } from './recommendations.controller.js';
 
 describe('recommendation filtering contract', () => {
+  const scope = { latitude: 13.75, longitude: 100.5, radiusKm: 5 };
   const me = vi.fn();
   let service: RecommendationsService;
   beforeEach(() => {
@@ -37,6 +40,7 @@ describe('recommendation filtering contract', () => {
     service = new RecommendationsService(
       new ConfigService({ DATABASE_URL: 'postgres://unused' }),
       { me } as unknown as AuthService,
+      new StoresService({} as PrismaService, {} as AuthService),
     );
   });
   it('requires bounded unique positive bigint category IDs and forbids actor injection', () => {
@@ -108,7 +112,7 @@ describe('recommendation filtering contract', () => {
   it('rejects unknown category before candidate query', async () => {
     mocks.count.mockResolvedValue(1);
     await expect(
-      service.candidates({ categoryIds: ['1', '2'] }, 'Bearer actor'),
+      service.candidates({ ...scope, categoryIds: ['1', '2'] }, 'Bearer actor'),
     ).rejects.toMatchObject({ status: 400 });
     expect(mocks.query).not.toHaveBeenCalled();
   });
@@ -118,7 +122,10 @@ describe('recommendation filtering contract', () => {
       { shop_id: 7n, visited: true, coins: null },
     ]);
     expect(
-      await service.candidates({ categoryIds: ['1', '2'] }, 'Bearer actor'),
+      await service.candidates(
+        { ...scope, categoryIds: ['1', '2'] },
+        'Bearer actor',
+      ),
     ).toEqual({
       stores: [
         { id: '3', visited: false, coins: 10 },
@@ -126,9 +133,14 @@ describe('recommendation filtering contract', () => {
       ],
     });
     const [strings, ...values] = mocks.query.mock.calls[0];
+    const scoped = values[0];
     const sql = strings.join('?');
-    expect(values[0]).toBe(42n);
-    expect(sql).toContain("participation_status = 'APPROVED'");
+    expect(values[1]).toBe(42n);
+    expect(scoped.sql).toContain("participation_status='APPROVED'");
+    expect(scoped.sql).toContain('filter_sc.category_id IN (?,?)');
+    expect(scoped.sql).toContain('distance_km<=?');
+    expect(scoped.values).toEqual([13.75, 13.75, 100.5, 1n, 2n, 5]);
+    expect(scoped.sql).not.toContain('LIMIT');
     expect(sql).toContain("p.status IN ('SUCCEEDED', 'REFUNDED')");
     expect(sql).toContain('PARTITION BY visited');
     expect(sql).toContain('CASE WHEN visited THEN 2 ELSE 3 END');
@@ -137,5 +149,30 @@ describe('recommendation filtering contract', () => {
     expect(sql).toContain('ends_at >');
     expect(sql).not.toContain('LIMIT 20');
     expect(sql).not.toContain('total_amount');
+  });
+
+  it('rejects missing/invalid coordinates, radius and client shop IDs before SQL', async () => {
+    for (const body of [
+      { categoryIds: ['1', '2'] },
+      { ...scope, latitude: 91, categoryIds: ['1', '2'] },
+      { ...scope, longitude: null, categoryIds: ['1', '2'] },
+      { ...scope, radiusKm: 0, categoryIds: ['1', '2'] },
+      { ...scope, radiusKm: 51, categoryIds: ['1', '2'] },
+      { ...scope, categoryIds: ['1', '2'], shopIds: ['1'] },
+    ])
+      await expect(service.candidates(body)).rejects.toMatchObject({
+        status: 400,
+      });
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('defaults to 5km and keeps zero coordinates and the shared scope SQL', async () => {
+    await service.candidates({
+      latitude: 0,
+      longitude: 0,
+      categoryIds: ['1', '2'],
+    });
+    const scoped = mocks.query.mock.calls[0][1];
+    expect(scoped.values).toEqual([0, 0, 0, 1n, 2n, 5]);
   });
 });

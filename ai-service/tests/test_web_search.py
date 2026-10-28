@@ -47,7 +47,9 @@ class WebSearchAPITests(unittest.TestCase):
         self.addCleanup(app.dependency_overrides.pop, get_web_search_service)
 
     def post(self, message="ช่วยค้นเงื่อนไขโครงการคนละครึ่งล่าสุดจากเว็บทางการหน่อย"):
-        return self.client.post("/chat", json={"message": message})
+        return self.client.post(
+            "/chat", json={"message": message, "location": rec.LOCATION}
+        )
 
     def test_web_search_returns_server_sources_and_only_valid_reference_links(self):
         self.model_responses = [

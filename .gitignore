@@ -37,3 +37,6 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 !.vscode/tasks.json
+
+# Local backend API quick reference
+/Summary-api.md
