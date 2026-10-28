@@ -148,6 +148,107 @@ User requests active mock version. seed:coin-rules:current creates max version+1
 
 User removes shops.area_code and area grouping. Drop shops column/index, remove register areaCode. Preserve purchases.shop_area_snapshot as nullable deprecated audit-only data; remove its report grouping index. New discovery uses customer opt-in current latitude/longitude and radiusKm default5 (0.1–50), approved shops nearest-first limit50. Never persist customer coordinates or send to geocoder; no location access on mount, manual coordinates fallback. GET /stores CUSTOMER only. Haversine SQL parameterized; no inferred area/postcode grouping. Existing fixed-area AI and reporting requirements superseded for discovery; geographic impact aggregation policy deferred.
 
+## 2026-10-14 — LLM-assisted Explore shop search
+
+The Explore search scope is the server-verified set of APPROVED shops inside the requested straight-line radius and optional category IDs. Empty category IDs mean every category. The old recommendation policy (unvisited shops, 3+2 quotas and Coins ordering) does not apply. Discovery ordering is distance then numeric shop ID; semantic results are relevance ordered with distance then numeric ID as the explicit tie-break. The browser supplies only query and scope, never trusted candidates or distances.
+
+`GET /stores` keeps existing store fields and adds page/pageSize/categoryIds plus metadata `{page,pageSize,total,hasNextPage}`. Default page size is 50 and maximum is 100. The Explore client follows every page before claiming discovery is complete. `POST /stores/descriptions` and `POST /stores/batch` accept at most 100 unique shop IDs; both re-query the same DB scope, descriptions return null unchanged, and hydration preserves requested ID order while omitting shops no longer in scope.
+
+Search query is trimmed UTF-8 text with a 1–500 character limit; an empty query bypasses the provider and returns an empty LLM result only at the API boundary (the UI uses discovery directly). Provider configuration is server-only. The first supported adapter is Ollama chat, selected with `SHOP_SEARCH_PROVIDER=ollama`; model, base URL, timeout and output-token budget are environment settings. Defaults are 12 seconds per provider call, 512 output tokens, 50 candidate summaries per model batch, at most 10 candidate batches (500 candidates), 20 description IDs per tool call and two description tool calls per candidate batch. Multi-batch matches receive one bounded merge/rerank call. More than 500 candidates, timeout/provider errors, invalid structured output or out-of-scope IDs trigger deterministic fallback over the complete DB candidate set rather than silently dropping candidates.
+
+Fallback tokenizes normalized query/name/category/description text, ranks positive matches by matched-token coverage, exact category/name evidence, distance and numeric ID, and returns no shops when there is no evidence. It is intentionally lexical and may miss semantic intent. API responses identify it with `source: "fallback"`; the UI visibly labels basic search. Invalid model output is never partially accepted: malformed JSON, duplicates or any ID outside the current scope invalidates that model result and invokes fallback.
+
+The only model tool is read-only `get_shop_descriptions({shopIds})`. The orchestrator validates its JSON arguments, batch limit and membership in the immutable candidate IDs for that request before calling the shared store description service. Query and merchant descriptions are explicitly delimited as untrusted data. The model cannot choose URLs, SQL, auth or a new search scope. Raw coordinates, credentials and personal data are not logged or sent to the provider.
+
+Rate limiting is in-memory per authenticated customer: 20 non-empty semantic searches per rolling minute. It is a single-instance prototype control and requires a shared limiter before horizontal scaling. Frontend debounce is 300 ms; origin/radius/category/query changes abort both search and hydration and stale responses are ignored. Pin or an explicit “current location” action is still required; no automatic geolocation request is introduced.
+
 ## 2026-10-12 — Shop description for recommendation context
 
 User requests shops.description collected at seller registration (menu/services/shop character). Nullable VARCHAR(2000) for legacy shops, new registrations require nonblank trimmed1–2000 characters; no generated backfill. Nearby stores returns description:string|null for future model context. Treat merchant text as untrusted descriptive data, never model instructions. No recommendation/model integration claimed in this change.
+
+## 2026-10-12 — Wallet cash/help and one-time seller payment requests
+
+User defines two displayed balances: `balance` is the CASH ledger balance for CUSTOMER and SELLER; `help` is the CUSTOMER BASE subsidy fixed at THB 1,000 per Asia/Bangkok calendar month. The backend lazily creates the month's allocation on first access and calculates available help from entries in the current Bangkok month only; unused help from earlier months cannot carry forward. The reset action is available only outside production when `ENABLE_TEST_WALLET_ACTIONS=true`; it appends an adjustment that makes the current month's available help exactly THB 1,000 and never rewrites history. Top-up is a simulated CUSTOMER-only CASH credit with no external payment provider and requires an `Idempotency-Key` so retries do not credit twice.
+
+Every seller payment request contains the decimal THB amount, an opaque UUID token, an owned shop, and a 15-minute expiry. The seeded demo seller therefore has an approved demo shop. It has no purchaser until a CUSTOMER opens/scans the token. A seller can list their requests and cancel a still-pending request. Expired requests are reported as EXPIRED; cancelled or expired requests cannot settle. Successful payment atomically changes PENDING to PAID, records the customer, creates the linked SUCCEEDED purchase, and serializes the request/wallet rows so the same request cannot settle twice under concurrent scans.
+
+The target government contribution is 60% of the purchase, rounded half-up to satang. Actual help is the lesser of that target and the customer's current-month available help; customer CASH pays the remaining amount. Therefore zero or insufficient help never blocks an otherwise affordable purchase—the shortfall falls back to customer balance. Reject only when customer CASH cannot cover its computed share. Credit seller CASH with 100% and append immutable linked ledger entries. History groups the two customer debits into one payment item with help/customer breakdown. QR rendering/camera decoding is presentation only; the API UUID is authoritative. Coin award and refunds remain outside this slice.
+
+Customer QR decoding uses `@zxing/browser` for both live camera frames and a user-selected image fallback instead of the browser-specific BarcodeDetector API. Selected images are decoded locally in the browser from an object URL, are limited to image MIME types and 10 MB, and are not uploaded to the API. The extracted UUID still goes through the authenticated payment-request preview before payment; manual UUID entry remains available.
+
+## 2026-10-12 — Thai Chuai Thai daily help limit
+
+User adds a THB 200 daily help ceiling while retaining the THB 1,000 monthly allocation. A day follows the Asia/Bangkok calendar; unused daily capacity does not raise a later day's ceiling. Preview and pay use the lesser of the remaining monthly help and remaining daily help, then move any subsidy shortfall to customer CASH under the existing fallback rule.
+
+`GET /wallets/me` is authoritative for both daily and monthly limits and remaining amounts as decimal strings. The frontend displays these server values and does not derive financial eligibility from history.
+
+## 2026-10-12 — Test-only daily and monthly help resets
+
+When non-production test wallet actions are enabled, CUSTOMER may reset the current Asia/Bangkok day's THB 200 usage counter independently from the monthly balance, or restore the current month's balance to THB 1,000. Neither action deletes or rewrites payment history. A daily reset appends an auditable, net-zero BASE allocation/expiry marker pair; subsequent daily usage counts only payment debits after the latest marker while the monthly ledger balance remains unchanged. Both actions remain forbidden in production or when `ENABLE_TEST_WALLET_ACTIONS` is not `true`.
+
+## 2026-10-12 — Government shop approval transitions and audit
+
+Government officers may approve only a PENDING shop. They may suspend a PENDING or APPROVED shop, and suspension requires a trimmed reason of at most 500 characters. Re-approval of a suspended shop is excluded until a reinstatement policy is agreed. Every change records the government reviewer, review time and latest reason on the shop; this is latest-state metadata rather than a full immutable review-event ledger. Public nearby search and seller payment requests require APPROVED status. Suspending a shop prevents creating new QR requests and settling its outstanding QR requests.
+
+## 2026-10-13 — Automatic shop Coin rates and manual test generation (F06)
+
+User authorizes automatic shared shop rates and an immediate test button. Retain prototype 06:00/18:00 Asia/Bangkok cutoffs. On API startup and every minute, ensure the current half-open 12-hour period exists; no historical backfill or future generation. The API must stay running; after downtime create only the current period. ENABLE_AUTO_COIN_RATES=false disables the worker. A GOVERNMENT-only manual action runs the same generator in non-production, including when automation is disabled; production rejects it. No client-supplied times, rates or rule IDs.
+
+Choose the rule effective at the period start. If none exists, return 409 and do not create a period or fabricate rates. Include shops APPROVED when the period is first generated; later approvals join the next period. Freeze the complete generated period (even if zero approved shops): retries return its stored count and never add/update rows. Serialize both generation paths with the existing rule-writer advisory transaction lock; insert the period and all shop rates atomically.
+
+Sales are full purchase totals confirmed in [periodStart - salesWindowDays, periodStart), regardless of the award minimum. Include SUCCEEDED and purchases refunded at/after the cutoff; exclude refunds before cutoff. This preserves the snapshot as of the cutoff under the current full-refund schema. Partial-refund policy remains unresolved and is not implemented. A Decimal total strictly below low_sales_threshold uses new_low_sales_coins, otherwise new_other_coins; no sales means zero. Repeat rate is repeat_coins. Persist rule ID, total and sales window. This slice creates rates only; customer eligibility/Coins ledger/quest rewards remain F08 work.
+
+## 2026-10-13 — Coin rate round summary table (F06/F10)
+
+User requests latest 10 update rounds as a table without shop details. Count all frozen shop_coin_rates in each round, explicitly bucket sales_total_snapshot < THB 10,000 vs >= THB 10,000; this reporting threshold is fixed as requested, independent of any versioned eligibility threshold. Display round creation time and start/end. Coins awarded is the gross sum of actual coin_entries.coins with awarded_at in [starts_at, ends_at), including later-reversed awards; not a sum of configured shop rates, not grouped by monthly period_id, and no fabricated totals. Label/footnote clarifies gross awards before reversals. F08 has no award writes yet, so an empty ledger returns zero. No schema change or award behavior change.
+
+### 2026-10-13 — F08 atomic QR Coin awards
+
+Successful QR settlement uses the frozen shop rate covering confirmation time [starts_at, ends_at), not QR creation or a live rule recalculation. Minimum purchase is inclusive and uses that rate's immutable rule. Repeat means this customer has ever received a coin entry for this shop, across all months, including reversed entries; purchases below the minimum do not consume the first award. This is distinct from visited status (all successful purchases). Missing frozen rate returns 0 Coins with NO_RATE (e.g. newly approved shop waits for next round); below minimum returns 0 with BELOW_MINIMUM. Payment still succeeds, without fabricated rates or retroactive awards. Preview is advisory; settlement recomputes under the existing Serializable transaction/wallet locks. Unique purchase/coin constraints prevent duplicate awards; conflicts return 409 and can be retried.
+
+Create a Bangkok monthly ledger period on first award if absent, with budget_limit=0 and DRAFT, preserving any configured period unchanged. Coin earning does not allocate or spend Main Quest budget; automatic grants/refunds remain separate work. Award timestamp equals purchase confirmation time. Wallet summary exposes current-month unreversed Coins as an integer string (null for sellers); payment preview/result includes coins, coinReason, coinRuleVersion. No historical purchases are backfilled.
+
+### 2026-10-13 — Main Quest live grant, spend and expiry
+
+Main Quest uses unreversed monthly Coins, target100 and reward100THB. Auto-grant within successful purchase transaction once eligible; POST /quests/me/claim retries eligibility when budget later becomes available, without requiring another purchase. Only current Bangkok month can receive grants. Existing monthly_periods must be OPEN with enough unallocated budget (budget_limit minus all grants); DRAFT/CLOSED/missing/insufficient budget => WAITING_BUDGET, no fabricated budget or grant. Lock the month row and customer row; unique(user,month) plus Serializable transactions prevent duplicate/oversubscribed grants. Do not invent or modify government budget values. GET reads only; historical grants remain auditable.
+
+Base help still uses60% with its existing daily/monthly caps. An existing unexpired Main Quest grant covers the remaining customer share, up to its available balance; customer CASH covers the rest. Base daily cap does not consume reward balance. A grant earned by the purchase becomes usable on the next purchase, never retrospectively changes the just-confirmed bill. REWARD ledger entries link grant/purchase/payment UUID; no zero-value debits. Expiry is enforced by month/grant timestamp filtering, with expired remaining amount reported separately rather than deleting ledger. Existing refunds remain deferred; no new refund behavior is implemented. Preview is advisory and settlement recomputes all sources.
+
+Quests displays actual Coins, progress, grant/used/available/expired amounts and twelve recent Bangkok months. Remove Preview badges/fixture disclaimers only from API-backed home/scan/top-up/receive/seller-money-history/explore/quests; keep customer monthly-history/settings/account fixtures marked. Seller shell heading uses authenticated displayName.
+
+### 2026-10-13 — Linear new-customer Coin scale (supersedes binary rate calculation)
+
+User approves scaling from new_low_sales_coins (maximum at zero sales) to new_other_coins (minimum at/above low_sales_threshold), rounding UP to an integer: ceil(max - (max-min) * clamp(sales,0,threshold) / threshold). Use Decimal arithmetic. Threshold zero uses minimum for all shops, matching the existing zero-threshold behavior. Equal endpoints yield a constant rate. Repeat customer rate, inclusive minimum purchase, lookback, cutoff, sales eligibility and award/quest rules remain unchanged.
+
+Apply only when generating a new frozen round. Existing shop_coin_rates and historical awards are never rewritten, including manual reuse of a current round; stored final rates, rule IDs, sales/window snapshots and this formula-change record preserve auditability. No new scale/weight fields or schema migration. History report buckets still use their fixed10000 threshold independently of the continuous calculation.
+
+### 2026-10-13 — Rule history scale explanation
+
+User requests a formula and sales-to-Coins examples for each rule-history row. API computes explanatory samples with the same Decimal scale helper as rate generation; frontend only renders server values. Samples use0/25/50/75/100 percent of that rule threshold, floored to satang before calculating Coins; duplicate sales points omitted for tiny/zero thresholds. Threshold0 explicitly shows constant minimum instead of division by zero. Explain that this is the current formula for newly generated rounds, not a rewrite of older binary frozen rates. Repeat Coins stays visible inside the detail cell.
+
+### 2026-10-13 — Nearby mock shops seed
+
+User authorizes20 mock seller/shop records within5km of the supplied center, all existing categories covered, sequential usernames and the supplied demo password. Use reserved demo_shop_01..20, one APPROVED shop each so customer search works, descriptions visibly marked as test data, synthetic addresses and opening hours. Generate deterministic spherical coordinates and verify rounded stored points remain within5km. Non-production seed only, atomic transaction, collision checks and idempotent reuse; never overwrite unrelated accounts/shops or fabricate sales/Coins/grants. Existing frozen Coin rounds are unchanged; newly approved demo shops join the next generated round.
+
+### 2026-10-14 — Explore pin, distance and driving routes
+
+User requests draggable origin pin with explicit current-location action, retained LAT/LONG test inputs, DB-only nearby search/category filtering and a2:1 search/filter bar. Default map/search point uses the previously supplied test center and is labelled a search point, never inferred device position. Clicking/dragging origin commits rounded coordinates and searches again; straight-line distance from GETstores is the radius/filter metric, while OSRM driving distance/time is shown only after a shop selection. Selecting a shop from marker/card requests an OSRM GeoJSON route from the selected origin. Coordinate changes/filters/new selections invalidate old routes; failure keeps DB stores/straight-line distance and allows retry/Google Maps. Google Maps opens the selected shop coordinates, not a fixed example.
+
+Routing goes through authenticated CUSTOMER Next BFF /api/routing, forwarding only selected coordinate pairs to configured OSRM_BASE_URL (default same demo service as the user's osrm-test.html). No background geolocation, no mocked shops/fabricated road routes and no Coin calculation in frontend. Map tiles load only when map is opened; attribution and Ctrl-wheel behavior retained. OSRM demo routing is best-effort; no traffic-aware ETA or route guarantee. No money/Coins/ledger/schema changes.
+
+### 2026-10-14 — Explicit test-only current Coin round regeneration
+
+User requests overwriting the current round to include newly mocked approved shops for easier testing. Keep default worker/manual {} frozen/idempotent; add explicit {regenerate:true} GOVERNMENT non-production action with confirmation. Recalculate only the current half-open round using its start-time rule and original lookback, replacing rates atomically and updating generation timestamp; never rewrite older rounds or ledger. Reject409 if any Coin award exists in that round (including reversed awards). Lock the period via update before checking awards; purchase quotes/payments acquire a shared lock on the same period, preventing payment/regeneration races. A new round can still be created if none exists. Existing production denial and auth/body validation remain enforced.
+
+### 2026-10-14 — Coin rate history five sales stages
+
+Stage 1–5 are reporting buckets using each frozen rate's rule threshold and sales snapshot: <25%, [25%,50%), [50%,75%), [75%,100%), >=100%. Clamp negative sales to zero; a zero threshold places all shops in Stage 5. These are sales bands, not five discrete Coin rewards; linear ceil awards remain unchanged. Keep legacy count fields for compatibility. Refresh reads summaries only and never regenerates rates.
+
+### 2026-10-15 — Explicit public origin behind a tunnel
+
+Web mutation handlers retain same-origin CSRF checks. Reverse proxies can expose HTTPS while NextRequest sees an internal HTTP origin. Add server-only WEB_PUBLIC_ORIGIN as one exact trusted origin alongside request.nextUrl.origin; do not trust arbitrary forwarded headers, wildcard domains, missing Origin or null Origin. Configure the current tunnel URL locally and restart when it changes. This is deployment configuration, not a business-rule change.
+
+## 2026-10-28 - Recommendation merge boundaries
+
+- Per user direction, preserve HEAD recommendation context/candidates implementation and 3+2 ranking unchanged. Keep Explore search as a separate controller using the existing extracted search service, so existing Explore callers retain POST /recommendations/search. AppModule registers each controller/provider once; alias the extracted service as ShopSearchService to distinguish it from the HEAD service. No new recommendation business policy.
+- Merge Postman structurally by request/folder name and variable key against the merge base, preserving independent AI and payment/government/Explore additions. Live database/provider/browser acceptance remains pending.

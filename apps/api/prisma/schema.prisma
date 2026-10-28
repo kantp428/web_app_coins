@@ -51,23 +51,26 @@ model coin_rule_versions {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model money_entries {
-  entry_id        BigInt         @id @default(autoincrement())
-  idempotency_key String         @unique @db.VarChar(200)
-  wallet_id       BigInt
-  user_id         BigInt
-  wallet_type     String         @db.VarChar(16)
-  purchase_id     BigInt?
-  grant_id        BigInt?        @unique(map: "uq_reward_allocation", where: raw("((entry_type)::text = 'REWARD_ALLOCATION'::text)"))
-  signed_amount   Decimal        @db.Decimal(14, 2)
-  entry_type      String         @db.VarChar(24)
-  created_at      DateTime       @default(now()) @db.Timestamptz(6)
-  reward_grants   reward_grants? @relation(fields: [grant_id, user_id], references: [grant_id, user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_money_grant_owner")
-  purchases       purchases?     @relation(fields: [purchase_id, user_id], references: [purchase_id, customer_id], onDelete: NoAction, onUpdate: NoAction)
-  wallets         wallets        @relation(fields: [wallet_id, user_id, wallet_type], references: [wallet_id, user_id, wallet_type], onDelete: NoAction, onUpdate: NoAction)
+  entry_id           BigInt            @id @default(autoincrement())
+  idempotency_key    String            @unique @db.VarChar(200)
+  wallet_id          BigInt
+  user_id            BigInt
+  wallet_type        String            @db.VarChar(16)
+  purchase_id        BigInt?
+  grant_id           BigInt?           @unique(map: "uq_reward_allocation", where: raw("((entry_type)::text = 'REWARD_ALLOCATION'::text)"))
+  signed_amount      Decimal           @db.Decimal(14, 2)
+  entry_type         String            @db.VarChar(24)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  payment_request_id String?           @db.Uuid
+  payment_requests   payment_requests? @relation(fields: [payment_request_id], references: [payment_request_id], onDelete: NoAction, onUpdate: NoAction)
+  reward_grants      reward_grants?    @relation(fields: [grant_id, user_id], references: [grant_id, user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_money_grant_owner")
+  purchases          purchases?        @relation(fields: [purchase_id, user_id], references: [purchase_id, customer_id], onDelete: NoAction, onUpdate: NoAction)
+  wallets            wallets           @relation(fields: [wallet_id, user_id, wallet_type], references: [wallet_id, user_id, wallet_type], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([purchase_id, wallet_id, entry_type], map: "uq_money_purchase_source", where: raw("((entry_type)::text = ANY ((ARRAY['PURCHASE'::character varying, 'REFUND'::character varying])::text[]))"))
   @@index([grant_id, entry_type], map: "ix_money_grant")
   @@index([wallet_id, created_at], map: "ix_money_wallet")
+  @@index([payment_request_id], map: "ix_money_payment_request")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -89,28 +92,29 @@ model monthly_periods {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model purchases {
-  purchase_id         BigInt             @id @default(autoincrement())
+  purchase_id         BigInt              @id @default(autoincrement())
   customer_id         BigInt
-  customer_role       String             @default("CUSTOMER") @db.VarChar(16)
+  customer_role       String              @default("CUSTOMER") @db.VarChar(16)
   shop_id             BigInt
-  rule_id             BigInt
-  total_amount        Decimal            @db.Decimal(14, 2)
-  customer_paid       Decimal            @db.Decimal(14, 2)
-  base_subsidy_used   Decimal            @default(0) @db.Decimal(14, 2)
-  reward_subsidy_used Decimal            @default(0) @db.Decimal(14, 2)
-  subsidy_used        Decimal?           @default(dbgenerated("(base_subsidy_used + reward_subsidy_used)")) @db.Decimal(14, 2)
-  status              String             @default("PENDING") @db.VarChar(16)
-  created_at          DateTime           @default(now()) @db.Timestamptz(6)
-  confirmed_at        DateTime?          @db.Timestamptz(6)
-  refunded_at         DateTime?          @db.Timestamptz(6)
-  shop_area_snapshot  String?            @db.VarChar(20)
-  shop_size_snapshot  String             @db.VarChar(16)
-  idempotency_key     String             @unique @db.VarChar(200)
+  rule_id             BigInt?
+  total_amount        Decimal             @db.Decimal(14, 2)
+  customer_paid       Decimal             @db.Decimal(14, 2)
+  base_subsidy_used   Decimal             @default(0) @db.Decimal(14, 2)
+  reward_subsidy_used Decimal             @default(0) @db.Decimal(14, 2)
+  subsidy_used        Decimal?            @default(dbgenerated("(base_subsidy_used + reward_subsidy_used)")) @db.Decimal(14, 2)
+  status              String              @default("PENDING") @db.VarChar(16)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  confirmed_at        DateTime?           @db.Timestamptz(6)
+  refunded_at         DateTime?           @db.Timestamptz(6)
+  shop_area_snapshot  String?             @db.VarChar(20)
+  shop_size_snapshot  String              @db.VarChar(16)
+  idempotency_key     String              @unique @db.VarChar(200)
   coin_entries        coin_entries?
   money_entries       money_entries[]
-  coin_rule_versions  coin_rule_versions @relation(fields: [rule_id], references: [rule_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_purchase_rule")
-  users               users              @relation(fields: [customer_id, customer_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
-  shops               shops              @relation(fields: [shop_id], references: [shop_id], onDelete: NoAction, onUpdate: NoAction)
+  payment_requests    payment_requests?
+  coin_rule_versions  coin_rule_versions? @relation(fields: [rule_id], references: [rule_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_purchase_rule")
+  users               users               @relation(fields: [customer_id, customer_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+  shops               shops               @relation(fields: [shop_id], references: [shop_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([purchase_id, customer_id])
   @@unique([purchase_id, customer_id, rule_id])
@@ -139,40 +143,46 @@ model reward_grants {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model shops {
   shop_coin_rates      shop_coin_rates[]
-  shop_id              BigInt            @id @default(autoincrement())
+  shop_id              BigInt             @id @default(autoincrement())
   owner_id             BigInt
-  owner_role           String            @default("SELLER") @db.VarChar(16)
-  name                 String            @db.VarChar(200)
-  description          String?           @db.VarChar(2000)
+  owner_role           String             @default("SELLER") @db.VarChar(16)
+  name                 String             @db.VarChar(200)
+  description          String?            @db.VarChar(2000)
   address              Json?
-  latitude             Decimal           @db.Decimal(9, 6)
-  longitude            Decimal           @db.Decimal(9, 6)
-  opening_hours        Json              @default("{}")
-  participation_status String            @default("PENDING") @db.VarChar(16)
-  size_class           String            @db.VarChar(16)
+  latitude             Decimal            @db.Decimal(9, 6)
+  longitude            Decimal            @db.Decimal(9, 6)
+  opening_hours        Json               @default("{}")
+  participation_status String             @default("PENDING") @db.VarChar(16)
+  reviewed_by          BigInt?
+  reviewed_at          DateTime?          @db.Timestamptz(6)
+  review_reason        String?            @db.VarChar(500)
+  size_class           String             @db.VarChar(16)
   purchases            purchases[]
+  payment_requests     payment_requests[]
   shop_categories      shop_categories[]
-  users                users             @relation(fields: [owner_id, owner_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
+  users                users              @relation(fields: [owner_id, owner_role], references: [user_id, role], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([participation_status], map: "ix_shops_map")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model users {
-  user_id            BigInt               @id @default(autoincrement())
-  login_identifier   String               @unique @db.VarChar(255)
-  password_hash      String
-  role               String               @db.VarChar(16)
-  display_name       String               @db.VarChar(200)
-  interests          Json                 @default("[]")
-  status             String               @default("ACTIVE") @db.VarChar(16)
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  coin_entries       coin_entries[]
-  coin_rule_versions coin_rule_versions[]
-  purchases          purchases[]
-  reward_grants      reward_grants[]
-  shops              shops[]
-  wallets            wallets[]
+  user_id                      BigInt               @id @default(autoincrement())
+  login_identifier             String               @unique @db.VarChar(255)
+  password_hash                String
+  role                         String               @db.VarChar(16)
+  display_name                 String               @db.VarChar(200)
+  interests                    Json                 @default("[]")
+  status                       String               @default("ACTIVE") @db.VarChar(16)
+  created_at                   DateTime             @default(now()) @db.Timestamptz(6)
+  coin_entries                 coin_entries[]
+  coin_rule_versions           coin_rule_versions[]
+  purchases                    purchases[]
+  reward_grants                reward_grants[]
+  shops                        shops[]
+  wallets                      wallets[]
+  payment_requests_as_seller   payment_requests[]   @relation("payment_seller")
+  payment_requests_as_customer payment_requests[]   @relation("payment_customer")
 
   @@unique([user_id, role])
 }
@@ -190,6 +200,27 @@ model wallets {
 
   @@unique([user_id, wallet_type])
   @@unique([wallet_id, user_id, wallet_type])
+}
+
+model payment_requests {
+  payment_request_id String          @id @db.Uuid
+  seller_id          BigInt
+  shop_id            BigInt?
+  amount             Decimal         @db.Decimal(14, 2)
+  status             String          @default("PENDING") @db.VarChar(16)
+  customer_id        BigInt?
+  created_at         DateTime        @default(now()) @db.Timestamptz(6)
+  expires_at         DateTime        @db.Timestamptz(6)
+  paid_at            DateTime?       @db.Timestamptz(6)
+  purchase_id        BigInt?         @unique
+  seller             users           @relation("payment_seller", fields: [seller_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  customer           users?          @relation("payment_customer", fields: [customer_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  shop               shops?          @relation(fields: [shop_id], references: [shop_id], onDelete: NoAction, onUpdate: NoAction)
+  purchase           purchases?      @relation(fields: [purchase_id], references: [purchase_id], onDelete: NoAction, onUpdate: NoAction)
+  money_entries      money_entries[]
+
+  @@index([seller_id, created_at], map: "ix_payment_requests_seller")
+  @@index([customer_id, paid_at], map: "ix_payment_requests_customer")
 }
 
 model categories {

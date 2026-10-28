@@ -38,13 +38,15 @@ Monorepo สำหรับเว็บแอปตาม [Flag board](PLAN/PLAN
    cd web_app_coins
    ```
 
-3. ติดตั้ง dependencies จาก lockfile และคัดลอกไฟล์ตั้งค่าตัวอย่าง:
+3. ติดตั้ง dependencies จาก lockfile และ generate Prisma Client ด้วยคำสั่งเดียว จากนั้นคัดลอกไฟล์ตั้งค่าตัวอย่าง:
 
    ```powershell
-   pnpm install --frozen-lockfile
+   pnpm run setup
    Copy-Item apps/web/.env.example apps/web/.env.local
    Copy-Item apps/api/.env.example apps/api/.env
    ```
+
+   `pnpm run setup` รัน `pnpm install --frozen-lockfile` แล้ว `pnpm run prisma:generate` ตามลำดับ และหยุดหากขั้นแรกไม่สำเร็จ ใช้ `pnpm run setup` โดยระบุ `run` เพราะ `pnpm setup` เป็นคำสั่งของ pnpm เอง คำสั่งนี้ไม่รัน migration/seed และไม่เขียนทับ `.env` หากต้องการ generate ใหม่อย่างเดียวใช้ `pnpm run prisma:generate`
 
 4. แก้ `apps/api/.env` ให้ `DATABASE_URL` ตรงกับ PostgreSQL ของเครื่อง หากจะทำงานส่วนฐานข้อมูล ค่า `JWT_SECRET` ในตัวอย่างต้องเปลี่ยนก่อนเริ่มพัฒนา auth ค่า `NEXT_PUBLIC_API_URL` ใน `apps/web/.env.local` ชี้ไปยัง API ที่ `http://localhost:3000` อยู่แล้ว
 
@@ -64,7 +66,7 @@ pnpm lint
 pnpm test
 ```
 
-ปัจจุบันมี mobile wallet UI จำลอง, NestJS scaffold และ Neon/Prisma baseline `0_init` แล้ว. Seed, PrismaService และ business APIs ยังเป็นงานที่เหลือใน [Integration plan](PLAN/INTEGRATION.md). วิธี Pull/Push/Baseline/Migrate ดู [Prisma guide](apps/api/PRISMA_GUIDE.md).
+ปัจจุบัน wallet ใช้ API/ledger จริงแล้ว: CUSTOMER เติมเงินจำลอง, ใช้ help รายเดือน, สแกน QR จ่ายครั้งเดียว และหาก help ไม่ครบ 60% ระบบหักส่วนขาดจาก balance ลูกค้า; SELLER สร้าง/ยกเลิก QR และดูสถานะได้. ตั้ง `ENABLE_TEST_WALLET_ACTIONS=true` เฉพาะเครื่องพัฒนาเมื่อต้องการปุ่ม reset help. Coins, refund และ payment provider จริงยังอยู่ใน [Integration plan](PLAN/INTEGRATION.md). วิธี Pull/Push/Baseline/Migrate ดู [Prisma guide](apps/api/PRISMA_GUIDE.md).
 
 ## Shop registration location
 

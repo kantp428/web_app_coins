@@ -1,9 +1,11 @@
+import { Prisma } from '@prisma/client';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth/auth.service.js';
 const { tx } = vi.hoisted(() => ({
   tx: {
     $executeRaw: vi.fn(),
+    $queryRaw: vi.fn(),
     coin_rule_versions: {
       findFirst: vi.fn(),
       update: vi.fn(),
@@ -13,10 +15,12 @@ const { tx } = vi.hoisted(() => ({
     coin_rate_periods: { findMany: vi.fn() },
   },
 }));
-vi.mock('@prisma/client', () => ({
+vi.mock('@prisma/client', async (importOriginal) => ({
+  Prisma: (await importOriginal<typeof import('@prisma/client')>()).Prisma,
   PrismaClient: class {
     coin_rule_versions = tx.coin_rule_versions;
     coin_rate_periods = tx.coin_rate_periods;
+    $queryRaw = tx.$queryRaw;
     $transaction = vi.fn((cb: (v: unknown) => unknown) => cb(tx));
     $disconnect = vi.fn();
   },
@@ -25,7 +29,7 @@ import {
   CoinRulesService,
   validRule,
   nextCutoff,
-} from './coin-rules.controller.js';
+} from './coin-rules.service.js';
 const body = {
   minimumPurchase: '50.00',
   lowSalesThreshold: '10000.00',
@@ -131,14 +135,49 @@ describe('Coin rules', () => {
     ).rejects.toMatchObject({ status: 400 });
     expect(tx.$executeRaw).not.toHaveBeenCalled();
   });
-  it('serializes IDs and reads actual period/rate relations', async () => {
-    tx.coin_rule_versions.findMany.mockResolvedValue([{ rule_id: 1n }]);
-    tx.coin_rate_periods.findMany.mockResolvedValue([
-      { period_id: 1n, shop_coin_rates: [] },
+  it('serializes IDs and returns server round summaries without shop details', async () => {
+    tx.coin_rule_versions.findMany.mockResolvedValue([
+      {
+        rule_id: 1n,
+        low_sales_threshold: new Prisma.Decimal('10000'),
+        sales_window_days: 7,
+        new_low_sales_coins: 10,
+        new_other_coins: 5,
+      },
+    ]);
+    tx.$queryRaw.mockResolvedValue([
+      {
+        period_id: 1n,
+        shopCount: 103,
+        belowThresholdShopCount: 102,
+        atOrAboveThresholdShopCount: 1,
+        coinsAwarded: '25',
+      },
     ]);
     expect(await service().list()).toMatchObject({
-      rules: [{ rule_id: '1' }],
-      periods: [{ period_id: '1' }],
+      rules: [
+        {
+          rule_id: '1',
+          calculationDetail: {
+            examples: [
+              { sales: '0.00', coins: 10 },
+              { sales: '2500.00', coins: 9 },
+              { sales: '5000.00', coins: 8 },
+              { sales: '7500.00', coins: 7 },
+              { sales: '10000.00', coins: 5 },
+            ],
+          },
+        },
+      ],
+      periods: [
+        {
+          period_id: '1',
+          shopCount: 103,
+          belowThresholdShopCount: 102,
+          atOrAboveThresholdShopCount: 1,
+          coinsAwarded: '25',
+        },
+      ],
     });
   });
 });

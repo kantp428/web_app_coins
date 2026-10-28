@@ -102,6 +102,7 @@ export default function LoginPage() {
           ))}
         </div>
         <form
+          method="post"
           id="login-panel"
           role="tabpanel"
           aria-labelledby={`tab-${role}`}

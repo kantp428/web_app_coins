@@ -76,6 +76,38 @@ try {
           });
         records.push({ role: user.role, id: user.user_id.toString(), created });
       }
+      const seller = await tx.users.findUniqueOrThrow({
+        where: { login_identifier: 'demo_shop' },
+      });
+      const existingShop = await tx.shops.findFirst({
+        where: { owner_id: seller.user_id },
+        orderBy: { shop_id: 'asc' },
+      });
+      if (!existingShop)
+        await tx.shops.create({
+          data: {
+            owner_id: seller.user_id,
+            name: 'ร้านค้าทดสอบ',
+            description: 'ร้านสำหรับทดสอบ QR และธุรกรรมในระบบพัฒนา',
+            address: {
+              line1: 'พื้นที่ทดสอบ',
+              province: 'กรุงเทพมหานคร',
+              district: 'ปทุมวัน',
+              subDistrict: 'วังใหม่',
+              postcode: '10330',
+            },
+            latitude: '13.745500',
+            longitude: '100.534000',
+            opening_hours: {
+              days: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+              open: '08:00',
+              close: '20:00',
+              timeZone: 'Asia/Bangkok',
+            },
+            participation_status: 'APPROVED',
+            size_class: 'SMALL',
+          },
+        });
       return records;
     },
     { maxWait: 30000, timeout: 30000 },

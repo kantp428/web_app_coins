@@ -11,23 +11,23 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                               | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                             | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                          | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth/role paths ผ่าน; wallet/Coins reads ยังไม่มี                | D2                     | I               | F01                   |
-| F03     | PARTIAL: สมัครร้านสร้าง PENDING; CRUD/approval/search ยังไม่มี            | D3                     | I               | F02                   |
-| F04     | PARTIAL: Login/Register + routes; ร้าน/ยอดเงินยัง preview                 | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview               | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4                     | I               | F02/F03               |
-| F07     | PARTIAL: auth + Qwen tools/DB rank 3+2 + DDGS Search; DB/UI gates pending | D4–5                   | AI              | F03/F06               |
-| F08     | TODO                                                                      | D5                     | I               | F06                   |
-| F09     | UI PREVIEW: แยก path แล้ว; purchase/AI ยังไม่เชื่อม                       | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: Government rules API/UI; seller transactions/rules TODO          | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                 | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                      | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                  | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                      | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                             | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | ----------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                           | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                        | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth/role + wallet/Coins reads; live E2E pending               | D2                     | I               | F01                   |
+| F03     | PARTIAL: registration + approval/search; owner CRUD/E2E pending         | D3                     | I               | F02                   |
+| F04     | PARTIAL: DB Explore pin/routes + paginated scoped discovery/LLM search  | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview             | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: rules API/UI + rate generation; live DB/review pending         | D4                     | I               | F02/F03               |
+| F07     | PARTIAL: HEAD chat 3+2/DDGS + separate Explore search; live E2E pending | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: wallet/payment lifecycle + unit tests; live DB gates pending   | D5                     | I               | F06                   |
+| F09     | PARTIAL: Explore AI เชื่อมจริง; acceptance/browser QA รวมยังค้าง        | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: rules UI + seller payment API; full UI/E2E pending             | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                               | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                    | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                    | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
@@ -48,9 +48,9 @@
 | D3 / 9 ต.ค. | [`R1-D3-AI`](AI_DEV.md) | F07 | PARTIAL: Backend context/candidates + FastAPI/Postman | ไม่มี location filter; live Backend/model E2E และ review pending | — |
 | D3 / 9 ต.ค. | [`R1-D3-I`](INTEGRATION.md) | F03 | DOING | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน | — |
 | D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md) | F09 | TODO | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม | — |
-| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md) | F10 | PARTIAL: Government rules API/UI; seller transactions/rules TODO | D5 | B | F06/F08 |
+| D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md) | F10 | PARTIAL: rules UI + seller payment API; full UI/E2E pending | D5 | B | F06/F08 |
 | D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md) | F07 | PARTIAL: verified IDs/active rates + public Search/citations/limits | อ่าน stored rates เท่านั้น; Search ล่มแจ้งข้อจำกัด; broader grounding pending | — |
-| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06 | PARTIAL: Government rules API/UI + period schema; preview/generation TODO | D4 | I | F02/F03 |
+| D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06 | PARTIAL: rules API/UI + rate generation; live DB/review pending | D4 | I | F02/F03 |
 | D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md) | F09 | TODO | F07/F08; กดซ้ำไม่ตัดยอด/เพิ่ม Coins ซ้ำ | — |
 | D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md) | F10/F12 | TODO | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน | — |
 | D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md) | F07/F13 | TODO | F07/F09; รายงานผลจริงและข้อจำกัด | — |
@@ -64,7 +64,9 @@
 | D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md) | F14 | TODO | F13; grounded response ตรวจซ้ำ | — |
 | D7 / 13 ต.ค. | [`R1-D7-I`](INTEGRATION.md) | F14 | TODO | F13 + PR ทุกคน; ไม่ tag หาก acceptance สำคัญยังไม่ผ่าน | — |
 
-อัปเดตตามงานใน working tree ณ **11 ตุลาคม 2569 (Asia/Bangkok)**; งานที่เริ่มทำระบุ DOING และยังไม่มี Daily Flag ที่ปิด DONE หรือเข้า PR จากหลักฐานรอบนี้. งาน Auth/Registration ทำได้แล้วไม่ได้แปลว่า F02/F03 ผ่านครบ เพราะ wallet/Coins, store CRUD/approval และ ownership acceptance ยังเหลือ. Release F14 ยังต้องรอ F13 และ gates ตาม [Integration](INTEGRATION.md).
+อัปเดตตามงานใน working tree ณ **28 October 2026 (Asia/Bangkok)**; งานที่เริ่มทำระบุ DOING และยังไม่มี Daily Flag ที่ปิด DONE หรือเข้า PR จากหลักฐานรอบนี้. งาน Auth/Registration ทำได้แล้วไม่ได้แปลว่า F02/F03 ผ่านครบ เพราะ wallet/Coins, store CRUD/approval และ ownership acceptance ยังเหลือ. Release F14 ยังต้องรอ F13 และ gates ตาม [Integration](INTEGRATION.md).
+
+> Current source status (28 October 2026): wallet reads, payment lifecycle, government approval/rate generation and both recommendation flows are implemented in part. The 11 October snapshot below is historical; its outstanding-work statements do not describe the latest source. Live DB, browser, provider and review gates remain pending.
 
 ## ความคืบหน้าที่ตรวจแล้ว — 11 ตุลาคม 2569
 
@@ -404,3 +406,61 @@
 
 - ตรวจ [smoke_ollama.py](../ai-service/tests/smoke_ollama.py), [smoke_web_search.py](../ai-service/tests/smoke_web_search.py) และ [smoke_chat_test.py](../ai-service/tests/smoke_chat_test.py) เพื่ออธิบายการตรวจเส้นทางหลักกับ Ollama/DDGS จริง, fixture context และ HTTP TestClient แบบไม่ใช้ token/Backend. เป็น opt-in scripts ไม่รันตอนเปิด service หรือ unittest discovery แบบ test_*.py; ไม่ใช่ full DB E2E
 - แก้เฉพาะ handoff นี้ คง Feature/Daily Flags/runtime/contracts. ตรวจ source ด้วย rg/Get-Content; Prettier package API write/check PLAN และ git diff --check ผ่าน. ไม่รัน smoke/tests/build ซ้ำเพราะเป็นการอธิบายโค้ดเดิม. ไม่มี blocker; ขั้นต่อไปใช้คำสั่ง smoke_chat_test จาก README เมื่อต้องการตรวจโมเดลและ Search จริงหลังเปลี่ยนโค้ด
+
+### 2026-10-14 13:07 Asia/Bangkok — F04/F07/F09: audit ข้อกำหนด LLM-assisted Explore search
+
+- อ่าน AGENTS.md, PLAN/PLAN.md, PLAN/AI_DEV.md, PLAN/APP_DEV_A.md, PLAN/INTEGRATION.md, docs/api-contract.md, docs/decisions.md และ skills nest-api/prisma-data/web-frontend/fastapi-ai ครบแล้ว; ตรวจ source ของ NestJS recommendations/stores, FastAPI AI orchestration และหน้า `/wallet/explore` เทียบกับข้อกำหนดที่ได้รับ
+- พบของเดิมยังเป็นคนละ flow: GET `/stores` จำกัด50รายการ/ยังไม่มี pagination ตาม scope, recommendations ใช้นโยบาย3ร้านใหม่+2ร้านเคยซื้อและ Coins, ส่วน Explore คำนวณระยะทางบางส่วนฝั่งเว็บ. งานใหม่นี้ต้องไม่สืบทอดเงื่อนไขร้านไม่เคยซื้อหรือ Coins ranking โดยอัตโนมัติ และต้องคง map/cards/categories/routes เดิม
+- ยังไม่แก้ source/contracts/decisions เพราะข้อความ requirement ถูกตัดหลัง POST `/stores/descriptions` และแจ้งว่ายังขาด52บรรทัด ซึ่งอาจกำหนด provider boundary, fallback/error UX, security และ acceptance tests; ไม่เดาเงื่อนไขที่หายไป. Checks รอบนี้เป็น read-only `rg`/`Get-Content`; ไม่รัน tests/build. ขั้นต่อไปให้ผู้ใช้ส่งข้อความตั้งแต่หลัง `- CUSTOMER auth และตรวจ scope จาก DB` จนจบ แล้วบันทึก decisions ที่ครบก่อน implement
+
+### 2026-10-14 13:19 Asia/Bangkok — F04/F07/F09/F13: LLM-assisted Explore shop search
+
+- บันทึก decisions ก่อน implement แล้วเพิ่ม NestJS orchestration แบบ CUSTOMER-only: GET `/stores` รองรับ category/pagination/metadata, POST `/recommendations/search`, `/stores/descriptions` และ `/stores/batch`. StoresService ใช้ PrismaService ร่วมและสร้าง scope APPROVED/radius/category จาก DB ทุกขั้น; ระยะ Haversine คำนวณ backend, hydration รักษาลำดับและตัดร้านที่หลุด scope. ไม่มีนโยบายร้านใหม่3+เก่า2หรือ Coins ranking
+- เพิ่ม Ollama provider adapter/config server-only, structured `{shopIds}`, tool `get_shop_descriptions` แบบ read-only/scoped/batch, validation JSON/duplicate/out-of-scope, candidate batches50 สูงสุด500 + merge, timeout/token/tool-call/rate limits และ deterministic lexical fallback ทั้ง candidate set. Query/merchant text กำกับเป็น untrusted; browser ไม่รับ key/model และไม่ส่ง candidate/distance ให้เชื่อ
+- หน้า `/wallet/explore` คง map/cards/category icons/pin/GPS opt-in/popup/OSRM/Google Maps dialog เดิม. Query ว่างโหลด discovery ทุกหน้าจน `hasNextPage=false`; query มีข้อความ debounce300ms แล้ว search→hydrate (แบ่งครั้งละ100). Origin/radius/category/query abort request เก่าและตรวจ request generation; ล้าง query กลับ discovery ทันที; fallback มีข้อความเตือนข้อจำกัด
+- เพิ่ม Next HttpOnly-cookie BFF routes, `.env.example`, contract/decisions/Postman และ unit tests scope/pagination/fallback/model invalid IDs/duplicate JSON/tool scope. Checks: API Vitest91ผ่าน/18 skip, oxlint type-awareผ่าน, Nest buildผ่าน; web ESLintผ่านก่อน hydration batch แล้วพบ prefer-const1จุดและแก้แล้ว, Next production buildผ่าน37 routesก่อนการแก้ const ที่ไม่เปลี่ยน behavior; Postman JSON/70 test scripts syntaxผ่าน และ git diff --check ผ่านก่อน handoff. ไม่รัน provider/Ollama หรือ authenticated live DB/browser E2E ในรอบนี้ จึงคง F07/F09/F13 PARTIAL; in-memory rate limit ต้องเปลี่ยนเป็น shared store ก่อนหลาย replicas และ lexical fallback เข้าใจ semantic ได้น้อยกว่า LLM
+
+### 2026-10-15 00:59 Asia/Bangkok — cross-cutting maintenance/F04/F07: focused AI Postman collection
+
+- สร้าง apps/api/postman/For-AI.postman.json ตาม HEAD421c916 (feat: implement LLM-assisted shop search and recommendations): 7requests เฉพาะ CUSTOMERlogin/categories/paginated discovery/search/batch descriptions/hydration/empty-query bypass. มี inherited customerToken, scope variables, CSVcategoryIds→JSON, safe query JSON escaping, capture description IDs/recommendation IDs/hydration100+remaining และ assertions. อธิบาย internal tool vs HTTP API, pagination/fallback และไม่รวมpayment/Coins/admin/provider endpoints. ไฟล์เป้าหมายเดิมเป็น untracked empty file; ไม่แก้ runtime/API/main collection
+- ตรวจ JSON parse, 7request scope, 8test/prerequest scripts syntax และ substituted request bodies ผ่านด้วย pnpm --filter api exec node. API-package Prettier write/check สำหรับcollection/PLAN และ git diff --check ผ่าน. ไม่รัน appbuild/unit หรือ liveHTTP/DB/Ollama เพราะ collection/docs-only; collectionยังไม่ใช่หลักฐานliveLLM
+- F04/F07 คง PARTIALตามบอร์ด; ไม่มี blocker/decision ใหม่. Next: importcollection ตั้ง CUSTOMERcredentials/baseUrl/scope แล้วรัน01→06; discoveryตามhasNextPageและhydrateรายการเกิน100เป็นหลายbatch
+
+### 2026-10-15 02:14 Asia/Bangkok — cross-cutting maintenance/F00: default install and Prisma generation
+
+- เพิ่ม root package.json scripts: setup=pnpm install --frozen-lockfile && pnpm run prisma:generate; prisma:generate=pnpm --filter api exec prisma generate. README clone setup ใช้ pnpm run setup (ระบุ run เพื่อไม่ชน pnpm setup builtin) พร้อมอธิบาย generate-only/fail-fast และไม่ migrate/seed/เขียน env. ไม่แก้ dependencies/lockfile/schema/API
+- รัน pnpm run setup จริงผ่าน: install3workspaceจากlockfileและPrismaClient7.10.0generateสำเร็จ. API-package Prettier write/check package.json/README/PLAN และ git diff --check ผ่าน. ไม่รัน appbuild/unit เพราะ scripts/docs-only และไม่มี runtime change
+- F00คงPARTIALตามacceptanceเดิม; ไม่มีblocker/decisionใหม่. Next: fresh clone ติดตั้ง Node/pnpm ตาม README แล้ว pnpm run setup ก่อนตั้ง env/เริ่ม dev
+
+### 2026-10-15 08:08 Asia/Bangkok — cross-cutting maintenance/F02/F13: tunnel HMR and credential URL fallback
+
+- ใช้ web-frontend และ format-prettier skills ตรวจ login/register, auth hook/JSON POST, BFF Origin guard และ installed Next blockCrossSiteDEV. HMR ที่ hostname ไม่อยู่ใน allowedDevOrigins ตอบ Unauthorized ตรง log; login/register form ไม่ระบุ method จึง native GET ได้เมื่อ JS ไม่ทำงาน. ยังไม่มี browser/network evidence ว่า hydration ล้มเหลวหรือ POST login status ใด.
+- แก้ login/register form ให้ method=post เพื่อไม่ส่ง credentials เป็น query string เมื่อ client handler ไม่ทำงาน (native fallback ไม่รองรับ login และอาจ405); เพิ่ม DEV_ALLOWED_HOSTS แบบ exact comma-separated hostname ใน next.config.ts/.env.example สำหรับ dev HMR เท่านั้น ไม่เปลี่ยน auth Origin policy/backend/contracts. ไม่มี business rule ใหม่; ไม่ปิด Feature/Daily Flag.
+- Checks: web Prettier write/check ทั้ง3 source/config ผ่าน; pnpm --filter web lint ผ่าน. Production build กำลังตรวจและบันทึกผลต่อท้าย; ยังไม่ได้ทดสอบ live tunnel/browser หรือจำลอง no-JS. Next: ตั้ง hostname ปัจจุบันใน apps/web/.env.local, restart dev, เปิด /login ที่ไม่มี query แล้วตรวจ POST /api/auth/login หากยังล้มเหลว โดยไม่ส่ง credentials/log URL จริง.
+- ผลตรวจต่อท้าย: pnpm --filter web build ผ่าน compile/TypeScript และ37 routes; PLAN Prettier write/check และ git diff --check ผ่าน. Live tunnel/browser acceptance ยังไม่ตรวจ.
+
+### 2026-10-15 08:09 Asia/Bangkok — cross-cutting maintenance: align local web environment
+
+- ปรับ ignored apps/web/.env.local ตาม .env.example: รักษา API_URL เดิม เติม OSRM/map settings และ DEV_ALLOWED_HOSTS สำหรับ tunnel ปัจจุบันที่ผู้ใช้ส่งมา. ไม่บันทึก env values/credentials ใน handoff และไม่เปลี่ยน Feature/Daily Flags.
+- ตรวจ key parity ด้วย PowerShell ผ่านครบทุก example key; .env ไม่อยู่ในรูปแบบที่ Prettier รองรับ จึงตรวจโครงสร้าง key แทน. ไม่รัน build/test ซ้ำเพราะแก้ local config เท่านั้น; build/lint source ผ่านในงานก่อนหน้า. PLAN ใช้ package Prettier write/check และ git diff --check ก่อนส่งผล.
+- ไม่มี decision/blocker ใหม่. Next: restart pnpm dev แล้วเปิด /login ผ่าน tunnel; hostname ต้องอัปเดตเมื่อสร้าง Quick Tunnel ใหม่.
+
+### 2026-10-15 08:13 Asia/Bangkok — cross-cutting maintenance/F02/F13: proxy mutation Origin checks
+
+- Console evidence: HMR connected, /api/auth/login403. BFF compares browser Origin with NextRequest origin; proxy HTTPS/internal HTTP mismatch is consistent with this403 but actual request headers not captured. Added shared hasTrustedOrigin helper to all7 existing guarded mutation handlers (auth, wallet, government); WEB_PUBLIC_ORIGIN trusts one explicit external origin without trusting forwarded headers/wildcards. Missing/null/other origins rejected. Set local public origin for current tunnel; updated env example, decisions before implementation, and web contract. No Nest endpoint/main Postman change because backend contract unchanged.
+- Checks: Node strip-types harness12 assertions passed (same internal/external origin, missing/null/foreign/scheme/suffix mismatch, malformed/path/credentials/query config). Web lint/build37routes passed; changed source/docs Prettier write/check passed; env syntax manual. No live login/browser/DB verification; F02/F13 remain PARTIAL and no flags closed.
+- Next: restart pnpm dev then retry public /login; inspect response status/message if failure persists. Update WEB_PUBLIC_ORIGIN and DEV_ALLOWED_HOSTS together when tunnel hostname changes. Preload/React DevTools notices are separate from login403.
+
+### 2026-10-28 16:29 Asia/Bangkok - cross-cutting maintenance: merge conflict inspection
+
+- Inspected Git unmerged index (`git status --short`, `git diff --name-only --diff-filter=U`, `git ls-files -u`) and repository conflict markers using `rg` plus Python block counts. Found 4 unmerged files / 37 conflict blocks: PLAN/PLAN.md (UU, 2), apps/api/postman/THAI-Please.postman_collection.json (UU, 32), apps/api/src/app.module.ts (UU, 1), apps/api/src/recommendations/recommendations.controller.ts (AA, 2). Markers identify HEAD versus dev. No conflict resolution or staging performed; Feature/Daily Flag status unchanged.
+- Recommendations conflict combines inline context/candidates service and endpoints with the dev extracted service/search endpoint. AppModule also contains duplicate RecommendationsController/RecommendationsService registrations outside markers. Postman conflicts interleave AI tests with Wallet/Coin rates/Quest/routing additions; preserve required request groups when resolving. PLAN conflicts affect F07 and handoff history.
+- Checks: read-only Git/source inspection completed; PLAN handoff formatted/checked in isolation; full conflicted Markdown cannot safely be formatted because Prettier rewrites conflict markers. pnpm.cmd ran installed Prettier despite store-lock warnings; no dependency change requested. No build/tests run because this is an investigation and source still contains conflict markers. Blocker: unresolved merge; no new business rule implemented. Next: resolve all four files, reconcile recommendations endpoints against contract and AI consumers, validate merged Postman JSON, then run relevant checks before staging.
+
+### 2026-10-28 16:40 Asia/Bangkok - cross-cutting merge resolution / F02/F03/F06/F07/F08/F10/F13
+
+- Resolved four conflicted files while preserving handoff history. HEAD recommendations.controller.ts remains byte-equivalent after newline normalization: GET /recommendations/context and POST /recommendations/candidates, authentication and 3+2 ranking unchanged. Registered dev Explore POST /recommendations/search via separate recommendations-search.controller.ts and distinct service token alias; AppModule imports/registers both flows once. Added recommendations-merge.spec.ts covering registration uniqueness, injection tokens, route paths and search delegation. Contract/decisions record the boundary.
+- Structurally merged main Postman collection against base by folder/request name and variable key. All requests from HEAD/dev retained: 114 requests, no duplicate sibling names or variable keys; one dev rename of List rules/periods to List rules and round summaries verified by method/URL. All 110 embedded scripts compile. No live collection runner/HTTP/DB/provider/browser checks performed.
+- Updated affected Feature rows and R1-D2-I/R1-D3-I/R1-D4-I/R1-D4-B/R1-D5-I source progress; historical October 11 snapshot explicitly remains historical. No DONE/PR claims. Remaining live DB, integrated UI, concurrency and review acceptance is pending; no new business rule unresolved in this merge.
+- Checks newly verified: installed API Prettier write/check for changed TS/JSON/Markdown; API oxlint --type-aware src/ test/ PASS; Nest build PASS; Vitest 101 PASS / 19 SKIP (16 suites passed / 3 skipped), including 3 merge regression tests. Initial build failed with stale generated Prisma Client; node node_modules/prisma/build/index.js generate from apps/api then build PASS, without migration/seed/database writes. pnpm launch reported store-lock permission warnings; final checks used installed package CLIs directly. HEAD parity, Postman preservation/uniqueness/JSON/script syntax and git diff --check PASS.
+- Next: run opt-in database tests and authenticated AI/Explore/payment browser smoke against a development database, then review and commit the merge. Only task files are marked resolved/staged; no merge commit created.

@@ -93,6 +93,10 @@ export type CoinRuleInput = {
   newOtherCoins: number;
 };
 export type CoinRule = {
+  calculationDetail?: {
+    formula: string;
+    examples: { sales: string; coins: number }[];
+  };
   rule_id: string;
   version: number;
   effective_from: string;
@@ -108,20 +112,19 @@ export type CoinRulesData = {
   rules: CoinRule[];
   serverTime: string;
   nextEffectiveAt: string;
+  automaticGenerationEnabled: boolean;
+  manualGenerationEnabled: boolean;
   periods: {
     period_id: string;
     starts_at: string;
     ends_at: string;
-    _count: { shop_coin_rates: number };
-    shop_coin_rates: {
-      shop_coin_rate_id: string;
-      shop_id: string;
-      rule_id: string;
-      new_customer_coins: number;
-      repeat_customer_coins: number;
-      sales_total_snapshot: string;
-      shops: { name: string };
-    }[];
+    created_at: string;
+    shopCount: number;
+    belowThresholdShopCount: number;
+    atOrAboveThresholdShopCount: number;
+    stageShopCounts: number[];
+    stageSalesRanges: { minimum: string; maximum: string | null }[];
+    coinsAwarded: string;
   }[];
 };
 export async function getCoinRules(signal?: AbortSignal) {
@@ -130,6 +133,23 @@ export async function getCoinRules(signal?: AbortSignal) {
 }
 export async function createCoinRule(body: CoinRuleInput) {
   return (await api.post<CoinRule>("/government/coin-rules", body)).data;
+}
+
+export async function generateCoinRates(regenerate = false) {
+  return (
+    await api.post<{
+      periodId: string;
+      startsAt: string;
+      endsAt: string;
+      created: boolean;
+      regenerated?: boolean;
+      shopCount: number;
+    }>(
+      "/government/coin-rules/generate-rates",
+      regenerate ? { regenerate: true } : {},
+      { timeout: 50000 },
+    )
+  ).data;
 }
 
 export type NearbyStore = {
@@ -146,12 +166,104 @@ export async function getNearbyStores(
   latitude: number,
   longitude: number,
   radiusKm: number,
+  categoryIds: string[] = [],
+  page = 1,
   signal?: AbortSignal,
 ) {
   return (
-    await api.get<{ radiusKm: number; stores: NearbyStore[] }>("/stores", {
-      params: { latitude, longitude, radiusKm },
+    await api.get<{
+      radiusKm: number;
+      stores: NearbyStore[];
+      meta: {
+        page: number;
+        pageSize: number;
+        total: number;
+        hasNextPage: boolean;
+      };
+    }>("/stores", {
+      params: {
+        latitude,
+        longitude,
+        radiusKm,
+        categoryIds: categoryIds.join(","),
+        page,
+        pageSize: 100,
+      },
       signal,
     })
   ).data;
+}
+
+export type ShopSearchScope = {
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+  categoryIds: string[];
+};
+export async function searchRecommendedStores(
+  query: string,
+  scope: ShopSearchScope,
+  signal?: AbortSignal,
+) {
+  return (
+    await api.post<{
+      shopIds: string[];
+      source: "llm" | "fallback" | "discovery";
+    }>(
+      "/recommendations/search",
+      { query, ...scope },
+      { signal, timeout: 30000 },
+    )
+  ).data;
+}
+export async function hydrateStores(
+  shopIds: string[],
+  scope: ShopSearchScope,
+  signal?: AbortSignal,
+) {
+  return (
+    await api.post<{ stores: NearbyStore[] }>(
+      "/stores/batch",
+      { shopIds, ...scope },
+      { signal },
+    )
+  ).data;
+}
+
+export type GovernmentStoreStatus =
+  "PENDING" | "APPROVED" | "SUSPENDED" | "REJECTED";
+export type GovernmentStore = {
+  shop_id: string;
+  owner_id: string;
+  name: string;
+  description: string | null;
+  address: ShopAddress | null;
+  latitude: string;
+  longitude: string;
+  opening_hours: { days?: string[]; open?: string; close?: string } | null;
+  participation_status: GovernmentStoreStatus;
+  size_class: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  users: { user_id: string; display_name: string };
+  shop_categories: { categories: ShopCategory }[];
+};
+export async function getGovernmentStores(
+  status: GovernmentStoreStatus | "ALL",
+  signal?: AbortSignal,
+) {
+  return (
+    await api.get<{ stores: GovernmentStore[] }>("/government/stores", {
+      params: { status },
+      signal,
+    })
+  ).data;
+}
+export async function updateGovernmentStore(
+  id: string,
+  body: { status: "APPROVED" | "SUSPENDED"; reason?: string },
+) {
+  return (await api.patch<GovernmentStore>(`/government/stores/${id}`, body))
+    .data;
 }

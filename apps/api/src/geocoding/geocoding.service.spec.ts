@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
-import { GeocodingService, parseAddress } from './geocoding.controller.js';
+import { GeocodingService, parseAddress } from './geocoding.service.js';
 describe('shop reverse geocoding', () => {
   afterEach(() => {
     vi.unstubAllGlobals();

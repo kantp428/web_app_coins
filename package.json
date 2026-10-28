@@ -8,7 +8,9 @@
     "dev": "concurrently \"pnpm:dev:web\" \"pnpm:dev:api\"",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "test": "pnpm --filter api test"
+    "test": "pnpm --filter api test",
+    "setup": "pnpm install --frozen-lockfile && pnpm run prisma:generate",
+    "prisma:generate": "pnpm --filter api exec prisma generate"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
