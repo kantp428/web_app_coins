@@ -10,6 +10,7 @@ from config import get_settings
 from schemas.chat import StoreLocation
 
 Identifier = Annotated[str, Field(pattern=r"^[1-9][0-9]{0,18}$", strict=True)]
+RECOMMENDATION_POOL_MAX = 200
 
 
 class DataModel(BaseModel):
@@ -59,6 +60,29 @@ class Candidates(DataModel):
         return self
 
 
+class NearbyShop(BaseModel):
+    # Discovery includes address/coordinates; do not retain or send those to AI.
+    model_config = ConfigDict(extra="ignore", strict=True)
+    id: Identifier
+    name: str = Field(max_length=200)
+    description: str | None = Field(max_length=2000)
+    categories: list[str] = Field(max_length=10)
+    distanceKm: float = Field(ge=0, allow_inf_nan=False)
+
+
+class DiscoveryMeta(DataModel):
+    page: int = Field(ge=1)
+    pageSize: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
+    hasNextPage: bool
+
+
+class DiscoveryPage(DataModel):
+    radiusKm: float = Field(ge=0.1, le=50, allow_inf_nan=False)
+    stores: list[NearbyShop] = Field(max_length=100)
+    meta: DiscoveryMeta
+
+
 class BackendServiceError(Exception):
     def __init__(self, status_code: int, detail: str):
         super().__init__(detail)
@@ -70,12 +94,15 @@ class BackendService:
     def __init__(self, client: httpx.AsyncClient):
         self.client = client
 
-    async def _read(self, method: str, path: str, token: str, body=None):
+    async def _read(
+        self, method: str, path: str, token: str, body=None, *, params=None
+    ):
         try:
             response = await self.client.request(
                 method,
                 path,
                 headers={"Authorization": f"Bearer {token}"},
+                params=params,
                 **({"json": body} if body is not None else {}),
             )
         except httpx.TimeoutException as error:
@@ -102,18 +129,78 @@ class BackendService:
                 502, "Backend ส่งบริบทผู้ใช้ไม่ถูกต้อง"
             ) from error
 
-    async def search(
+    async def nearby(
         self, token: str, category_ids: list[str], location: StoreLocation
+    ) -> list[NearbyShop]:
+        shops: list[NearbyShop] = []
+        seen: set[str] = set()
+        page_number = 1
+        total = None
+        while True:
+            body = await self._read(
+                "GET",
+                "stores",
+                token,
+                params={
+                    **location.model_dump(),
+                    "categoryIds": ",".join(category_ids),
+                    "page": page_number,
+                    "pageSize": 100,
+                },
+            )
+            try:
+                page = DiscoveryPage.model_validate(body)
+                if page.meta.total > RECOMMENDATION_POOL_MAX:
+                    raise BackendServiceError(
+                        503,
+                        "ร้านในขอบเขตมีจำนวนมาก กรุณาลดรัศมีหรือเลือกประเภทให้แคบลง",
+                    )
+                if (
+                    page.meta.page != page_number
+                    or page.meta.pageSize != 100
+                    or page.radiusKm != location.radiusKm
+                    or (total is not None and page.meta.total != total)
+                ):
+                    raise ValueError("Invalid or changed discovery pagination")
+                total = page.meta.total
+                for shop in page.stores:
+                    if shop.id in seen or shop.distanceKm > location.radiusKm:
+                        raise ValueError("Duplicate or out-of-scope discovery shop")
+                    seen.add(shop.id)
+                    shops.append(shop)
+                if len(shops) > RECOMMENDATION_POOL_MAX or len(shops) > total:
+                    raise ValueError("Invalid discovery count")
+                if not page.meta.hasNextPage:
+                    if len(shops) != total:
+                        raise ValueError("Incomplete discovery")
+                    return shops
+                if not page.stores or len(shops) >= total or page_number >= 2:
+                    raise ValueError("Invalid discovery next page")
+            except (ValidationError, ValueError) as error:
+                raise BackendServiceError(
+                    502, "Backend ส่งขอบเขตร้านไม่ถูกต้อง กรุณาลองใหม่"
+                ) from error
+            page_number += 1
+
+    async def search(
+        self,
+        token: str,
+        category_ids: list[str],
+        location: StoreLocation,
+        shop_ids: list[str],
     ) -> Candidates:
         body = await self._read(
             "POST",
             "recommendations/candidates",
             token,
-            {"categoryIds": category_ids, **location.model_dump()},
+            {"categoryIds": category_ids, **location.model_dump(), "shopIds": shop_ids},
         )
         try:
-            return Candidates.model_validate(body)
-        except ValidationError as error:
+            candidates = Candidates.model_validate(body)
+            if any(shop.id not in set(shop_ids) for shop in candidates.stores):
+                raise ValueError("Backend returned an unselected shop")
+            return candidates
+        except (ValidationError, ValueError) as error:
             raise BackendServiceError(502, "Backend ส่งรายการร้านไม่ถูกต้อง") from error
 
 

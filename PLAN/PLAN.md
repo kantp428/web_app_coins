@@ -11,23 +11,23 @@
 
 ## Feature Flags
 
-| Feature | สถานะล่าสุด                                                              | วันเป้าหมาย            | เจ้าของ         | Dependency            |
-| ------- | ------------------------------------------------------------------------ | ---------------------- | --------------- | --------------------- |
-| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                            | D1                     | I               | —                     |
-| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                         | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
-| F02     | PARTIAL: Auth/role + wallet/Coins reads; live E2E pending                | D2                     | I               | F01                   |
-| F03     | PARTIAL: registration + approval/search; owner CRUD/E2E pending          | D3                     | I               | F02                   |
-| F04     | PARTIAL: DB Explore/discovery; semantic search HTTP route paused         | D3                     | A               | F01/F02/F03           |
-| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview              | D3                     | B               | F01/F02/F03           |
-| F06     | PARTIAL: rules API/UI + rate generation; live DB/review pending          | D4                     | I               | F02/F03               |
-| F07     | PARTIAL: radius-scoped chat 3+2/DDGS; Explore search paused; E2E pending | D4–5                   | AI              | F03/F06               |
-| F08     | PARTIAL: wallet/payment lifecycle + unit tests; live DB gates pending    | D5                     | I               | F06                   |
-| F09     | PARTIAL: Explore AI เชื่อมจริง; acceptance/browser QA รวมยังค้าง         | D5                     | A               | F07/F08               |
-| F10     | PARTIAL: rules UI + seller payment API; full UI/E2E pending              | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                     | D6                     | B               | F11                   |
-| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                 | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
-| F14     | TODO                                                                     | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
+| Feature | สถานะล่าสุด                                                                | วันเป้าหมาย            | เจ้าของ         | Dependency            |
+| ------- | -------------------------------------------------------------------------- | ---------------------- | --------------- | --------------------- |
+| F00     | PARTIAL: repo/DB/baseline + demo seed 3 roles                              | D1                     | I               | —                     |
+| F01     | PARTIAL: Auth/Register contract + Postman มีแล้ว                           | D1                     | I               | F00 ส่วนที่เกี่ยวข้อง |
+| F02     | PARTIAL: Auth/role + wallet/Coins reads; live E2E pending                  | D2                     | I               | F01                   |
+| F03     | PARTIAL: registration + approval/search; owner CRUD/E2E pending            | D3                     | I               | F02                   |
+| F04     | PARTIAL: DB Explore/discovery; semantic search HTTP route paused           | D3                     | A               | F01/F02/F03           |
+| F05     | PARTIAL: สมัครร้านจริง + role routes; จัดการร้านยัง preview                | D3                     | B               | F01/F02/F03           |
+| F06     | PARTIAL: rules API/UI + rate generation; live DB/review pending            | D4                     | I               | F02/F03               |
+| F07     | PARTIAL: description relevance + scoped 3+2; SQL passed; model E2E pending | D4–5                   | AI              | F03/F06               |
+| F08     | PARTIAL: wallet/payment lifecycle + unit tests; live DB gates pending      | D5                     | I               | F06                   |
+| F09     | PARTIAL: Explore AI เชื่อมจริง; acceptance/browser QA รวมยังค้าง           | D5                     | A               | F07/F08               |
+| F10     | PARTIAL: rules UI + seller payment API; full UI/E2E pending                | D5                     | B               | F06/F08               |
+| F11     | DB views มีแล้ว; API TODO                                                  | D6                     | I               | F08                   |
+| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                       | D6                     | B               | F11                   |
+| F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                   | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
+| F14     | TODO                                                                       | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
 ## Daily Flags
 
@@ -41,11 +41,11 @@
 | D1 / 7 ต.ค. | [`R1-D1-I`](INTEGRATION.md) | F00/F01 | DOING | ไม่แก้ baseline ที่ apply แล้ว; contract/seed พร้อมให้ทุกคนใช้ | — |
 | D2 / 8 ต.ค. | [`R1-D2-A`](APP_DEV_A.md) | F04 | DOING | F01 + F02 ที่ merge แล้ว; fixture ใช้ได้เฉพาะ preview mode | — |
 | D2 / 8 ต.ค. | [`R1-D2-B`](APP_DEV_B.md) | F05 | DOING | F01/F02; role switch ต้นแบบไม่ใช่ auth guard | — |
-| D2 / 8 ต.ค. | [`R1-D2-AI`](AI_DEV.md) | F07 | PARTIAL: retrieval/SQL ranker implemented; live SQL test pending | ไม่มี development DATABASE_URL; unit scope/validation ผ่าน | — |
+| D2 / 8 ต.ค. | [`R1-D2-AI`](AI_DEV.md) | F07 | PARTIAL: retrieval/SQL ranker + live PostgreSQL fixture passed | Scoped IDs/category/radius/Coins/3+2 verified; HTTP/model E2E/review pending | — |
 | D2 / 8 ต.ค. | [`R1-D2-I`](INTEGRATION.md) | F02 | DOING | F00/F01; ยอดมาจาก ledger/DB จริง | — |
 | D3 / 9 ต.ค. | [`R1-D3-A`](APP_DEV_A.md) | F04 | TODO | F03; ร้านไม่ร่วมไม่ปรากฏ; ปฏิเสธพิกัดแล้วยังค้นหาได้ | — |
 | D3 / 9 ต.ค. | [`R1-D3-B`](APP_DEV_B.md) | F05 | DOING | F03; owner isolation, validation/error และสถานะ pending/approved | — |
-| D3 / 9 ต.ค. | [`R1-D3-AI`](AI_DEV.md) | F07 | PARTIAL: shared stores radius scope + FastAPI location/Postman | API104/AI54 tests pass; live SQL needs development DATABASE_URL; Backend/model E2E/review pending | — |
+| D3 / 9 ต.ค. | [`R1-D3-AI`](AI_DEV.md) | F07 | PARTIAL: GET discovery + broad description relevance before scoped 3+2 | API107/AI65 tests + live SQL fixture pass; local model unavailable; HTTP/model E2E/review pending | — |
 | D3 / 9 ต.ค. | [`R1-D3-I`](INTEGRATION.md) | F03 | DOING | F02; permission/filtering ที่ server; ส่งข้อมูลร้านจริงให้ทุกคน | — |
 | D4 / 10 ต.ค. | [`R1-D4-A`](APP_DEV_A.md) | F09 | TODO | F06 preview เมื่อ merge; ยังไม่อ้างว่าชำระสำเร็จหาก F08 ไม่พร้อม | — |
 | D4 / 10 ต.ค. | [`R1-D4-B`](APP_DEV_B.md) | F10 | PARTIAL: rules UI + seller payment API; full UI/E2E pending | D5 | B | F06/F08 |
@@ -57,7 +57,7 @@
 | D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08 | TODO | F06; duplicate/concurrent, insufficient funds/budget และ month boundary tests | — |
 | D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md) | F13 | TODO | F04/F09; browser evidence และผลทดสอบจริง | — |
 | D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md) | F12/F13 | TODO | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล | — |
-| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md) | F13 | PARTIAL: 50 AI tests + token-free HTTP/Qwen/DDGS smoke; DB E2E pending | F07/F09; prior 43 Backend tests ผ่าน, opt-in SQL ยังไม่มี DATABASE_URL | — |
+| D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md) | F13 | PARTIAL: 65 AI tests + live SQL fixture; description model smoke pending | F07/F09; prior token-free/Qwen/DDGS smoke historical; new local Ollama connection failed | — |
 | D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13 | TODO | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | — |
 | D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md) | F14 | TODO | F13 และ blocker ที่เกี่ยวปิดแล้ว | — |
 | D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md) | F14 | TODO | F12/F13; ไม่มี KPI mock ใน demo integrated | — |
@@ -502,3 +502,17 @@
 
 - Inspected [system prompt](../ai-service/prompts/system.py), chat router/LLM context and [candidate SQL](../apps/api/src/recommendations/recommendations.controller.ts). Broad recommendation requests may use history category IDs; absent a usable category the prompt asks for clarification. Specific requests map to category master name/slug. Current /chat always loads context and sends categories plus recent20-shop history to the model, even for specific requests; it does not conditionally omit history categories. Actual visited status comes from all-time confirmed SUCCEEDED/REFUNDED purchases in backend SQL, independent of the limited prompt history; current Coins/3+2/radius rules stay unchanged.
 - Explanation/source inspection only; changed PLAN handoff, no runtime/API/Postman/business-rule change or feature status advancement. Checks: Get-Content/rg source trace; installed API Prettier write/check on PLAN and git diff --check PASS. No build/unit/live calls rerun because no runtime changes; previous test results remain historical. No new blocker/decision. Next: if category selection must be enforced beyond prompt guidance, define explicit-category precedence and broad-request fallback before implementation and semantic tests.
+
+### 2026-10-29 20:34 Asia/Bangkok - F07 / R1-D3-AI: description relevance investigation
+
+- Inspected candidate controller, StoresService, AI tool schema/LLM, Prisma schema and API contract using Get-Content/rg under project nest-api/fastapi-ai guidance. Confirmed shops.description exists (nullable VARCHAR2000); active chatbot tool passes only categoryIds plus server-bound location and does not match descriptions. Specific intent such as a named dish is lost when reduced to a broad category. Retained Explore search service already supports description reads, but its HTTP route remains disabled and is separate from chatbot 3+2 ranking.
+- Proposed flow for discussion: preserve specific search intent, apply approval/radius/category scope, match descriptions across the scoped candidate pool, then classify all-time visits and apply existing Coins/3+2 rules. Filtering only the final five can miss relevant shops. Missing/vague descriptions do not establish that a dish is sold; no-match behavior and text matching semantics must be recorded in decisions before implementation. No runtime/contract/Postman change, no Feature/Daily Flag status advancement.
+- Changed only PLAN handoff. Checks: source trace plus installed API Prettier write/check on PLAN and git diff --check PASS; no tests/build/live DB/model calls because investigation/documentation only. Next: agree description matching and missing/no-match behavior, then extend chatbot tool/backend contract and add relevance-before-quota regression cases without reactivating the paused search route implicitly.
+
+### 2026-10-29 20:57 Asia/Bangkok - F07 / R1-D2-AI/R1-D3-AI (+F13): broad description relevance
+
+- User authorizes broad plausible shops rather than exact-menu matching. Recorded [policy before implementation](../docs/decisions.md#2026-10-29---broad-description-relevance-before-chatbot-quotas-f07--r1-d3-ai). [Chat](../ai-service/router/chat.py) now calls actual GET /stores through BackendService, follows full scope pagination, and asks [bounded relevance inference](../ai-service/services/llm.py) using original message plus full id/name/categories/description only. [Prompt](../ai-service/prompts/relevance.py) includes made-to-order/Thai restaurants as plausible for basil stir-fry, excludes clearly unrelated shops and does not confirm menu availability. Scope cap200, batch20/12000 characters, max20 extra relevance calls; oversized scope returns503 rather than partial results. No lexical fallback or invented data; prompt/model output validation rejects bad/duplicate/out-of-batch IDs and tool calls. Token/history/Coins/coordinates stay outside relevance input.
+- [Candidates](../apps/api/src/recommendations/recommendations.controller.ts) accepts optional shopIds narrowing list (0–200 canonical positive signed-BigInt strings). Absent preserves category-only scoped behavior, [] remains empty; SQL rechecks approval/radius/category before all-time visits/active Coins/3+2. Added list validation and eligibility-before-quota regressions, Python transport/pagination/broad-description/injection/budget tests and [opt-in real-model fixture smoke](../ai-service/tests/smoke_description_relevance.py). Paused Explore route remains disabled; no schema/dependency/financial-rule changes. Updated contract, main Postman, API/AI READMEs, AI DESIGN and ignored local Summary-api.md. Preserved prior investigation handoff; no feature marked DONE/PR.
+- Newly verified: installed API CLIs node node_modules/oxlint/bin/oxlint --type-aware src/ test/ PASS, node node_modules/@nestjs/cli/bin/nest.js build PASS, node node_modules/vitest/vitest.mjs run:107 PASS/19 SKIP across16 passed/3 skipped suites. AI .venv/Scripts/python.exe -m unittest discover -s tests:65 PASS (mock transports). API Prettier write/check edited TS/JSON/Markdown and Black --no-cache --workers1 write/check8 Python files PASS; Postman JSON/uniqueness/123 script syntax checks PASS (127 requests); git diff --check PASS.
+- Opt-in PostgreSQL test initially hit sandbox EACCES; authorized external run exposed pre-existing fixture CASE parameter typing and one multi-category case missing coordinates. Fixed explicit bigint casts/scope, reran RECOMMENDATION_DB_TEST=1 node node_modules/vitest/vitest.mjs run src/recommendations/recommendations.database.spec.ts outside sandbox:1 PASS. Only category masters read and transaction-local TEMP fixtures written; no business data modified. Covers selected IDs before quotas, nonexistent/unapproved/wrong-category/out-of-radius IDs, empty selection, historical visits and missing rates.
+- Real Ollama smoke attempted inside/outside sandbox via .venv/Scripts/python.exe -X utf8 -m tests.smoke_description_relevance; both failed connection (503) before relevance output. No semantic-quality pass or live authenticated HTTP/DB/model/browser E2E claim; previous Qwen smoke is historical. No unresolved business decision. Next: start configured Ollama with the existing model, run the new fixture smoke, then authenticated chat/Postman against representative shop descriptions before review. More inference batches can increase latency; limits/timeouts are documented in the service README.

@@ -22,6 +22,7 @@ vi.mock('@prisma/client', async (original) => {
 });
 import {
   categoryFilter,
+  recommendationShopIds,
   RecommendationsService,
 } from './recommendations.controller.js';
 
@@ -151,14 +152,14 @@ describe('recommendation filtering contract', () => {
     expect(sql).not.toContain('total_amount');
   });
 
-  it('rejects missing/invalid coordinates, radius and client shop IDs before SQL', async () => {
+  it('rejects missing/invalid coordinates, radius and malformed shop IDs before SQL', async () => {
     for (const body of [
       { categoryIds: ['1', '2'] },
       { ...scope, latitude: 91, categoryIds: ['1', '2'] },
       { ...scope, longitude: null, categoryIds: ['1', '2'] },
       { ...scope, radiusKm: 0, categoryIds: ['1', '2'] },
       { ...scope, radiusKm: 51, categoryIds: ['1', '2'] },
-      { ...scope, categoryIds: ['1', '2'], shopIds: ['1'] },
+      { ...scope, categoryIds: ['1', '2'], shopIds: ['1', '1'] },
     ])
       await expect(service.candidates(body)).rejects.toMatchObject({
         status: 400,
@@ -174,5 +175,45 @@ describe('recommendation filtering contract', () => {
     });
     const scoped = mocks.query.mock.calls[0][1];
     expect(scoped.values).toEqual([0, 0, 0, 1n, 2n, 5]);
+  });
+
+  it('accepts only a bounded unique canonical shop narrowing list', () => {
+    expect(recommendationShopIds(undefined)).toBeUndefined();
+    expect(recommendationShopIds([])).toEqual([]);
+    expect(recommendationShopIds(['1', '9223372036854775807'])).toEqual([
+      1n,
+      9223372036854775807n,
+    ]);
+    for (const value of [
+      null,
+      '1',
+      [1],
+      ['0'],
+      ['01'],
+      ['1', '1'],
+      ['9223372036854775808'],
+      Array.from({ length: 201 }, (_, i) => String(i + 1)),
+    ])
+      expect(() => recommendationShopIds(value)).toThrow();
+  });
+
+  it('narrows shared scope before visit/rate/quota ranking without trusting supplied IDs', async () => {
+    await service.candidates({
+      ...scope,
+      categoryIds: ['1', '2'],
+      shopIds: ['7', '9'],
+    });
+    const [strings, ...values] = mocks.query.mock.calls[0];
+    expect(strings.join('?')).toContain('FROM scoped_stores s ?');
+    expect(values[2].sql).toBe('WHERE s.shop_id IN (?,?)');
+    expect(values[2].values).toEqual([7n, 9n]);
+    expect(values[0].sql).toContain('distance_km<=?');
+  });
+
+  it('keeps an empty narrowing list empty rather than falling back to category matches', async () => {
+    await expect(
+      service.candidates({ ...scope, categoryIds: ['1', '2'], shopIds: [] }),
+    ).resolves.toEqual({ stores: [] });
+    expect(mocks.query).not.toHaveBeenCalled();
   });
 });

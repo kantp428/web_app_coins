@@ -12,7 +12,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AuthService } from '../auth/auth.service.js';
 import { parseStoreScope, StoresService } from '../stores/stores.service.js';
@@ -25,7 +25,13 @@ export function categoryFilter(body: unknown): string[] {
   if (
     Object.keys(input).some(
       (key) =>
-        !['categoryIds', 'latitude', 'longitude', 'radiusKm'].includes(key),
+        ![
+          'categoryIds',
+          'latitude',
+          'longitude',
+          'radiusKm',
+          'shopIds',
+        ].includes(key),
     ) ||
     !Array.isArray(ids) ||
     ids.length < 1 ||
@@ -42,6 +48,25 @@ export function categoryFilter(body: unknown): string[] {
       'categoryIds ต้องเป็นรหัสประเภทที่ไม่ซ้ำ 1–10 รหัส',
     );
   return ids as string[];
+}
+
+export function recommendationShopIds(value: unknown): bigint[] | undefined {
+  if (value === undefined) return undefined;
+  if (
+    !Array.isArray(value) ||
+    value.length > 200 ||
+    value.some(
+      (id) =>
+        typeof id !== 'string' ||
+        !/^[1-9]\d{0,18}$/.test(id) ||
+        BigInt(id) > 9223372036854775807n,
+    ) ||
+    new Set(value).size !== value.length
+  )
+    throw new BadRequestException(
+      'shopIds ต้องเป็นรหัสร้านที่ไม่ซ้ำ ไม่เกิน 200 รหัส',
+    );
+  return value.map((id) => BigInt(id));
 }
 
 @Injectable()
@@ -108,12 +133,20 @@ export class RecommendationsService implements OnModuleDestroy {
     const user = await this.customer(authorization);
     const categoryIds = categoryFilter(body).map(BigInt);
     const scope = parseStoreScope(body as Record<string, unknown>);
+    const shopIds = recommendationShopIds(
+      (body as Record<string, unknown>).shopIds,
+    );
     if (
       (await this.db.categories.count({
         where: { category_id: { in: categoryIds } },
       })) !== categoryIds.length
     )
       throw new BadRequestException('ไม่พบประเภทร้านที่ระบุ');
+    if (shopIds?.length === 0) return { stores: [] };
+    const related =
+      shopIds === undefined
+        ? Prisma.empty
+        : Prisma.sql`WHERE s.shop_id IN (${Prisma.join(shopIds)})`;
     // One statement evaluates visit status, active rates and both quotas from
     // the same DB snapshot. No prompt history limit affects the visit check.
     const now = new Date();
@@ -126,7 +159,7 @@ export class RecommendationsService implements OnModuleDestroy {
             AND p.shop_id = s.shop_id AND p.status IN ('SUCCEEDED', 'REFUNDED')
             AND p.confirmed_at IS NOT NULL
         ) AS visited
-        FROM scoped_stores s
+        FROM scoped_stores s ${related}
       ), rated AS (
         SELECT e.*, CASE WHEN e.visited THEN r.repeat_customer_coins
           ELSE r.new_customer_coins END AS coins

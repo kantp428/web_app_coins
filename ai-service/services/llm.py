@@ -7,8 +7,15 @@ import httpx
 
 from config import get_settings
 from prompts.system import SYSTEM_PROMPT
+from prompts.relevance import RELEVANCE_PROMPT
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from services.backend import Candidates, Identifier, RecommendationContext
+from services.backend import (
+    Candidates,
+    Identifier,
+    RecommendationContext,
+    NearbyShop,
+    RECOMMENDATION_POOL_MAX,
+)
 from schemas.chat import Source
 from services.web_search import (
     WebSearchArguments,
@@ -21,6 +28,11 @@ from services.web_search import (
 class SearchArguments(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     categoryIds: list[Identifier] = Field(min_length=1, max_length=10)
+
+
+class RelatedSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    shopIds: list[Identifier] = Field(max_length=20)
 
 
 class LLMServiceError(Exception):
@@ -43,6 +55,65 @@ class LLMService:
             ]
         )
         return self._final_content(assistant)
+
+    async def related_shops(self, message: str, shops: list[NearbyShop]) -> list[str]:
+        if len(shops) > RECOMMENDATION_POOL_MAX:
+            raise LLMServiceError(
+                503, "ร้านในขอบเขตมีจำนวนมาก กรุณาลดรัศมีหรือเลือกประเภทให้แคบลง"
+            )
+        batches: list[list[dict]] = []
+        batch: list[dict] = []
+        for shop in shops:
+            data = shop.model_dump(include={"id", "name", "description", "categories"})
+            proposed = [*batch, data]
+            if batch and (
+                len(proposed) > 20
+                or len(
+                    json.dumps(
+                        {"query": message, "shops": proposed}, ensure_ascii=False
+                    )
+                )
+                > 12000
+            ):
+                batches.append(batch)
+                batch = []
+            batch.append(data)
+        if batch:
+            batches.append(batch)
+        if len(batches) > 20:
+            raise LLMServiceError(
+                503, "รายละเอียดร้านมีจำนวนมาก กรุณาลดรัศมีหรือเลือกประเภทให้แคบลง"
+            )
+        selected: list[str] = []
+        for batch in batches:
+            assistant = await self._complete(
+                [
+                    {"role": "system", "content": RELEVANCE_PROMPT},
+                    {
+                        "role": "user",
+                        "content": json.dumps(
+                            {"query": message, "shops": batch}, ensure_ascii=False
+                        ),
+                    },
+                ],
+                format_schema=RelatedSelection.model_json_schema(),
+            )
+            try:
+                result = RelatedSelection.model_validate_json(
+                    self._final_content(assistant)
+                )
+                allowed = {shop["id"] for shop in batch}
+                if (
+                    len(set(result.shopIds)) != len(result.shopIds)
+                    or not set(result.shopIds) <= allowed
+                ):
+                    raise ValueError("Relevance IDs outside batch or duplicates")
+                selected.extend(result.shopIds)
+            except (ValueError, ValidationError) as error:
+                raise LLMServiceError(
+                    502, "โมเดลประเมินความเกี่ยวข้องของร้านไม่ถูกต้อง"
+                ) from error
+        return selected
 
     async def generate_chat(
         self,
@@ -167,12 +238,13 @@ class LLMService:
                     store_ids = [store.id for store in candidates.stores]
                     new_count = sum(not store.visited for store in candidates.stores)
                     repeat_count = sum(store.visited for store in candidates.stores)
-                    store_summary = f"พบร้านใหม่ {new_count} ร้าน และร้านที่ผู้ใช้เคยซื้อ {repeat_count} ร้าน"
+                    store_summary = f"พบร้านที่อาจเกี่ยวข้อง: ร้านใหม่ {new_count} ร้าน และร้านที่ผู้ใช้เคยซื้อ {repeat_count} ร้าน"
                     tool_data = {
                         "total": len(store_ids),
                         "newStores": new_count,
                         "repeatStores": repeat_count,
                         "summary": store_summary,
+                        "relevance": "รวมร้านที่มีเหตุผลว่าอาจเกี่ยวข้องจาก description/name/category ไม่ยืนยันว่ามีเมนูที่ขอแน่นอน",
                     }
                 else:
                     web_result = await web_search.search(args.query, message)
@@ -206,7 +278,9 @@ class LLMService:
             )
         raise LLMServiceError(502, "โมเดลเรียกเครื่องมือเกินจำนวนที่กำหนด")
 
-    async def _complete(self, messages: list[dict], tools=None) -> dict:
+    async def _complete(
+        self, messages: list[dict], tools=None, *, format_schema=None
+    ) -> dict:
         try:
             response = await self.client.post(
                 "api/chat",
@@ -216,6 +290,7 @@ class LLMService:
                     "stream": False,
                     "think": False,
                     **({"tools": tools} if tools else {}),
+                    **({"format": format_schema} if format_schema else {}),
                 },
             )
         except httpx.TimeoutException as error:

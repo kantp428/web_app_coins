@@ -64,7 +64,11 @@ class RecommendationTests(unittest.TestCase):
         self.assertEqual(response.json()["storeIds"], ["3", "4", "5", "6", "7"])
         self.assertEqual(
             json.loads(self.backend_requests[-1].content),
-            {"categoryIds": ["1", "2"], **LOCATION},
+            {
+                "categoryIds": ["1", "2"],
+                **LOCATION,
+                "shopIds": [str(i) for i in range(3, 11)],
+            },
         )
         self.assertEqual(len(self.payloads), 2)
         self.assertNotIn("tools", self.payloads[-1])
@@ -98,7 +102,13 @@ class RecommendationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             json.loads(self.backend_requests[-1].content),
-            {"categoryIds": ["1"], "latitude": 0, "longitude": 0, "radiusKm": 5},
+            {
+                "categoryIds": ["1"],
+                "latitude": 0,
+                "longitude": 0,
+                "radiusKm": 5,
+                "shopIds": [str(i) for i in range(3, 11)],
+            },
         )
 
     def test_missing_location_disables_shops_but_preserves_chat(self):
@@ -207,7 +217,7 @@ class RecommendationTests(unittest.TestCase):
 
     def test_backend_search_auth_failure_does_not_fabricate_ids(self):
         async def expire_after_context(request):
-            if request.method == "GET":
+            if request.url.path == "/recommendations/context":
                 return httpx.Response(200, json=self.context)
             return httpx.Response(401)
 

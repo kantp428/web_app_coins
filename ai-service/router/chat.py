@@ -39,7 +39,9 @@ async def chat(
         context = await backend.context(token)
 
         async def search(category_ids: list[str]):
-            return await backend.search(token, category_ids, request.location)
+            shops = await backend.nearby(token, category_ids, request.location)
+            shop_ids = await service.related_shops(request.message, shops)
+            return await backend.search(token, category_ids, request.location, shop_ids)
 
         reply, store_ids, sources = await service.generate_chat(
             request.message,

@@ -28,6 +28,19 @@ class ChatAPITests(unittest.TestCase):
         }
         self.candidates = {"stores": []}
         self.model_responses = []
+        self.relevance_responses = []
+        self.relevance_payloads = []
+        self.discovery_override = None
+        self.discovery_stores = [
+            {
+                "id": str(i),
+                "name": "ร้านตัวอย่าง",
+                "description": "ร้านอาหารไทย",
+                "categories": ["อาหาร"],
+                "distanceKm": 1.0,
+            }
+            for i in range(3, 11)
+        ]
 
         def backend_handler(request: httpx.Request) -> httpx.Response:
             self.backend_requests.append(request)
@@ -39,8 +52,26 @@ class ChatAPITests(unittest.TestCase):
                     self.backend_status, json={"message": "private backend error"}
                 )
             if request.method == "GET":
-                self.assertEqual(request.url.path, "/recommendations/context")
-                return httpx.Response(200, json=self.context)
+                if request.url.path == "/recommendations/context":
+                    return httpx.Response(200, json=self.context)
+                self.assertEqual(request.url.path, "/stores")
+                if self.discovery_override is not None:
+                    return httpx.Response(200, json=self.discovery_override)
+                page = int(request.url.params["page"])
+                rows = self.discovery_stores[(page - 1) * 100 : page * 100]
+                return httpx.Response(
+                    200,
+                    json={
+                        "radiusKm": float(request.url.params["radiusKm"]),
+                        "stores": rows,
+                        "meta": {
+                            "page": page,
+                            "pageSize": 100,
+                            "total": len(self.discovery_stores),
+                            "hasNextPage": page * 100 < len(self.discovery_stores),
+                        },
+                    },
+                )
             self.assertEqual(request.url.path, "/recommendations/candidates")
             return httpx.Response(201, json=self.candidates)
 
@@ -54,6 +85,23 @@ class ChatAPITests(unittest.TestCase):
         def handler(request: httpx.Request) -> httpx.Response:
             self.assertEqual(str(request.url), "http://model.test/api/chat")
             payload = json.loads(request.content)
+            if payload["messages"][0]["content"].startswith("SHOP_RELEVANCE"):
+                self.relevance_payloads.append(payload)
+                if self.relevance_responses:
+                    return httpx.Response(200, json=self.relevance_responses.pop(0))
+                shops = json.loads(payload["messages"][-1]["content"])["shops"]
+                return httpx.Response(
+                    200,
+                    json={
+                        "done": True,
+                        "message": {
+                            "role": "assistant",
+                            "content": json.dumps(
+                                {"shopIds": [shop["id"] for shop in shops]}
+                            ),
+                        },
+                    },
+                )
             self.payloads.append(payload)
             if self.model_responses:
                 return httpx.Response(200, json=self.model_responses.pop(0))

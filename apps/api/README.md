@@ -33,6 +33,8 @@ API รับคำขอที่ `http://localhost:3000` แก้ `DATABASE_U
 
 Postman หมวด Recommendation read tools มีกรณีพิกัด/รัศมีผิดและตรวจว่า IDs ที่ได้อยู่ในผล `GET /stores` ทุกหน้าของ scope เดียวกัน ตั้ง `recommendationLatitude`, `recommendationLongitude`, `recommendationRadiusKm` และ `categoryId` ก่อนรัน; ไม่มีการขอ GPS อัตโนมัติ
 
+Candidates รับ optional `shopIds` เป็นรายการรหัส string ไม่ซ้ำ 0–200 รหัส เพื่อจำกัดร้านหลัง AI ประเมิน description จาก GET /stores แล้ว ไม่ส่งใช้พฤติกรรม category/radius เดิม; ส่ง `[]` ได้ `{stores:[]}` โดยไม่ fallback Backend ตรวจ APPROVED/ระยะ/ประเภทซ้ำเสมอ ร้านที่ไม่พบหรือหลุดขอบเขตจะถูกตัดออก ส่วนรายการผิดรูปแบบ/เกิน signed-BigInt/เกินจำนวนตอบ 400 ขั้นนี้ไม่เรียก AI เอง; FastAPI `/chat` เป็นผู้เรียก discovery และประเมิน description ก่อนเลือกโควตา ดูรายละเอียดใน ai-service/README.md
+
 ```powershell
 pnpm --filter api lint
 pnpm --filter api test

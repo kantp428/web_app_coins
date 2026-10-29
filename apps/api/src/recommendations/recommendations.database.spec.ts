@@ -46,7 +46,7 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
             ])
               await tx.$executeRawUnsafe(ddl);
             await tx.$executeRaw`INSERT INTO shops (shop_id,participation_status) SELECT i, CASE WHEN i=9 THEN 'PENDING' ELSE 'APPROVED' END FROM generate_series(1,9) i`;
-            await tx.$executeRaw`INSERT INTO shop_categories SELECT i, CASE WHEN i=8 THEN ${b} ELSE ${a} END FROM generate_series(1,9) i`;
+            await tx.$executeRaw`INSERT INTO shop_categories SELECT i, CASE WHEN i=8 THEN ${b}::bigint ELSE ${a}::bigint END FROM generate_series(1,9) i`;
             await tx.$executeRaw`INSERT INTO shop_categories VALUES (1,${b})`;
             await tx.$executeRaw`INSERT INTO purchases VALUES (5,99,'SUCCEEDED',now()-interval '400 days'), (6,99,'REFUNDED',now()-interval '40 days'), (7,99,'PENDING',null), (8,42,'SUCCEEDED',now())`;
             await tx.$executeRaw`INSERT INTO coin_rate_periods VALUES (1,now()-interval '1 day',now()+interval '1 day'), (2,now()+interval '2 days',now()+interval '3 days')`;
@@ -65,6 +65,28 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
               { id: '5', visited: true, coins: 1 },
               { id: '6', visited: true, coins: null },
             ]);
+            const related = await service.candidates({
+              ...scope,
+              categoryIds: [String(a)],
+              shopIds: ['3', '4', '5', '6', '8', '9', '999'],
+            });
+            // Unselected high-Coin shops cannot consume quotas; supplied IDs
+            // cannot bypass approval/category checks or fabricate a shop.
+            expect(related.stores.map((store) => store.id)).toEqual([
+              '3',
+              '5',
+              '4',
+              '6',
+            ]);
+            expect(
+              (
+                await service.candidates({
+                  ...scope,
+                  categoryIds: [String(a)],
+                  shopIds: [],
+                })
+              ).stores,
+            ).toEqual([]);
             const short = await service.candidates({
               ...scope,
               categoryIds: [String(b)],
@@ -72,6 +94,7 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
             expect(short.stores.map((store) => store.id)).toEqual(['1', '8']);
             expect(short.stores.every((store) => !store.visited)).toBe(true);
             const multiple = await service.candidates({
+              ...scope,
               categoryIds: [String(a), String(b)],
             });
             expect(multiple.stores.map((store) => store.id)).toEqual([
@@ -125,6 +148,15 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
             expect(
               inRange.stores.every((store) => discoveryIds.has(store.id)),
             ).toBe(true);
+            expect(
+              (
+                await service.candidates({
+                  ...scope,
+                  categoryIds: [String(a)],
+                  shopIds: ['1', '5'],
+                })
+              ).stores,
+            ).toEqual([]);
             expect(
               (
                 await service.candidates({
