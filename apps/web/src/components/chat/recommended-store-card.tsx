@@ -1,8 +1,9 @@
-import { ArrowUpRight, MapPin, Store } from "lucide-react";
-import type { NearbyStore } from "@/lib/api";
+import { ArrowUpRight, Store } from "lucide-react";
+import type { ChatStore } from "@/lib/chat-contract";
 import { CategoryLabels } from "@/components/wallet/category-icon";
+import { StoreCoinReward } from "@/components/wallet/store-coin-reward";
 
-export function RecommendedStoreCard({ store }: { store: NearbyStore }) {
+export function RecommendedStoreCard({ store }: { store: ChatStore }) {
   const address = Object.values(store.address ?? {})
     .filter(Boolean)
     .join(" ");
@@ -15,10 +16,6 @@ export function RecommendedStoreCard({ store }: { store: NearbyStore }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-1">
             <h4 className="min-w-0 break-words font-semibold">{store.name}</h4>
-            <span className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground">
-              <MapPin className="size-3" aria-hidden="true" />
-              {store.distanceKm.toFixed(2)} กม.
-            </span>
           </div>
           <div className="mt-1.5 text-xs text-muted-foreground">
             <CategoryLabels categories={store.categories} />
@@ -39,16 +36,21 @@ export function RecommendedStoreCard({ store }: { store: NearbyStore }) {
           )}
         </div>
       )}
-      <a
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.latitude},${store.longitude}`)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-11 items-center justify-between border-t px-4 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        aria-label={`ดูตำแหน่ง ${store.name} ใน Google Maps (เปิดแท็บใหม่)`}
-      >
-        ดูตำแหน่งร้าน
-        <ArrowUpRight className="size-4" aria-hidden="true" />
-      </a>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-t px-4 py-3">
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.latitude},${store.longitude}`)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label={`ดูตำแหน่ง ${store.name} ใน Google Maps (เปิดแท็บใหม่)`}
+        >
+          ดูตำแหน่งร้าน
+          <ArrowUpRight className="size-4" aria-hidden="true" />
+        </a>
+        <div className="ml-auto max-w-full">
+          <StoreCoinReward rate={store.coinRate} />
+        </div>
+      </div>
     </article>
   );
 }

@@ -16,7 +16,9 @@ const LocationMap = dynamic(() => import("./shop-location-map"), {
     </p>
   ),
 });
-export function ShopLocationPicker(props: LocationMapProps) {
+export function ShopLocationPicker(
+  props: LocationMapProps & { onLocatingChange?: (value: boolean) => void },
+) {
   const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const active = useRef(true);
@@ -35,10 +37,12 @@ export function ShopLocationPicker(props: LocationMapProps) {
       return;
     }
     setLocating(true);
+    props.onLocatingChange?.(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (!active.current) return;
         setLocating(false);
+        props.onLocatingChange?.(false);
         setOpen(true);
         props.onChange(
           position.coords.latitude.toFixed(6),
@@ -48,6 +52,7 @@ export function ShopLocationPicker(props: LocationMapProps) {
       (error) => {
         if (!active.current) return;
         setLocating(false);
+        props.onLocatingChange?.(false);
         toast.error("ดึงตำแหน่งปัจจุบันไม่ได้", {
           description:
             error.code === 1
@@ -78,7 +83,7 @@ export function ShopLocationPicker(props: LocationMapProps) {
       </Button>
       <p className="text-xs text-muted-foreground">
         เมื่อกดใช้ตำแหน่งปัจจุบัน เบราว์เซอร์จะขอสิทธิ์ และส่งพิกัดไป Nominatim
-        เพื่อเติมที่อยู่ ตรวจสอบว่าหมุดตรงกับร้านก่อนสมัคร
+        เพื่อเติมที่อยู่ ตรวจสอบว่าหมุดตรงกับร้านก่อนบันทึก
       </p>
       {locating && (
         <p role="status" className="sr-only">

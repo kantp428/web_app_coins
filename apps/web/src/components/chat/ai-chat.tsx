@@ -23,19 +23,13 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { currentChatLocation } from "@/lib/chat-location";
 import { createChatEntryStore } from "@/lib/chat-entry";
 import { RecommendedStoreCard } from "./recommended-store-card";
-import {
-  getApiError,
-  hydrateStores,
-  sendChat,
-  type NearbyStore,
-} from "@/lib/api";
+import { getApiError, hydrateChatStores, sendChat } from "@/lib/api";
 import {
   chatMessageSchema,
   chatStoresSchema,
-  type ChatLocation,
+  type ChatStore,
   type ChatReply,
 } from "@/lib/chat-contract";
 
@@ -43,7 +37,6 @@ type UserMessage = {
   id: string;
   kind: "user";
   text: string;
-  location?: ChatLocation;
   status: "pending" | "sent" | "failed" | "cancelled";
 };
 type AssistantMessage = {
@@ -52,8 +45,7 @@ type AssistantMessage = {
   text: string;
   sources: ChatReply["sources"];
   storeIds: string[];
-  location?: ChatLocation;
-  stores: NearbyStore[];
+  stores: ChatStore[];
   storeStatus: "loading" | "complete" | "partial" | "error";
 };
 type Message = UserMessage | AssistantMessage;
@@ -71,8 +63,7 @@ const starters = [
   {
     icon: Sparkles,
     title: "ลองร้านใหม่",
-    message:
-      "ช่วยแนะนำร้านที่น่าลองใหม่ๆให้ฉันหน่อย",
+    message: "ช่วยแนะนำร้านที่น่าลองใหม่ๆให้ฉันหน่อย",
   },
   {
     icon: Wallet,
@@ -97,8 +88,6 @@ function ChatConversation() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState(false);
-  const [findingLocation, setFindingLocation] = useState(false);
-  const locationWarningShown = useRef(false);
   const busy = useRef(false);
   const mounted = useRef(true);
   const activeRequest = useRef<AbortController | null>(null);
@@ -139,12 +128,7 @@ function ChatConversation() {
         ),
       );
   }
-  async function loadCards(
-    id: string,
-    ids: string[],
-    scope: ChatLocation,
-    signal?: AbortSignal,
-  ) {
+  async function loadCards(id: string, ids: string[], signal?: AbortSignal) {
     if (cardJobs.current.has(id)) return;
     cardJobs.current.add(id);
     const controller = signal ? undefined : new AbortController();
@@ -152,19 +136,12 @@ function ChatConversation() {
     const cardSignal = signal ?? controller!.signal;
     updateCards(id, { storeStatus: "loading" });
     try {
-      const result = await hydrateStores(
-        ids,
-        { ...scope, categoryIds: [] },
-        cardSignal,
-      );
+      const result = await hydrateChatStores(ids, cardSignal);
       const { stores } = chatStoresSchema.parse(result);
       const allowed = new Set(ids);
       if (
         new Set(stores.map((store) => store.id)).size !== stores.length ||
-        stores.some(
-          (store) =>
-            !allowed.has(store.id) || store.distanceKm > scope.radiusKm,
-        )
+        stores.some((store) => !allowed.has(store.id))
       )
         throw new Error("Invalid store response");
       if (!cardSignal.aborted)
@@ -187,13 +164,12 @@ function ChatConversation() {
     activeRequest.current = controller;
     requests.current.add(controller);
     setPending(true);
-    setFindingLocation(true);
     const id = retryId ?? crypto.randomUUID();
     if (retryId)
       setMessages((current) =>
         current.map((message) =>
           message.id === id && message.kind === "user"
-            ? { ...message, status: "pending", location: undefined }
+            ? { ...message, status: "pending" }
             : message,
         ),
       );
@@ -204,36 +180,8 @@ function ChatConversation() {
       ]);
     form.reset();
     try {
-      let scope: ChatLocation | undefined;
-      try {
-        scope = await currentChatLocation(
-          AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]),
-        );
-        locationWarningShown.current = false;
-      } catch {
-        if (controller.signal.aborted) throw new axios.CanceledError();
-        if (mounted.current && !locationWarningShown.current) {
-          locationWarningShown.current = true;
-          toast.info("ใช้ตำแหน่งปัจจุบันไม่ได้", {
-            description:
-              "ยังคุยทั่วไปได้ หากต้องการร้านใกล้คุณ กรุณาอนุญาตตำแหน่งในเบราว์เซอร์แล้วลองส่งอีกครั้ง",
-          });
-        }
-      }
-      if (!mounted.current) return;
-      if (controller.signal.aborted) throw new axios.CanceledError();
-      setFindingLocation(false);
-      setMessages((current) =>
-        current.map((message) =>
-          message.id === id && message.kind === "user"
-            ? { ...message, location: scope }
-            : message,
-        ),
-      );
-      const result = await sendChat(
-        { message: text, ...(scope ? { location: scope } : {}) },
-        controller.signal,
-      );
+      if (!mounted.current || controller.signal.aborted) return;
+      const result = await sendChat({ message: text }, controller.signal);
       if (!mounted.current) return;
       if (controller.signal.aborted) throw new axios.CanceledError();
       const replyId = crypto.randomUUID();
@@ -249,13 +197,12 @@ function ChatConversation() {
           text: result.reply,
           sources: result.sources,
           storeIds: result.storeIds,
-          location: scope,
           stores: [],
           storeStatus: result.storeIds.length ? "loading" : "complete",
         },
       ]);
-      if (result.storeIds.length && scope)
-        await loadCards(replyId, result.storeIds, scope, controller.signal);
+      if (result.storeIds.length)
+        await loadCards(replyId, result.storeIds, controller.signal);
     } catch (error) {
       if (!mounted.current) return;
       setMessages((current) =>
@@ -275,7 +222,6 @@ function ChatConversation() {
       busy.current = false;
       if (mounted.current) {
         setPending(false);
-        setFindingLocation(false);
       }
     }
   }
@@ -359,12 +305,6 @@ function ChatConversation() {
                         {message.text}
                       </p>
                     </div>
-                    {message.location && (
-                      <p className="mt-1.5 text-right text-[11px] text-muted-foreground">
-                        รัศมี {message.location.radiusKm} กม.
-                        จากตำแหน่งปัจจุบันขณะส่ง
-                      </p>
-                    )}
                     {(message.status === "failed" ||
                       message.status === "cancelled") && (
                       <div className="mt-1 flex items-center justify-end gap-2 text-xs text-muted-foreground">
@@ -460,21 +400,16 @@ function ChatConversation() {
                             <p className="text-xs leading-6 text-muted-foreground">
                               {message.storeStatus === "error"
                                 ? "โหลดข้อมูลร้านไม่สำเร็จ แต่ยังอ่านคำตอบด้านบนได้"
-                                : "บางร้านไม่อยู่ในขอบเขตหรือไม่พร้อมแสดงแล้ว"}
+                                : "บางร้านไม่พร้อมแสดงแล้ว"}
                             </p>
                             <Button
                               type="button"
                               variant="outline"
                               className="mt-2 h-10 text-xs"
-                              disabled={pending || !message.location}
-                              onClick={() => {
-                                if (message.location)
-                                  void loadCards(
-                                    message.id,
-                                    message.storeIds,
-                                    message.location,
-                                  );
-                              }}
+                              disabled={pending}
+                              onClick={() =>
+                                void loadCards(message.id, message.storeIds)
+                              }
                             >
                               <RefreshCw className="size-3" />
                               โหลดข้อมูลร้านอีกครั้ง
@@ -483,7 +418,6 @@ function ChatConversation() {
                         )}
                         {message.stores.length > 0 && (
                           <p className="text-[11px] leading-5 text-muted-foreground">
-                            ระยะทางเป็นระยะเส้นตรง ·
                             ร้านอาจเกี่ยวข้องกับสิ่งที่หา โปรดตรวจสอบเมนูกับร้าน
                           </p>
                         )}
@@ -508,9 +442,7 @@ function ChatConversation() {
                   className="size-4 animate-spin"
                   aria-hidden="true"
                 />
-                {findingLocation
-                  ? "กำลังหาตำแหน่งปัจจุบัน…"
-                  : "กำลังคิดและค้นหาข้อมูล…"}
+                <span>กำลังคิดและค้นหาข้อมูล…</span>
               </div>
             )}
           <div ref={bottom} />

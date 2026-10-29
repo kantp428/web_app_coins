@@ -1,10 +1,33 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { StoresController } from './stores.controller.js';
 import {
   parsePagination,
   parseShopIds,
   parseStoreScope,
+  StoresService,
 } from './stores.service.js';
 describe('nearby scope', () => {
+  it('hydrates rates for the authenticated customer and rejects actor overrides', async () => {
+    const hydrate = vi.fn().mockResolvedValue([]);
+    const stores = {
+      requireCustomer: vi
+        .fn()
+        .mockResolvedValue({ id: '99', role: 'CUSTOMER' }),
+      hydrate,
+    } as unknown as StoresService;
+    const controller = new StoresController(stores);
+    const body = { latitude: 13.75, longitude: 100.5, shopIds: ['1'] };
+    await controller.batch(body, 'Bearer fixture');
+    expect(hydrate).toHaveBeenCalledWith(
+      { latitude: 13.75, longitude: 100.5, radiusKm: 5, categoryIds: [] },
+      ['1'],
+      '99',
+    );
+    await expect(
+      controller.batch({ ...body, customerId: '42' }, 'Bearer fixture'),
+    ).rejects.toThrow();
+    expect(hydrate).toHaveBeenCalledTimes(1);
+  });
   it('requires coordinates and defaults to5km', () => {
     expect(parseStoreScope({ latitude: '13.75', longitude: '100.5' })).toEqual({
       latitude: 13.75,
@@ -46,5 +69,6 @@ describe('nearby scope', () => {
     ).toThrow();
     expect(() => parsePagination({ pageSize: '101' })).toThrow();
     expect(() => parseShopIds(['1', '1'])).toThrow();
+    expect(() => parseShopIds(['9223372036854775808'])).toThrow();
   });
 });

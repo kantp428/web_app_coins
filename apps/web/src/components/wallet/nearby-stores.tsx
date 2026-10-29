@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useReverseGeocode } from "@/hooks/use-reverse-geocode";
 import { useNearbyStores } from "@/hooks/use-nearby-stores";
 import { CategoryLabels } from "./category-icon";
+import { StoreCoinReward } from "./store-coin-reward";
 import type { DrivingRoute } from "./nearby-stores-map";
 
 const ExploreMap = dynamic(() => import("./nearby-stores-map"), {
@@ -465,9 +466,14 @@ export function NearbyStores() {
                     {store.description}
                   </p>
                 )}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  เลือกเพื่อดูเส้นทางจากจุดค้นหา
-                </p>
+                <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    เลือกเพื่อดูเส้นทาง
+                  </p>
+                  <div className="ml-auto max-w-full">
+                    <StoreCoinReward rate={store.coinRate} />
+                  </div>
+                </div>
               </div>
             </div>
           </button>

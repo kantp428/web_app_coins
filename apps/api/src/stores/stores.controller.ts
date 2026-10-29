@@ -64,12 +64,13 @@ export class StoresController {
     @Body() body: Record<string, unknown>,
     @Headers('authorization') authorization?: string,
   ) {
-    await this.stores.requireCustomer(authorization);
+    const user = await this.stores.requireCustomer(authorization);
     this.validateBody(body);
     return {
       stores: await this.stores.hydrate(
         parseStoreScope(body),
         parseShopIds(body.shopIds),
+        user.id,
       ),
     };
   }

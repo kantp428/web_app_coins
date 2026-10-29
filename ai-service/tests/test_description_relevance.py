@@ -8,6 +8,17 @@ from test_recommendations import LOCATION, assistant, tool
 
 
 class DescriptionRelevanceTests(unittest.TestCase):
+    def test_distant_shops_are_graded_without_geographic_filtering(self):
+        self.discovery_stores[0]["distanceKm"] = 10000
+        self.candidates = {"stores": [{"id": "3", "visited": False, "coins": 10}]}
+        self.assertEqual(self.post().json()["storeIds"], ["3"])
+        self.assertTrue(
+            any(r.url.path == "/recommendations/catalog" for r in self.backend_requests)
+        )
+        self.assertTrue(
+            all("radiusKm" not in r.url.params for r in self.backend_requests)
+        )
+
     def setUp(self):
         test_api.ChatAPITests.setUp(self)
         self.context["categories"] = [{"id": "1", "name": "อาหาร", "slug": "food"}]
@@ -33,6 +44,11 @@ class DescriptionRelevanceTests(unittest.TestCase):
         ]
         for shop, description in zip(self.discovery_stores, descriptions):
             shop["description"] = description
+            shop["coinRate"] = {
+                "coins": 10,
+                "minimumPurchase": "50.00",
+                "endsAt": "2099-12-31T23:59:59.000Z",
+            }
         self.relevance_responses = [assistant(json.dumps({"shopIds": ["3", "4", "5"]}))]
         self.candidates = {
             "stores": [
@@ -70,9 +86,9 @@ class DescriptionRelevanceTests(unittest.TestCase):
         pages = [
             r.url.params["page"]
             for r in self.backend_requests
-            if r.url.path == "/stores"
+            if r.url.path == "/recommendations/catalog"
         ]
-        self.assertEqual(pages, ["1", "2"])
+        self.assertEqual(pages, ["1", "2", "3"])
         sent = json.loads(self.candidate_reads()[0].content)
         self.assertEqual(len(sent["shopIds"]), 101)
         self.assertIn("103", sent["shopIds"])
@@ -135,18 +151,18 @@ class DescriptionRelevanceTests(unittest.TestCase):
         self.candidates = {"stores": [{"id": "4", "visited": False, "coins": 10}]}
         self.assertEqual(self.post().status_code, 502)
 
-    def test_invalid_or_out_of_radius_discovery_stops_before_grading(self):
+    def test_invalid_catalog_stops_before_grading(self):
         for stores, meta in (
             (
-                [{**self.discovery_stores[0], "distanceKm": 6}],
-                {"page": 1, "pageSize": 100, "total": 1, "hasNextPage": False},
+                [{**self.discovery_stores[0], "description": "x" * 2001}],
+                {"page": 1, "pageSize": 50, "total": 1, "hasNextPage": False},
             ),
             (
                 [self.discovery_stores[0]] * 2,
-                {"page": 1, "pageSize": 100, "total": 2, "hasNextPage": False},
+                {"page": 1, "pageSize": 50, "total": 2, "hasNextPage": False},
             ),
-            ([], {"page": 1, "pageSize": 100, "total": 1, "hasNextPage": False}),
-            ([], {"page": 2, "pageSize": 100, "total": 0, "hasNextPage": False}),
+            ([], {"page": 1, "pageSize": 50, "total": 1, "hasNextPage": False}),
+            ([], {"page": 2, "pageSize": 50, "total": 0, "hasNextPage": False}),
         ):
             self.discovery_override = {"radiusKm": 5, "stores": stores, "meta": meta}
             self.assertEqual(self.post().status_code, 502)

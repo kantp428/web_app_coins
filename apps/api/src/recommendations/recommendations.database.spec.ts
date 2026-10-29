@@ -42,15 +42,18 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
               'CREATE TEMP TABLE purchases (shop_id bigint, customer_id bigint, status text, confirmed_at timestamptz) ON COMMIT DROP',
               'CREATE TEMP TABLE shop_categories (shop_id bigint, category_id bigint) ON COMMIT DROP',
               'CREATE TEMP TABLE coin_rate_periods (period_id bigint, starts_at timestamptz, ends_at timestamptz) ON COMMIT DROP',
-              'CREATE TEMP TABLE shop_coin_rates (shop_id bigint, period_id bigint, new_customer_coins smallint, repeat_customer_coins smallint) ON COMMIT DROP',
+              'CREATE TEMP TABLE coin_rule_versions (rule_id bigint, minimum_purchase numeric(14,2)) ON COMMIT DROP',
+              'CREATE TEMP TABLE shop_coin_rates (shop_id bigint, period_id bigint, new_customer_coins smallint, repeat_customer_coins smallint, rule_id bigint DEFAULT 1) ON COMMIT DROP',
             ])
               await tx.$executeRawUnsafe(ddl);
             await tx.$executeRaw`INSERT INTO shops (shop_id,participation_status) SELECT i, CASE WHEN i=9 THEN 'PENDING' ELSE 'APPROVED' END FROM generate_series(1,9) i`;
             await tx.$executeRaw`INSERT INTO shop_categories SELECT i, CASE WHEN i=8 THEN ${b}::bigint ELSE ${a}::bigint END FROM generate_series(1,9) i`;
             await tx.$executeRaw`INSERT INTO shop_categories VALUES (1,${b})`;
             await tx.$executeRaw`INSERT INTO purchases VALUES (5,99,'SUCCEEDED',now()-interval '400 days'), (6,99,'REFUNDED',now()-interval '40 days'), (7,99,'PENDING',null), (8,42,'SUCCEEDED',now())`;
-            await tx.$executeRaw`INSERT INTO coin_rate_periods VALUES (1,now()-interval '1 day',now()+interval '1 day'), (2,now()+interval '2 days',now()+interval '3 days')`;
-            await tx.$executeRaw`INSERT INTO shop_coin_rates VALUES (1,1,10,1),(2,1,8,1),(3,1,7,1),(5,1,8,1),(7,1,9,1),(8,1,6,1),(9,1,10,1),(4,2,10,1)`;
+            await tx.$executeRaw`INSERT INTO coin_rate_periods VALUES (1,now()-interval '1 day',now()+interval '1 day'), (2,now()+interval '2 days',now()+interval '3 days'), (3,now()-interval '3 days',now()-interval '2 days')`;
+            await tx.$executeRaw`INSERT INTO coin_rule_versions VALUES (1,50),(2,99)`;
+            await tx.$executeRaw`INSERT INTO shop_coin_rates (shop_id,period_id,new_customer_coins,repeat_customer_coins) VALUES (1,1,10,1),(2,1,8,1),(3,1,7,1),(5,1,8,1),(7,1,9,1),(8,1,6,1),(9,1,10,1),(4,2,10,1),(6,3,10,2)`;
+            await tx.$executeRaw`UPDATE shop_coin_rates SET rule_id=2 WHERE shop_id=2`;
             Object.assign(service, { db: tx });
             Object.assign(stores, { db: tx });
             const scope = { latitude: 13.75, longitude: 100.5, radiusKm: 5 };
@@ -104,6 +107,60 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
               '5',
               '6',
             ]);
+            // Card DTOs use the same actor/active-rate semantics without quotas.
+            const cardPage = await stores.list({ ...scope, pageSize: 100 });
+            expect(cardPage.stores.map((store) => store.id)).toEqual([
+              '1',
+              '2',
+              '3',
+              '4',
+              '5',
+              '6',
+              '7',
+              '8',
+            ]);
+            const cardById = new Map(
+              cardPage.stores.map((store) => [store.id, store]),
+            );
+            expect(cardById.get('1')!.coinRate).toEqual({
+              coins: 10,
+              minimumPurchase: '50.00',
+              endsAt: expect.any(String),
+            });
+            expect(cardById.get('2')!.coinRate?.minimumPurchase).toBe('99.00');
+            expect(cardById.get('5')!.coinRate?.coins).toBe(1);
+            expect(cardById.get('7')!.coinRate?.coins).toBe(9); // pending purchase does not count
+            expect(cardById.get('8')!.coinRate?.coins).toBe(6); // other customer's purchase
+            expect(cardById.get('4')!.coinRate).toBeNull(); // future rate
+            expect(cardById.get('6')!.coinRate).toBeNull(); // expired rate, refunded visit
+            const cards = await stores.hydrate(
+              { ...scope, categoryIds: [] },
+              ['5', '1', '9', '999', '4'],
+              '99',
+            );
+            expect(
+              cards.map((store) => [store.id, store.coinRate?.coins ?? null]),
+            ).toEqual([
+              ['5', 1],
+              ['1', 10],
+              ['4', null],
+            ]);
+            const otherActor = await stores.hydrate(
+              { ...scope, categoryIds: [] },
+              ['5', '8'],
+              '42',
+            );
+            expect(otherActor.map((store) => store.coinRate?.coins)).toEqual([
+              8, 1,
+            ]);
+            await tx.$executeRaw`INSERT INTO shop_coin_rates (shop_id,period_id,new_customer_coins,repeat_customer_coins) VALUES (6,1,10,2)`;
+            const refunded = await stores.hydrate(
+              { ...scope, categoryIds: [] },
+              ['6'],
+              '99',
+            );
+            expect(refunded[0].coinRate?.coins).toBe(2);
+            await tx.$executeRaw`DELETE FROM shop_coin_rates WHERE shop_id=6 AND period_id=1`;
             const context = await service.context();
             expect(
               context.purchaseHistory
@@ -127,6 +184,33 @@ describe.runIf(process.env.RECOMMENDATION_DB_TEST === '1')(
             );
             // Farther shops must not consume the quota before radius filtering.
             await tx.$executeRaw`UPDATE shops SET latitude=14.75 WHERE shop_id IN (1,5)`;
+            const global = await service.candidates({
+              categoryIds: [String(a)],
+            });
+            expect(global.stores.map((store) => store.id)).toEqual([
+              '1',
+              '2',
+              '3',
+              '5',
+              '6',
+            ]);
+            const globalCards = await service.cards({
+              shopIds: ['1', '5', '9', '999'],
+            });
+            expect(globalCards.stores.map((store) => store.id)).toEqual([
+              '1',
+              '5',
+            ]);
+            expect(
+              globalCards.stores.every((store) => !('distanceKm' in store)),
+            ).toBe(true);
+            const catalog = await service.catalog({
+              categoryIds: String(a),
+              page: 1,
+              pageSize: 2,
+            });
+            expect(catalog.shops.map((shop) => shop.id)).toEqual(['1', '2']);
+            expect(catalog.meta.hasNextPage).toBe(true);
             const inRange = await service.candidates({
               ...scope,
               categoryIds: [String(a)],

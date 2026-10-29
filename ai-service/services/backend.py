@@ -60,13 +60,16 @@ class Candidates(DataModel):
         return self
 
 
-class NearbyShop(BaseModel):
+class ShopSummary(BaseModel):
     # Discovery includes address/coordinates; do not retain or send those to AI.
     model_config = ConfigDict(extra="ignore", strict=True)
     id: Identifier
     name: str = Field(max_length=200)
     description: str | None = Field(max_length=2000)
     categories: list[str] = Field(max_length=10)
+
+
+class NearbyShop(ShopSummary):
     distanceKm: float = Field(ge=0, allow_inf_nan=False)
 
 
@@ -80,6 +83,11 @@ class DiscoveryMeta(DataModel):
 class DiscoveryPage(DataModel):
     radiusKm: float = Field(ge=0.1, le=50, allow_inf_nan=False)
     stores: list[NearbyShop] = Field(max_length=100)
+    meta: DiscoveryMeta
+
+
+class CatalogPage(DataModel):
+    shops: list[ShopSummary] = Field(max_length=100)
     meta: DiscoveryMeta
 
 
@@ -225,14 +233,18 @@ class BackendService:
         self,
         token: str,
         category_ids: list[str],
-        location: StoreLocation,
+        location: StoreLocation | None,
         shop_ids: list[str],
     ) -> Candidates:
         body = await self._read(
             "POST",
             "recommendations/candidates",
             token,
-            {"categoryIds": category_ids, **location.model_dump(), "shopIds": shop_ids},
+            {
+                "categoryIds": category_ids,
+                **(location.model_dump() if location else {}),
+                "shopIds": shop_ids,
+            },
         )
         try:
             candidates = Candidates.model_validate(body)
@@ -241,6 +253,54 @@ class BackendService:
             return candidates
         except (ValidationError, ValueError) as error:
             raise BackendServiceError(502, "Backend ส่งรายการร้านไม่ถูกต้อง") from error
+
+    async def catalog(self, token: str, category_ids: list[str]) -> list[ShopSummary]:
+        shops = []
+        seen = set()
+        total = None
+        page_number = 1
+        while True:
+            body = await self._read(
+                "GET",
+                "recommendations/catalog",
+                token,
+                params={
+                    "categoryIds": ",".join(category_ids),
+                    "page": page_number,
+                    "pageSize": 50,
+                },
+            )
+            try:
+                page = CatalogPage.model_validate(body)
+                if page.meta.total > RECOMMENDATION_POOL_MAX:
+                    raise BackendServiceError(
+                        503,
+                        "ร้านประเภทนี้มีจำนวนมาก กรุณาระบุประเภทหรือสิ่งที่ต้องการให้ชัดขึ้น",
+                    )
+                if (
+                    page.meta.page != page_number
+                    or page.meta.pageSize != 50
+                    or (total is not None and page.meta.total != total)
+                ):
+                    raise ValueError("Changed catalog pagination")
+                total = page.meta.total
+                remaining = max(0, total - (page_number - 1) * 50)
+                if len(page.shops) != min(50, remaining) or page.meta.hasNextPage != (
+                    remaining > 50
+                ):
+                    raise ValueError("Incomplete catalog")
+                for shop in page.shops:
+                    if shop.id in seen:
+                        raise ValueError("Duplicate catalog shop")
+                    seen.add(shop.id)
+                    shops.append(shop)
+                if not page.meta.hasNextPage:
+                    return shops
+            except (ValidationError, ValueError) as error:
+                raise BackendServiceError(
+                    502, "Backend ส่งรายการร้านไม่ถูกต้อง กรุณาลองใหม่"
+                ) from error
+            page_number += 1
 
 
 async def get_backend_service() -> AsyncIterator[BackendService]:

@@ -33,6 +33,11 @@ type StoreRow = {
   distance_km: number;
   categories: string[];
 };
+type RatedStoreRow = StoreRow & {
+  coins: number | null;
+  minimum_purchase: string | null;
+  rate_ends_at: Date | null;
+};
 const decimalId = /^[1-9][0-9]{0,18}$/;
 const numberValue = (value: unknown) =>
   (typeof value === 'string' || typeof value === 'number') &&
@@ -104,7 +109,12 @@ export function parseShopIds(value: unknown): string[] {
   if (
     !Array.isArray(value) ||
     value.length > STORE_BATCH_MAX ||
-    value.some((id) => typeof id !== 'string' || !decimalId.test(id)) ||
+    value.some(
+      (id) =>
+        typeof id !== 'string' ||
+        !decimalId.test(id) ||
+        BigInt(id) > 9223372036854775807n,
+    ) ||
     new Set(value).size !== value.length
   )
     throw new BadRequestException(
@@ -144,7 +154,62 @@ export class StoresService {
       FROM shops s WHERE s.participation_status='APPROVED' ${this.categoryFilter(scope.categoryIds)}
     ) SELECT * FROM scoped WHERE distance_km<=${radiusKm} ORDER BY distance_km,shop_id ${tail}`;
   }
-  private store(row: StoreRow) {
+  approvedQuery(
+    categoryIds: string[],
+    tail: Prisma.Sql = Prisma.empty,
+  ): Prisma.Sql {
+    return Prisma.sql`SELECT s.shop_id,s.name,s.description,s.address,s.latitude::text AS latitude,s.longitude::text AS longitude,
+      ARRAY(SELECT c.name FROM shop_categories sc JOIN categories c USING(category_id) WHERE sc.shop_id=s.shop_id ORDER BY c.name) AS categories
+      FROM shops s WHERE s.participation_status='APPROVED' ${this.categoryFilter(categoryIds)} ORDER BY s.shop_id ${tail}`;
+  }
+  async catalog(categoryIds: string[], page: number, pageSize: number) {
+    const offset = (page - 1) * pageSize;
+    const rows = await this.db.$queryRaw<Omit<StoreRow, 'distance_km'>[]>(
+      this.approvedQuery(
+        categoryIds,
+        Prisma.sql`LIMIT ${pageSize} OFFSET ${offset}`,
+      ),
+    );
+    const count = await this.db.$queryRaw<{ total: bigint }[]>(
+      Prisma.sql`SELECT count(*)::bigint AS total FROM (${this.approvedQuery(categoryIds)}) matches`,
+    );
+    const total = Number(count[0]?.total ?? 0);
+    return {
+      shops: rows.map((row) => ({
+        id: row.shop_id.toString(),
+        name: row.name,
+        description: row.description,
+        categories: row.categories,
+      })),
+      meta: {
+        page,
+        pageSize,
+        total,
+        hasNextPage: offset + rows.length < total,
+      },
+    };
+  }
+  private ratedQuery(visible: Prisma.Sql, customerId: string, nearby = true) {
+    const now = new Date();
+    return Prisma.sql`WITH visible AS (${visible}), eligible AS (
+      SELECT v.*, EXISTS (
+        SELECT 1 FROM purchases p WHERE p.customer_id = ${BigInt(customerId)}
+          AND p.shop_id = v.shop_id AND p.status IN ('SUCCEEDED', 'REFUNDED')
+          AND p.confirmed_at IS NOT NULL
+      ) AS visited FROM visible v
+    ) SELECT e.*, rate.coins, rate.minimum_purchase, rate.rate_ends_at
+      FROM eligible e LEFT JOIN LATERAL (
+        SELECT CASE WHEN e.visited THEN r.repeat_customer_coins ELSE r.new_customer_coins END AS coins,
+          rules.minimum_purchase::text AS minimum_purchase, active_period.ends_at AS rate_ends_at
+        FROM shop_coin_rates r JOIN coin_rate_periods active_period USING(period_id)
+          JOIN coin_rule_versions rules USING(rule_id)
+        WHERE r.shop_id = e.shop_id AND active_period.starts_at <= ${now} AND active_period.ends_at > ${now}
+        ORDER BY active_period.starts_at DESC, active_period.period_id DESC LIMIT 1
+      ) rate ON true ORDER BY ${nearby ? Prisma.sql`e.distance_km, e.shop_id` : Prisma.sql`e.shop_id`}`;
+  }
+  private store(
+    row: Omit<RatedStoreRow, 'distance_km'> & { distance_km?: number },
+  ) {
     return {
       id: row.shop_id.toString(),
       name: row.name,
@@ -152,12 +217,22 @@ export class StoresService {
       address: row.address,
       latitude: row.latitude,
       longitude: row.longitude,
-      distanceKm: row.distance_km,
+      ...(row.distance_km === undefined ? {} : { distanceKm: row.distance_km }),
       categories: row.categories,
+      coinRate:
+        row.coins !== null &&
+        row.minimum_purchase !== null &&
+        row.rate_ends_at !== null
+          ? {
+              coins: row.coins,
+              minimumPurchase: row.minimum_purchase,
+              endsAt: row.rate_ends_at.toISOString(),
+            }
+          : null,
     };
   }
   async list(query: Record<string, unknown>, authorization?: string) {
-    await this.requireCustomer(authorization);
+    const user = await this.requireCustomer(authorization);
     const allowed = new Set([
       'latitude',
       'longitude',
@@ -171,8 +246,11 @@ export class StoresService {
     const scope = parseStoreScope(query),
       { page, pageSize } = parsePagination(query),
       offset = (page - 1) * pageSize;
-    const rows = await this.db.$queryRaw<StoreRow[]>(
-      this.scopedQuery(scope, Prisma.sql`LIMIT ${pageSize} OFFSET ${offset}`),
+    const rows = await this.db.$queryRaw<RatedStoreRow[]>(
+      this.ratedQuery(
+        this.scopedQuery(scope, Prisma.sql`LIMIT ${pageSize} OFFSET ${offset}`),
+        user.id,
+      ),
     );
     const count = await this.db.$queryRaw<{ total: bigint }[]>(
       Prisma.sql`SELECT count(*)::bigint AS total FROM (${this.scopedQuery(scope)}) matches`,
@@ -211,14 +289,33 @@ export class StoresService {
       byId.has(id) ? [{ id, description: byId.get(id) ?? null }] : [],
     );
   }
-  async hydrate(scope: StoreScope, ids: string[]) {
+  async hydrate(scope: StoreScope, ids: string[], customerId: string) {
     if (ids.length === 0) return [];
     const wanted = new Set(ids),
-      rows = await this.db.$queryRaw<StoreRow[]>(this.scopedQuery(scope));
+      rows = await this.db.$queryRaw<RatedStoreRow[]>(
+        this.ratedQuery(
+          Prisma.sql`SELECT * FROM (${this.scopedQuery(scope)}) nearby WHERE shop_id IN (${Prisma.join(ids.map((id) => BigInt(id)))})`,
+          customerId,
+        ),
+      );
     const byId = new Map(
       rows
         .filter((row) => wanted.has(row.shop_id.toString()))
         .map((row) => [row.shop_id.toString(), this.store(row)]),
+    );
+    return ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+  }
+  async hydrateGlobal(ids: string[], customerId: string) {
+    if (!ids.length) return [];
+    const rows = await this.db.$queryRaw<Omit<RatedStoreRow, 'distance_km'>[]>(
+      this.ratedQuery(
+        Prisma.sql`SELECT * FROM (${this.approvedQuery([])}) approved WHERE shop_id IN (${Prisma.join(ids.map((id) => BigInt(id)))})`,
+        customerId,
+        false,
+      ),
+    );
+    const byId = new Map(
+      rows.map((row) => [row.shop_id.toString(), this.store(row)]),
     );
     return ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
   }

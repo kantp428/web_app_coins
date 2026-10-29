@@ -1,5 +1,15 @@
 # AI chatbot service
 
+## Chatbot แนะนำร้านทุกพื้นที่
+
+`POST /chat` ใช้ body `{"message":"ช่วยแนะนำร้านกาแฟหน่อย"}` และ CUSTOMER Bearer token ได้เลย ไม่ต้องส่งพิกัดหรือรัศมี หน้าเว็บไม่ขอ GPS แล้ว AI ใช้ประวัติ/ประเภทและคำอธิบายร้านจาก `GET /recommendations/catalog` ก่อนให้ Backend คัดสูงสุด3ร้านใหม่+2ร้านเคยซื้อจากร้านที่อนุมัติทุกพื้นที่ การ์ดโหลดด้วย `POST /recommendations/stores` และไม่มีระยะทางที่คำนวณจากพิกัดสมมติ ส่วน Explore `/stores/search` ยังจำกัดรัศมีเหมือนเดิม
+
+ยังใช้เพดานประมวลผลเดิม200ร้านต่อคำขอและ20ชุด relevance เพื่อควบคุมงานโมเดล หากเกินจะแจ้ง503ให้ระบุประเภทให้ชัดขึ้น ไม่ตัดเหลือร้านในระยะใดโดยเงียบๆ และไม่ตัดคำอธิบาย Valid `location` จาก client เก่ายังรับ/ตรวจรูปแบบแต่ไม่ใช้กรองร้านแล้ว BFF ส่งต่อเฉพาะmessage ทดสอบด้วย unittestชุดเดิมและตัวอย่าง Postman หมวด Global Chat recommendations
+
+คำตอบแนะนำร้านใช้โทนสนทนาสั้นๆ เช่น “มีร้านกาแฟน่าลองมาแนะนำครับ ลองดูการ์ดด้านล่างได้เลย” ปรับประเภทร้านตามคำขอ ไม่รายงานโควตาหรือจำนวนโดยไม่จำเป็น และพูดถึง “ร้านที่คุณเคยซื้อ” เมื่อผลที่คัดมีร้านเคยซื้อจริงเท่านั้น ไม่มีร้านเคยซื้อในผลไม่ได้แปลว่าไม่เคยซื้อร้านประเภทนั้น ชื่อ/รายละเอียดร้านยังดูจากการ์ดจริง กติกา3+2และรูปแบบ API ไม่เปลี่ยน รวมถึงข้อความสรุปกรณีเว็บค้นข้อมูลไม่สำเร็จและกรณีไม่มีร้านก็ใช้โทนเดียวกัน
+
+ผลตรวจการปรับโทน30ต.ค.2569: unittest73กรณีผ่าน รวมตรวจข้อความสรุปที่ server สร้างเมื่อค้นเว็บล้มเหลว ว่าไม่อ้างร้านเคยซื้อเมื่อไม่มีในผล ตรวจโมเดลจริงรอบนี้ไม่ได้เพราะ loopback11434เชื่อมต่อไม่ได้ จึงยังไม่รับรองว่าโมเดลจะเลือกถ้อยคำเหมือนตัวอย่างทุกครั้ง
+
 ## Explore search: คืนร้านที่เกี่ยวข้องทั้งหมดในรัศมี
 
 `POST /stores/search` เป็นเส้นทางใหม่แยกจาก `/chat` ใช้ CUSTOMER Bearer และ Nest `GET /me`/`GET /stores` ไม่โหลดประวัติการซื้อหรือเรียก candidates จึงไม่มีโควตา5ร้าน/3+2 ใช้โมเดลเดิมประเมินชื่อ คำอธิบาย และหมวดหมู่ รวมร้านที่อธิบายกว้างแต่มีโอกาสเกี่ยวข้อง โดยไม่รับรองเมนูหรือสต็อก
@@ -167,7 +177,7 @@ $headers = @{ Authorization = "Bearer $accessToken" }
 $body = @{ message = "สวัสดี คุณช่วยเรื่องอะไรได้บ้าง" } | ConvertTo-Json
 Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 
-$body = @{ message = "ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย"; location = @{ latitude = 13.75; longitude = 100.5; radiusKm = 5 } } | ConvertTo-Json
+$body = @{ message = "ช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟหน่อย" } | ConvertTo-Json
 Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```
 
@@ -197,11 +207,11 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers
 
 การแนะนำคืน `storeIds` อย่างเดียวสำหรับข้อมูลการ์ด: สูงสุด **ร้านใหม่ 3 + ร้านที่เคยซื้อ 2**, ไม่ครบคืนเท่าที่มี ไม่เติมข้ามกลุ่ม ทั้งสองกลุ่มต้องตรงประเภทที่ตีความได้ (หลายประเภทใช้ OR). จัดอันดับตาม Coins ที่ทราบจากอัตรารอบปัจจุบัน สูงไปต่ำ; ไม่ทราบอยู่ท้าย; เสมอกันใช้รหัสร้านตามตัวเลข. ถ้าไม่มีอัตราเลยใช้รหัสร้านเรียงตามตัวเลข ไม่คำนวณ Coins ขึ้นใหม่ เช่น `{ "reply":"พบร้านใหม่ 2 ร้านและร้านที่เคยซื้อ 1 ร้านครับ", "storeIds":["101","205","310"], "sources":[], "mode":"model", "model":"qwen3:4b" }` เป็นตัวอย่างรูปแบบเท่านั้น
 
-`message` ต้องเป็น string หลัง trim ยาว 1–2000 ตัวอักษร; `/chat` รับ `location:{latitude,longitude,radiusKm}` เพิ่มได้ โดยพิกัดต้องเป็น JSON number ในช่วง [-90,90]/[-180,180], radiusKm 0.1–50 ค่าเริ่มต้น 5 กม. ต้องส่ง location ทุกคำขอที่ต้องการค้นร้านเพราะ chat เป็น stateless หากไม่มี location/null ยังคุยทั่วไปหรือค้นเว็บได้ แต่ไม่มี shop tool และจะแจ้งว่าต้องอนุญาตตำแหน่งปัจจุบันหรือส่งพิกัดมาก่อน ไม่รับฟิลด์อื่น; `/chat/test` ยังรับเฉพาะ message และปฏิเสธ location หน้าเว็บขอตำแหน่งอุปกรณ์เมื่อส่งข้อความ/ส่งใหม่ รัศมี5กม. ไม่มีปุ่มเลือกตำแหน่งแล้ว; direct API clients ยังส่ง location DTO ได้ตามเดิม
+`message` is a trimmed string1-2000. /chat recommends without location; a valid legacy location is deprecated and ignored, while /chat/test remains message-only. Browser chat sends no coordinates and never waits for GPS.
 
-AI เรียก `GET /stores` จริงพร้อม location/category แล้วอ่านครบทุกหน้า ก่อนส่งเฉพาะ id/name/categories/description และข้อความต้นฉบับให้โมเดลประเมินความเกี่ยวข้อง ร้านคำอธิบายกว้าง เช่น “อาหารตามสั่ง” หรือ “อาหารไทย” ยังเป็นตัวเลือกสำหรับคำขอ “ผัดกะเพรา” ได้ ไม่บังคับตรงคำ 100% แต่ไม่ยืนยันว่าร้านมีเมนูนั้นแน่นอน จากนั้นส่ง IDs ที่ผ่านเป็น `shopIds` ไป `POST /recommendations/candidates` ซึ่งตรวจ APPROVED/ระยะ/ประเภทซ้ำก่อนจัด Coins และโควตา 3+2 ไม่มีการเติมร้านไม่เกี่ยวข้องหรือขยายระยะให้ครบโควตา
+AI reads all category-matching GET /recommendations/catalog pages (50/page), within the explicit200-shop processing budget, then grades full name/description/categories and sends selected IDs to global POST /recommendations/candidates. Broad Thai/made-to-order descriptions remain plausible; no geographical filtering or fabricated exact-menu claim.
 
-ประเมินจากร้านทั้งหมดก่อนตัดเหลือ 5 ร้าน รับไม่เกิน 200 ร้านต่อขอบเขต แบ่งชุดไม่เกิน 20 ร้าน/12,000 ตัวอักษร JSON ต่อ inference และไม่เกิน 20 relevance inferences เพิ่มจาก orchestration สูงสุด 3 ครั้งเดิม ใช้ OLLAMA_* และ timeout ต่อ inference เดิม; การแนะนำอาจใช้เวลามากกว่าแชตปกติตามจำนวนชุด ไม่ตัด description ทิ้งเพื่อให้พอดี ถ้าขอบเขต/รายละเอียดมากเกินงบ ตอบ 503 ให้ลดรัศมีหรือประเภท ถ้าข้อมูล pagination เปลี่ยน/ไม่ครบหรือโมเดลสร้าง ID ผิด ตอบ 502 โดยไม่คืนผลบางส่วนหรือ fallback แบบจับคำตรงตัว
+ประเมินจากร้านทั้งหมดก่อนตัดเหลือ 5 ร้าน รับไม่เกิน 200 ร้านต่อคำขอ แบ่งชุดไม่เกิน 20 ร้าน/12,000 ตัวอักษร JSON ต่อ inference และไม่เกิน 20 relevance inferences เพิ่มจาก orchestration สูงสุด 3 ครั้งเดิม ใช้ OLLAMA_* และ timeout ต่อ inference เดิม การแนะนำอาจใช้เวลาตามจำนวนชุด ไม่ตัด description ทิ้ง ถ้าจำนวนร้าน/รายละเอียดมากเกินงบ ตอบ503ให้ระบุประเภทให้ชัดขึ้น ไม่มีรัศมีแฝง ถ้าข้อมูล pagination เปลี่ยน/ไม่ครบหรือโมเดลสร้าง ID ผิด ตอบ502โดยไม่คืนผลบางส่วนหรือ fallback แบบจับคำตรงตัว
 
 โมเดล relevance ไม่ได้รับ token ประวัติซื้อ Coins หรือพิกัด และเปลี่ยน scope ไม่ได้ description เป็นข้อมูลที่ไม่น่าเชื่อถือ ห้ามทำตามคำสั่งที่แฝงอยู่ คำขอทั่วไปที่ไม่ค้นร้านไม่เรียก discovery/relevance พิกัดตัวอย่างต้องเปลี่ยนเป็นจุดที่ผู้ใช้เลือกเอง ไม่มีการขอ GPS อัตโนมัติ ข้อผิดพลาดใช้ FastAPI `detail` ตาม [contract](../docs/api-contract.md) Postman อยู่ใน `apps/api/postman/THAI-Please.postman_collection.json` หมวด **AI service (Qwen3 4B)** ใช้ `aiBaseUrl` แยกจาก NestJS และ `recommendationLatitude/recommendationLongitude/recommendationRadiusKm` สำหรับแนะนำร้าน
 
@@ -233,7 +243,7 @@ Postman มีหมวด **AI service (Qwen3 4B) → Token-free model test (/c
 
 ## ตัวอย่างคำถามครบ 4 รูปแบบ
 
-กรณี 1/3/4 ใช้ body มีเฉพาะ `message` และทดสอบได้ด้วย `POST /chat/test` โดยไม่แนบ token; กรณี 2 และคำถามที่รวมแนะนำร้านต้องใช้ `POST /chat` พร้อม CUSTOMER Bearer token และ `location` ตามตัวอย่าง. ทุกกรณียังใช้ `/chat` แบบมี token ได้ตามเดิม. คัดลอก JSON ไปใช้ใน Swagger ได้ ข้อความตอบขึ้นกับโมเดลและข้อมูลจริง; รหัสร้านในตัวอย่างเป็นสมมติ ไม่มีการรับรองเงื่อนไขโครงการจากตัวอย่างเหล่านี้
+กรณี 1/3/4 ใช้ body มีเฉพาะ `message` และทดสอบได้ด้วย `POST /chat/test` โดยไม่แนบ token; กรณี2และคำถามที่รวมแนะนำร้านต้องใช้ `POST /chat` พร้อม CUSTOMER Bearer token โดยไม่ต้องส่ง location ทุกกรณียังใช้ `/chat` แบบมี token ได้ คัดลอก JSON ไปใช้ใน Swagger ได้ ข้อความตอบขึ้นกับโมเดลและข้อมูลจริง รหัสร้านในตัวอย่างเป็นสมมติ ไม่มีการรับรองเงื่อนไขโครงการจากตัวอย่างเหล่านี้
 
 ### 1. ถามอย่างเดียว ไม่แนะนำร้าน
 
@@ -247,8 +257,7 @@ Postman มีหมวด **AI service (Qwen3 4B) → Token-free model test (/c
 
 ```json
 {
-  "message": "คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย",
-  "location": { "latitude": 13.75, "longitude": 100.5, "radiusKm": 5 }
+  "message": "คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย"
 }
 ```
 
@@ -342,7 +351,7 @@ System prompt มี `/no_think` ตาม [คำแนะนำของ Qwen3
 
 สรุป Backend API/Token/Auth อยู่ใน [DESIGN.md](DESIGN.md). `/chat` ตรวจ token ผ่าน authenticated context ซึ่ง Backend เรียก AuthService.me ก่อนอ่านประวัติ ไม่ต้องเรียก `/me` ซ้ำอีกครั้ง
 
-เว็บมีหน้า CUSTOMER `/AI-chatbot` และ Next BFF `/api/chat` แล้ว Browser ส่ง message/optional location ด้วย HttpOnly session cookie; Next ส่ง Bearer ไป server-only `AI_SERVICE_URL` (default loopback8000) จากนั้น UI hydrate storeIds เป็นการ์ดผ่าน `/api/stores/batch` ด้วย scope ตอนส่งข้อความ ดูการตั้งค่าและทดสอบเว็บที่ [apps/web/README.md](../apps/web/README.md) AI ยังเรียก Ollama ตาม OLLAMA_BASE_URL และ Nest ตาม BACKEND_BASE_URL ไม่รับ URL/actor จาก request หรือโมเดล การเชื่อม UI นี้ยังรอ live model/Backend/browser E2E; ผล HTTP fixtures ของเว็บไม่ใช่ผล Qwen จริง
+Browser /AI-chatbot sends message only to the cookie/Origin-guarded Next /api/chat BFF. Global cards use /api/recommendations/stores; Explore keeps its scoped discovery/batch endpoints. No GPS or distance labels are used in chat.
 
 ## ตรวจงาน
 
@@ -373,3 +382,5 @@ System prompt มี `/no_think` ตาม [คำแนะนำของ Qwen3
 Prettier ไม่รองรับ Python ในการตั้งค่าปัจจุบัน จึงใช้ Black สำหรับ `.py` และ Prettier ของ package API สำหรับ Markdown/JSON ที่แก้ เอกสารอ้างอิง: [Ollama chat API](https://docs.ollama.com/api/chat), [Thinking controls](https://docs.ollama.com/capabilities/thinking), [TestClient](https://fastapi.tiangolo.com/tutorial/testing/)
 
 ผลตรวจ 29 ต.ค. 2569 สำหรับ description relevance: unit/transport tests 65 กรณีผ่านด้วย mock transports รวมร้านคำอธิบายกว้าง อ่านหลายหน้า เก็บ description ครบ ป้องกัน ID ผิด/หลุด scope/tool injection และกรองก่อนโควตา ลอง smoke_description_relevance กับ Ollama จริงทั้งในและนอก sandbox แล้วเชื่อมต่อ model server ไม่ได้ (503) จึงยังไม่ยืนยันคุณภาพ semantic จากโมเดลจริง; ผล Qwen smoke ก่อนหน้าเป็นคนละรอบ ไม่ใช่หลักฐานของ flow ใหม่นี้
+
+Newly verified30 October2026 global-chat change: unittest discover74PASS; API TEMP PostgreSQL fixture verifies global eligibility of distant approved shops while scoped Explore filtering remains unchanged. Live Ollama/browser acceptance is pending.

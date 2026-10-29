@@ -25,10 +25,7 @@ export async function POST(request: NextRequest) {
   }
   const parsed = chatRequestSchema.safeParse(body);
   if (!parsed.success)
-    return failure(
-      "กรุณาตรวจสอบข้อความและจุดค้นหา (ข้อความไม่เกิน 2,000 ตัวอักษร)",
-      400,
-    );
+    return failure("กรุณาตรวจสอบข้อความ (ไม่เกิน 2,000 ตัวอักษร)", 400);
   const deadline = AbortSignal.timeout(180_000);
   try {
     const url = new URL(process.env.AI_SERVICE_URL ?? "http://127.0.0.1:8000");
@@ -73,10 +70,7 @@ export async function POST(request: NextRequest) {
       return failure("ข้อมูลตอบกลับจากผู้ช่วย AI ไม่ถูกต้อง กรุณาลองใหม่", 502);
     }
     const result = chatReplySchema.safeParse(json);
-    if (
-      !result.success ||
-      (result.data.storeIds.length > 0 && !parsed.data.location)
-    ) {
+    if (!result.success) {
       return failure("ข้อมูลตอบกลับจากผู้ช่วย AI ไม่ถูกต้อง กรุณาลองใหม่", 502);
     }
     return NextResponse.json(result.data, {

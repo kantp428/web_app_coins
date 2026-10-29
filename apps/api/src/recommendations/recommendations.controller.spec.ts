@@ -66,6 +66,12 @@ describe('recommendation filtering contract', () => {
   it('authenticates before querying personal history or candidates', async () => {
     me.mockRejectedValue(new UnauthorizedException());
     await expect(service.context()).rejects.toThrow(UnauthorizedException);
+    await expect(service.catalog({ categoryIds: '1,2' })).rejects.toThrow(
+      UnauthorizedException,
+    );
+    await expect(service.cards({ shopIds: ['1'] })).rejects.toThrow(
+      UnauthorizedException,
+    );
     await expect(
       service.candidates({ categoryIds: ['1', '2'] }),
     ).rejects.toThrow(UnauthorizedException);
@@ -80,6 +86,12 @@ describe('recommendation filtering contract', () => {
       await expect(service.context('Bearer actor')).rejects.toMatchObject({
         status: 403,
       });
+      await expect(
+        service.catalog({ categoryIds: '1,2' }, 'Bearer actor'),
+      ).rejects.toMatchObject({ status: 403 });
+      await expect(
+        service.cards({ shopIds: ['1'] }, 'Bearer actor'),
+      ).rejects.toMatchObject({ status: 403 });
       await expect(
         service.candidates({ categoryIds: ['1', '2'] }, 'Bearer actor'),
       ).rejects.toMatchObject({ status: 403 });
@@ -152,9 +164,9 @@ describe('recommendation filtering contract', () => {
     expect(sql).not.toContain('total_amount');
   });
 
-  it('rejects missing/invalid coordinates, radius and malformed shop IDs before SQL', async () => {
+  it('rejects partial/invalid legacy coordinates and malformed shop IDs before SQL', async () => {
     for (const body of [
-      { categoryIds: ['1', '2'] },
+      { categoryIds: ['1', '2'], latitude: 0 },
       { ...scope, latitude: 91, categoryIds: ['1', '2'] },
       { ...scope, longitude: null, categoryIds: ['1', '2'] },
       { ...scope, radiusKm: 0, categoryIds: ['1', '2'] },
@@ -165,6 +177,88 @@ describe('recommendation filtering contract', () => {
         status: 400,
       });
     expect(mocks.query).not.toHaveBeenCalled();
+  });
+  it('searches approved categories globally when coordinates are absent', async () => {
+    await service.candidates({ categoryIds: ['1', '2'] });
+    const scoped = mocks.query.mock.calls[0][1];
+    expect(scoped.sql).toContain("participation_status='APPROVED'");
+    expect(scoped.sql).not.toContain('radians');
+    expect(scoped.values).toEqual([1n, 2n]);
+  });
+  it('exposes category catalog pages without a location or private fields', async () => {
+    const queries = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          shop_id: 3n,
+          name: 'Fixture',
+          description: 'Coffee',
+          categories: ['Drinks'],
+        },
+      ])
+      .mockResolvedValueOnce([{ total: 1n }]);
+    service = new RecommendationsService(
+      new ConfigService({ DATABASE_URL: 'postgres://unused' }),
+      { me } as unknown as AuthService,
+      new StoresService(
+        { $queryRaw: queries } as unknown as PrismaService,
+        {} as AuthService,
+      ),
+    );
+    const result = await service.catalog({
+      categoryIds: '1,2',
+      page: 1,
+      pageSize: 50,
+    });
+    expect(result).toEqual({
+      shops: [
+        {
+          id: '3',
+          name: 'Fixture',
+          description: 'Coffee',
+          categories: ['Drinks'],
+        },
+      ],
+      meta: { page: 1, pageSize: 50, total: 1, hasNextPage: false },
+    });
+    expect(queries.mock.calls[0][0].sql).not.toContain('radians');
+    await expect(
+      service.catalog({ categoryIds: '1,2', latitude: 0 }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+  it('hydrates only approved global card IDs with actual rates and no distance', async () => {
+    const queries = vi.fn().mockResolvedValue([
+      {
+        shop_id: 3n,
+        name: 'Fixture',
+        description: null,
+        address: null,
+        latitude: '70',
+        longitude: '150',
+        categories: ['Food'],
+        coins: 10,
+        minimum_purchase: '50.00',
+        rate_ends_at: new Date('2099-01-01T00:00:00Z'),
+      },
+    ]);
+    service = new RecommendationsService(
+      new ConfigService({ DATABASE_URL: 'postgres://unused' }),
+      { me } as unknown as AuthService,
+      new StoresService(
+        { $queryRaw: queries } as unknown as PrismaService,
+        {} as AuthService,
+      ),
+    );
+    const result = await service.cards({ shopIds: ['3'] });
+    expect(result.stores[0].coinRate?.coins).toBe(10);
+    expect(result.stores[0]).not.toHaveProperty('distanceKm');
+    expect(queries.mock.calls[0][0].sql).not.toContain('radians');
+    for (const body of [
+      { shopIds: ['3'], latitude: 0 },
+      { shopIds: ['3', '3'] },
+      { shopIds: ['1', '2', '3', '4', '5', '6'] },
+    ])
+      await expect(service.cards(body)).rejects.toMatchObject({ status: 400 });
   });
 
   it('defaults to 5km and keeps zero coordinates and the shared scope SQL', async () => {

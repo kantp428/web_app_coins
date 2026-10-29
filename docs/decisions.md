@@ -1,5 +1,44 @@
 # UI prototype decisions
 
+## 2026-10-30 — Chat recommendations without geographic scope
+
+- User removes Chatbot radius restrictions to distinguish it from Explore. Chat always searches approved shops across all locations using category/description relevance, purchase context and existing max3new+2repeat/Coins ranking. Browser chat no longer requests GPS, sends coordinates, shows a radius or displays an invented distance. Explore retains its existing scoped all-match behavior.
+- Add CUSTOMER catalog pagination and global card hydration under recommendations. Candidates without any coordinate fields are global; a partial coordinate scope still fails validation and legacy fully scoped direct calls remain supported. Valid legacy /chat location input is accepted but ignored so older clients do not reintroduce a geographic filter.
+- Preserve the existing explicit200-shop processing budget: if matching categories exceed that budget, ask for a more specific category/request instead of silently scanning a geographic subset or truncating results. This is a processing bound, not a distance restriction. Global cards still recheck approval and read actual customer-specific coin rates; no distance is returned without an origin.
+
+## 2026-10-30 — Seller edits own shop location
+
+- User requests real location editing in `/store/settings` using Register's explicit current-GPS/manual-pin flow. Replace the fake settings form with owned-shop selection and a location/address editor; do not claim the previous mock name/category/hours fields persist. Add SELLER-only GET `/seller/stores` and PATCH `/seller/stores/:id/location`, with ownership derived exclusively from auth and enforced in the write predicate.
+- Location update changes only coordinates and optional structured address. Keep approval/reviewer/Coins/owner fields unchanged; this task does not introduce reapproval or rate regeneration. Existing status continues to govern discovery/payments, and approved shops' new coordinates affect subsequent discovery reads. Missing/other-owner shop IDs both return404. No new migration or unresolved rule is required.
+- Reuse the shared map picker, request GPS only on click, retain numeric-coordinate/address entry, and use existing debounced/aborted reverse geocoding after an explicit location edit. Unknown address may be saved as null; do not invent an address. Support multiple owned shops and prevent a response/location lookup for an old selection from overwriting another shop's form.
+
+## 2026-10-30 — Hide completed seller payment QR
+
+- User requests `/store/receive` to hide QR when the transaction completes. Reconcile the displayed QR by its ID with the existing seller-request status polling (every3seconds); clear the QR and its copy/download controls on a matching PAID/CANCELLED/EXPIRED status. Keep the corresponding entry in the request list.
+- Missing rows or failed polling are not proof of completion. An older response for another QR must not clear a newer QR, and a later stale PENDING response must not recreate a cleared QR. No payment/award/Backend contract change or new business rule is required.
+
+## 2026-10-30 — Scan payment Coins presentation
+
+- The scan page already receives `coins`/`coinReason` from the payment preview API, but an additional display still says the system is not connected. Bind the pending-payment display to the server estimate and remove the duplicated number/placeholder. Keep post-payment success Coins from the POST pay response, never from a cached estimate.
+- GET of an already-paid QR recomputes an advisory quote rather than returning that purchase's award. Do not label that value as received Coins; direct the customer to transaction history instead. No payment/award/business API change or unresolved rule is required.
+
+## 2026-10-30 — Compact Coins at the bottom right of cards
+
+- User replaces the large gold panel with a compact bottom-right display on both Explore and chat cards. Keep the coin icon/number/unit and put minimum purchase directly below; remove the rate heading and panel background/border. Unknown data uses a small “ยังไม่มีข้อมูล Coins” state. This supersedes the previous panel size/placement choice only; Backend rates and financial rules are unchanged.
+
+## 2026-10-30 — Visible Coins on Explore and chat store cards
+
+- User requests prominent Coins on both card surfaces. Extend authenticated `GET /stores` and `POST /stores/batch` with `coinRate:{coins,minimumPurchase,endsAt}|null`. Read stored rates in the active half-open period and the rule version attached to that rate; do not generate rates, mutate ledgers or compute awards in the browser/model.
+- Display uses the existing recommendation policy: select stored new/repeat Coins using the authenticated customer's all-time confirmed SUCCEEDED/REFUNDED shop purchase status. Keep this read-only rate consistent with candidates; payment settlement retains its separate prior-award/minimum-purchase/reversal checks and remains authoritative for actual awards. This task does not change either existing policy.
+- Use one gold card panel with a large integer, Coins icon/unit and stored minimum purchase. Missing/expired/future rates show “ยังไม่มีอัตรา Coins” without a fabricated0. Frontend treats an absent field from an older API as unknown while rejecting malformed rates. Display is a current-rate preview, not an award guarantee; preserve existing search scope, order, quotas and all-match Explore behavior.
+- No unresolved business rule blocks displaying these existing recommendation rates. No schema/migration or new endpoint is needed; update shared contract/Postman and local Summary-api for the additive DTO fields.
+
+## 2026-10-30 — Natural recommendation replies
+
+- User requests conversational shop suggestions rather than reporting matched counts/conditions or referring to the customer as “ผู้ใช้”. Keep actual IDs/cards and3+2 rules; make recommendation prose friendly, short and directed to “คุณ”, with optional counts when useful or requested.
+- Mention “ร้านที่คุณเคยซื้อ” only when selected candidates actually include visited:true. The example “เคยไป” is expressed as “เคยซื้อ” because Backend proves purchases, not physical visits. Zero repeat candidates or an absent category in the limited context is not proof that the customer has never purchased from that category.
+- Apply the same tone to empty results and verified shop summaries used when public Search fails. No fabricated shop names, menus, stock, Coins or purchase history; model phrasing may vary. No unresolved business rule or API-shape change.
+
 ## 2026-10-29 — Explore search through the standalone AI service
 
 - User requests all relevant stores within Explore's selected origin/radius, without category controls or the chatbot's five-store/3+2 quota. Use FastAPI `POST /stores/search`, leaving the paused Nest `POST /recommendations/search` disabled.

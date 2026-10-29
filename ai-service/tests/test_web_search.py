@@ -115,6 +115,29 @@ class WebSearchAPITests(unittest.TestCase):
         self.assertNotIn("private provider", response.text)
         self.assertNotIn("โมเดลเดา", response.text)
 
+    def test_failed_search_shop_summary_uses_only_verified_repeat_candidates(self):
+        self.provider.side_effect = RuntimeError("fixture provider failure")
+        new_shop = {"id": "3", "visited": False, "coins": None}
+        repeat_shop = {"id": "6", "visited": True, "coins": 1}
+        for shops in ([new_shop], [repeat_shop], [new_shop, repeat_shop], []):
+            with self.subTest(shops=shops):
+                self.candidates = {"stores": shops}
+                self.model_responses = [
+                    rec.assistant(calls=[rec.tool(), web_call()]),
+                    rec.assistant("unsupported model claim"),
+                ]
+                response = self.post("ค้นข้อมูลโครงการคนละครึ่งและแนะนำร้านอาหาร")
+                self.assertEqual(response.status_code, 200)
+                body = response.json()
+                self.assertEqual(body["storeIds"], [shop["id"] for shop in shops])
+                self.assertNotIn("unsupported model claim", body["reply"])
+                self.assertEqual(
+                    "เคยซื้อ" in body["reply"], any(s["visited"] for s in shops)
+                )
+                self.assertNotIn("ไม่เคยซื้อ", body["reply"])
+                self.assertNotIn("โควตา", body["reply"])
+                self.assertEqual(body["sources"], [])
+
     def test_empty_or_disabled_search_returns_limitations_not_guesses(self):
         for disabled in (False, True):
             self.provider.reset_mock()

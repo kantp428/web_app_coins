@@ -26,7 +26,11 @@ class StoreLocation(BaseModel):
 
 
 class RecommendationChatRequest(ChatRequest):
-    location: StoreLocation | None = None
+    location: StoreLocation | None = Field(
+        default=None,
+        deprecated=True,
+        description="Legacy field: validated but ignored. Chat recommendations have no geographic scope.",
+    )
 
 
 class Source(BaseModel):

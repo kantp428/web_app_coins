@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { StoresController } from './stores/stores.controller.js';
 import { StoresService } from './stores/stores.service.js';
+import { SellerStoresController } from './seller-stores/seller-stores.controller.js';
+import { SellerStoresService } from './seller-stores/seller-stores.service.js';
 import { CoinRulesController } from './coin-rules/coin-rules.controller.js';
 import { CoinRulesService } from './coin-rules/coin-rules.service.js';
 import { CoinRatesService } from './coin-rules/coin-rates.service.js';
@@ -38,6 +40,7 @@ import { OllamaShopSearchProvider } from './recommendations/shop-search.provider
     RecommendationsController,
     RecommendationsSearchController,
     StoresController,
+    SellerStoresController,
     WalletsController,
   ],
   providers: [
@@ -52,6 +55,7 @@ import { OllamaShopSearchProvider } from './recommendations/shop-search.provider
     ShopSearchService,
     OllamaShopSearchProvider,
     StoresService,
+    SellerStoresService,
     WalletsService,
   ],
 })
