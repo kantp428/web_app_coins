@@ -624,3 +624,8 @@
 
 - Updated only the Government Reports desktop grid so both Shop Performance and Coin Effectiveness columns use equal-height flex containers and their existing AnalyticsCard components fill the available row height. Responsive stacking, chart data and all API/business behavior remain unchanged.
 - Verification: changed-file Prettier write/check, web ESLint and `tsc --noEmit` passed. Production build again hit the restricted sandbox's existing Turbopack/PostCSS subprocess failure without a component/type diagnostic; browser visual confirmation remains pending. F12 stays PARTIAL.
+
+### 2026-10-30 02:55 Asia/Bangkok - F12 equal-width Shop and Coin report cards
+
+- Corrected the prior interpretation of equal sizing: the Shop Performance and Coin Effectiveness desktop columns now use the same 50/50 width, matching the Budget Analysis row, while retaining equal card heights and responsive stacking. No data/API/business behavior changed.
+- Changed-file Prettier write/check, web ESLint and `tsc --noEmit` passed. Production build was not rerun because this UI-only class change retains the immediately preceding sandbox blocker; browser confirmation remains pending. F12 stays PARTIAL.
