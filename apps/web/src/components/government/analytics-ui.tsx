@@ -180,28 +180,30 @@ export function LineChart<T>({
   label,
   series,
   valueLabel = (value) => money(value),
+  compact = false,
 }: {
   data: T[];
   label: (row: T) => string;
   series: LineSeries<T>[];
   valueLabel?: (value: number) => string;
+  compact?: boolean;
 }) {
   const values = data.flatMap((row) => series.map((item) => item.value(row)));
   const max = Math.max(1, ...values);
   const hasData = values.some((value) => value !== 0);
   if (!hasData) return <EmptyChart />;
   const width = 680;
-  const height = 250;
+  const height = compact ? 185 : 250;
   const paddingX = 38;
-  const paddingTop = 18;
-  const paddingBottom = 40;
+  const paddingTop = compact ? 12 : 18;
+  const paddingBottom = compact ? 34 : 40;
   const plotHeight = height - paddingTop - paddingBottom;
   const step = data.length > 1 ? (width - paddingX * 2) / (data.length - 1) : 0;
   const point = (value: number, index: number) =>
     `${paddingX + step * index},${paddingTop + plotHeight - (value / max) * plotHeight}`;
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[620px]">
+      <div className={compact ? "min-w-[440px]" : "min-w-[620px]"}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="h-auto w-full"

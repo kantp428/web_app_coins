@@ -606,3 +606,21 @@
 - Government report aggregation still reads each persisted `budget_limit` and successful purchase `reward_subsidy_used`. Added a shared calculation that sums configured budget and actual spending, derives remaining as budget minus spending and preserves negative overspend. Updated unit/integration expectations, current contract, decision record and ignored local Summary-api quick reference.
 - Newly verified: focused wallet/report tests 11 passed; full API suite 112 passed/19 skipped; API type-aware lint and Nest build passed; owning-package Prettier write/check passed. The opt-in PostgreSQL Coin settlement suite could not connect because external DNS/network permission was unavailable (`ENOTFOUND`) before fixture setup; it did not modify an existing monthly period or production data.
 - F08/F11 remain PARTIAL. Next: rerun `RUN_COIN_AWARDS_DB_TESTS=true` with approved database connectivity to confirm the new-period value through PostgreSQL and the existing-period no-update case, then reconcile one authenticated Government Dashboard month against the persisted period and successful purchases.
+
+### 2026-10-30 02:35 Asia/Bangkok - F11 current-month Main Quest budget activation
+
+- With explicit user authorization, inspected the persisted current Bangkok period and found the existing October 2026 row had a zero budget. Updated only that row from zero to `100000.00`; it remains `DRAFT`. No historical/nonzero period, schema, migration, API, UI or application source was changed by this operation.
+- Read-back aggregation from the same database confirmed configured budget `100000.00`, successful-purchase Main Quest spending `0.00` and remaining `100000.00`. The temporary maintenance script was removed after execution and did not log credentials, customer rows or transaction details.
+- Dashboard/API processes were previously not listening locally, so authenticated browser rendering was not rechecked. Next: start Nest and Next, load the October range and verify the Overview budget cards show the persisted values; separately decide whether new periods should be created automatically at Backend startup/month rollover and whether they should begin `DRAFT` or `OPEN`.
+
+### 2026-10-30 02:45 Asia/Bangkok - F12 compact Government Reports layout
+
+- Refined only the existing Government Reports UI and shared optional chart sizing. Removed Shop Category Distribution in addition to the already-removed subsidy split, top shops and reward-recipient/allocation charts. Renamed the repeat panel to `Repeat Transaction Analysis` without changing its server calculation.
+- Rebalanced the responsive layout: Shop Performance and a compact Coin Distribution trend share one row at desktop widths and stack on smaller screens; overall vertical spacing is reduced. Existing components, report payload, API, database and business rules remain unchanged.
+- Newly verified: changed-file Prettier write/check passed, web ESLint passed and `tsc --noEmit` passed. Production `next build` reached compilation but Turbopack failed while spawning the existing PostCSS/CSS worker inside the restricted sandbox; no component/type diagnostic was reported. Authenticated 360/1920 px browser QA remains pending.
+- F12 remains PARTIAL. Next: run the production build outside the restricted sandbox and visually review the Reports grid at mobile/desktop widths with populated and empty report data.
+
+### 2026-10-30 02:50 Asia/Bangkok - F12 equal-height Shop and Coin report cards
+
+- Updated only the Government Reports desktop grid so both Shop Performance and Coin Effectiveness columns use equal-height flex containers and their existing AnalyticsCard components fill the available row height. Responsive stacking, chart data and all API/business behavior remain unchanged.
+- Verification: changed-file Prettier write/check, web ESLint and `tsc --noEmit` passed. Production build again hit the restricted sandbox's existing Turbopack/PostCSS subprocess failure without a component/type diagnostic; browser visual confirmation remains pending. F12 stays PARTIAL.

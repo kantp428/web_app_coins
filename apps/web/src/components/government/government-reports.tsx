@@ -86,7 +86,7 @@ export function GovernmentReports() {
   const data = report.data;
 
   return (
-    <section className="space-y-7">
+    <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-blue-700">Executive Reports</p>
@@ -227,14 +227,14 @@ export function GovernmentReports() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <SectionHeading
-              eyebrow="Shop Performance"
-              title="ประสิทธิภาพร้านค้า"
-              description="เปรียบเทียบยอดขายตามขนาดและการกระจายร้านค้าตามหมวดหมู่"
-            />
-            <div className="grid gap-5 xl:grid-cols-2">
-              <AnalyticsCard title="Sales by Shop Size">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+            <div className="flex h-full flex-col gap-4">
+              <SectionHeading
+                eyebrow="Shop Performance"
+                title="ประสิทธิภาพร้านค้า"
+                description="เปรียบเทียบยอดขายและจำนวนธุรกรรมตามขนาดร้านค้า"
+              />
+              <AnalyticsCard title="Sales by Shop Size" className="flex-1">
                 <HorizontalBars
                   items={data.shops.salesBySize.map((row) => ({
                     label: sizeLabels[row.size] ?? row.size,
@@ -244,20 +244,32 @@ export function GovernmentReports() {
                   formatValue={(value) => `${money(value)} บาท`}
                 />
               </AnalyticsCard>
+            </div>
+            <div className="flex h-full flex-col gap-4">
+              <SectionHeading
+                eyebrow="Coin Effectiveness"
+                title="ประสิทธิผล Coins"
+                description="นับเฉพาะ Coins ที่ไม่ถูกยกเลิกและผูกกับรายการซื้อสำเร็จ"
+              />
               <AnalyticsCard
-                title="Shop Category Distribution"
-                description="จำนวนร้านที่มีธุรกรรม; ร้านหลายหมวดอาจถูกนับมากกว่าหนึ่งหมวด"
+                title="Coin Distribution Trends"
+                description="จำนวน Coins ที่แจกสำเร็จรายเดือน"
+                className="flex-1"
               >
-                <HorizontalBars
-                  items={data.shops.categoryDistribution.map((row) => ({
-                    label: row.name,
-                    value: row.transactingShops,
-                    helper: `${money(row.sales)} บาท`,
-                  }))}
-                  formatValue={(value) =>
-                    `${integerFormatter.format(value)} ร้าน`
+                <LineChart
+                  compact
+                  data={data.coinsAndRewards.monthly}
+                  label={(row) => monthLabel(row.month)}
+                  valueLabel={(value) =>
+                    `${integerFormatter.format(value)} Coins`
                   }
-                  color="bg-emerald-600"
+                  series={[
+                    {
+                      label: "Coins ที่แจก",
+                      color: "#2563eb",
+                      value: (row) => Number(row.coinsAwarded),
+                    },
+                  ]}
                 />
               </AnalyticsCard>
             </div>
@@ -300,7 +312,7 @@ export function GovernmentReports() {
                   icon={ReceiptText}
                 />
                 <AnalyticsCard
-                  title="Repeat Purchase Analysis"
+                  title="Repeat Transaction Analysis"
                   description="สัดส่วนรายการซื้อที่ผู้ซื้อเคยซื้อร้านเดิมมาก่อน"
                 >
                   <Donut
@@ -311,33 +323,6 @@ export function GovernmentReports() {
                 </AnalyticsCard>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <SectionHeading
-              eyebrow="Coin & Reward Effectiveness"
-              title="ประสิทธิผล Coins และรางวัล"
-              description="นับเฉพาะ Coins ที่ไม่ถูกยกเลิกและรายการซื้อที่ยังสำเร็จ"
-            />
-            <AnalyticsCard
-              title="Coin Distribution Trends"
-              description="จำนวน Coins ที่แจกสำเร็จรายเดือน"
-            >
-              <LineChart
-                data={data.coinsAndRewards.monthly}
-                label={(row) => monthLabel(row.month)}
-                valueLabel={(value) =>
-                  `${integerFormatter.format(value)} Coins`
-                }
-                series={[
-                  {
-                    label: "Coins ที่แจก",
-                    color: "#2563eb",
-                    value: (row) => Number(row.coinsAwarded),
-                  },
-                ]}
-              />
-            </AnalyticsCard>
           </div>
 
           <div className="flex flex-col gap-1 border-t pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
