@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseReportRange,
+  summarizeBudget,
   usagePercent,
 } from './government-reports.service.js';
 
@@ -37,5 +38,21 @@ describe('government reporting validation', () => {
     expect(usagePercent('0.00', '0.00')).toBe(0);
     expect(usagePercent('84.10', '100.00')).toBe(84.1);
     expect(usagePercent('120.00', '100.00')).toBe(120);
+  });
+
+  it('sums configured budgets and calculates remaining from actual spending', () => {
+    expect(
+      summarizeBudget([
+        { budgetLimit: '100000.00', spent: '1250.25' },
+        { budgetLimit: '100000.00', spent: '500.00' },
+      ]),
+    ).toEqual({
+      budgetLimit: '200000.00',
+      spent: '1750.25',
+      remaining: '198249.75',
+    });
+    expect(
+      summarizeBudget([{ budgetLimit: '100.00', spent: '120.00' }]),
+    ).toMatchObject({ remaining: '-20.00' });
   });
 });

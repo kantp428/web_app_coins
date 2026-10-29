@@ -1,5 +1,11 @@
 # UI prototype decisions
 
+## 2026-10-30 — Default Main Quest monthly budget (F08/F11)
+
+- User-set policy supersedes the earlier zero-budget lazy-period default: every newly created Bangkok `monthly_periods` row starts with `budget_limit = 100000.00` THB and remains `DRAFT`. The existing unique month upsert keeps `update: {}`, so an already configured period and its budget are never changed by payment/Coin processing.
+- This is an application creation default only. Do not add a schema default, migration, backfill, API, page or library. Existing monthly rows retain their persisted budgets, including zero or manually configured values.
+- Government reports continue to read `budget_limit` from persisted monthly rows. Main Quest spent is the sum of `reward_subsidy_used` on currently `SUCCEEDED` purchases within each period; remaining is configured budget minus that actual spending, and overspend remains visible rather than being clamped.
+
 ## 2026-10-30 — Government executive reporting semantics (F11/F12)
 
 - Keep the existing `/government` and `/government/reports` routes, government shell and navigation. Add read-only GOVERNMENT APIs and aggregate SQL only; do not change Prisma schema, migrations, seed data, ledgers or transaction rules.
@@ -222,7 +228,7 @@ User requests latest 10 update rounds as a table without shop details. Count all
 
 Successful QR settlement uses the frozen shop rate covering confirmation time [starts_at, ends_at), not QR creation or a live rule recalculation. Minimum purchase is inclusive and uses that rate's immutable rule. Repeat means this customer has ever received a coin entry for this shop, across all months, including reversed entries; purchases below the minimum do not consume the first award. This is distinct from visited status (all successful purchases). Missing frozen rate returns 0 Coins with NO_RATE (e.g. newly approved shop waits for next round); below minimum returns 0 with BELOW_MINIMUM. Payment still succeeds, without fabricated rates or retroactive awards. Preview is advisory; settlement recomputes under the existing Serializable transaction/wallet locks. Unique purchase/coin constraints prevent duplicate awards; conflicts return 409 and can be retried.
 
-Create a Bangkok monthly ledger period on first award if absent, with budget_limit=0 and DRAFT, preserving any configured period unchanged. Coin earning does not allocate or spend Main Quest budget; automatic grants/refunds remain separate work. Award timestamp equals purchase confirmation time. Wallet summary exposes current-month unreversed Coins as an integer string (null for sellers); payment preview/result includes coins, coinReason, coinRuleVersion. No historical purchases are backfilled.
+Historical policy (superseded by the 2026-10-30 default-budget decision above): create a Bangkok monthly ledger period on first award if absent with `budget_limit=0` and DRAFT, preserving any configured period unchanged. Coin earning does not allocate or spend Main Quest budget; automatic grants/refunds remain separate work. Award timestamp equals purchase confirmation time. Wallet summary exposes current-month unreversed Coins as an integer string (null for sellers); payment preview/result includes coins, coinReason, coinRuleVersion. No historical purchases are backfilled.
 
 ### 2026-10-13 — Main Quest live grant, spend and expiry
 

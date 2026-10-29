@@ -23,6 +23,7 @@ import {
 
 const HELP_MONTHLY_CENTS = 100_000;
 const HELP_DAILY_CENTS = 20_000;
+export const MAIN_QUEST_DEFAULT_MONTHLY_BUDGET = '100000.00';
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -64,6 +65,24 @@ export function bangkokMonthRange(now = new Date()) {
     startsAt: new Date(`${month}T00:00:00+07:00`),
     endsAt: new Date(`${nextMonthKey}T00:00:00+07:00`),
   };
+}
+
+export async function ensureBangkokMonthlyPeriod(
+  tx: Prisma.TransactionClient,
+  now: Date,
+) {
+  const range = bangkokMonthRange(now);
+  return tx.monthly_periods.upsert({
+    where: { month_key: new Date(`${range.month}T00:00:00Z`) },
+    create: {
+      month_key: new Date(`${range.month}T00:00:00Z`),
+      starts_at: range.startsAt,
+      ends_at: range.endsAt,
+      budget_limit: MAIN_QUEST_DEFAULT_MONTHLY_BUDGET,
+      status: 'DRAFT',
+    },
+    update: {},
+  });
 }
 
 export function bangkokDayRange(now = new Date()) {
@@ -725,18 +744,7 @@ export class WalletsService {
             },
           });
           if (coinQuote.coins > 0 && coinQuote.ruleId !== null) {
-            const range = bangkokMonthRange(now);
-            const period = await tx.monthly_periods.upsert({
-              where: { month_key: new Date(`${range.month}T00:00:00Z`) },
-              create: {
-                month_key: new Date(`${range.month}T00:00:00Z`),
-                starts_at: range.startsAt,
-                ends_at: range.endsAt,
-                budget_limit: '0.00',
-                status: 'DRAFT',
-              },
-              update: {},
-            });
+            const period = await ensureBangkokMonthlyPeriod(tx, now);
             await tx.coin_entries.create({
               data: {
                 user_id: BigInt(user.id),

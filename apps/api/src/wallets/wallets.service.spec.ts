@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { Prisma } from '@prisma/client';
+import { describe, expect, it, vi } from 'vitest';
 import {
   amountToCents,
   bangkokDayRange,
   bangkokMonth,
   bangkokMonthRange,
+  ensureBangkokMonthlyPeriod,
   paymentBreakdown,
   paymentWithReward,
 } from './wallets.service.js';
@@ -14,6 +16,28 @@ describe('wallet money rules', () => {
     expect(amountToCents('10.05')).toBe(1005);
     expect(() => amountToCents('0')).toThrow();
     expect(() => amountToCents('1.001')).toThrow();
+  });
+
+  it('creates a new Bangkok monthly period with the default budget without updating an existing period', async () => {
+    const upsert = vi.fn().mockResolvedValue({ period_id: 1n });
+    await ensureBangkokMonthlyPeriod(
+      {
+        monthly_periods: { upsert },
+      } as unknown as Prisma.TransactionClient,
+      new Date('2026-10-15T00:00:00.000Z'),
+    );
+
+    expect(upsert).toHaveBeenCalledWith({
+      where: { month_key: new Date('2026-10-01T00:00:00.000Z') },
+      create: {
+        month_key: new Date('2026-10-01T00:00:00.000Z'),
+        starts_at: new Date('2026-09-30T17:00:00.000Z'),
+        ends_at: new Date('2026-10-31T17:00:00.000Z'),
+        budget_limit: '100000.00',
+        status: 'DRAFT',
+      },
+      update: {},
+    });
   });
 
   it('uses Bangkok calendar months including the UTC boundary', () => {

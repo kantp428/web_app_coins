@@ -233,7 +233,7 @@ describe.skipIf(process.env.RUN_COIN_AWARDS_DB_TESTS !== 'true')(
       expect(entry.monthly_periods.month_key.toISOString()).toBe(
         '2026-10-01T00:00:00.000Z',
       );
-      expect(entry.monthly_periods.budget_limit.toFixed(2)).toBe('0.00');
+      expect(entry.monthly_periods.budget_limit.toFixed(2)).toBe('100000.00');
       const before = await snapshot();
       await expect(
         service.pay(qr.payment_request_id, 'customer'),
@@ -369,10 +369,21 @@ describe.skipIf(process.env.RUN_COIN_AWARDS_DB_TESTS !== 'true')(
       expect(
         await service.paymentRequest(qr.payment_request_id, 'customer'),
       ).toMatchObject({ coins: 10 });
+      await db.monthly_periods.update({
+        where: { month_key: new Date('2026-11-01T00:00:00.000Z') },
+        data: { budget_limit: '4321.00' },
+      });
       vi.setSystemTime(next);
       expect(
         await service.pay(qr.payment_request_id, 'customer'),
       ).toMatchObject({ coins: 8 });
+      expect(
+        (
+          await db.monthly_periods.findUniqueOrThrow({
+            where: { month_key: new Date('2026-11-01T00:00:00.000Z') },
+          })
+        ).budget_limit.toFixed(2),
+      ).toBe('4321.00');
     }, 60000);
 
     it('does not award for rejected role, expired/cancelled QR, suspended shop or insufficient cash', async () => {

@@ -136,9 +136,36 @@ export function DashboardSkeleton({ cards = 6 }: { cards?: number }) {
 
 export function EmptyChart({ message = "ยังไม่มีข้อมูลในช่วงเวลานี้" }) {
   return (
-    <div className="grid min-h-48 place-items-center rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+    <div className="grid min-h-28 place-items-center rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground">
       {message}
     </div>
+  );
+}
+
+export function ReportLimitationsTooltip({ items }: { items: string[] }) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted"
+        aria-label="ดูข้อจำกัดของรายงาน"
+      >
+        <AlertCircle className="size-4" />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute top-full right-0 z-20 mt-2 hidden w-[min(320px,calc(100vw-2rem))] rounded-lg border bg-popover p-3 text-left text-xs leading-relaxed text-popover-foreground shadow-lg group-hover:block group-focus-within:block"
+      >
+        <strong className="mb-2 block text-sm">ข้อจำกัดของรายงาน</strong>
+        <span className="block space-y-1.5 text-muted-foreground">
+          {items.map((item) => (
+            <span key={item} className="block">
+              • {item}
+            </span>
+          ))}
+        </span>
+      </span>
+    </span>
   );
 }
 

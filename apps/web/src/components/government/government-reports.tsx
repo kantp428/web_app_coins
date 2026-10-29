@@ -1,7 +1,6 @@
 "use client";
 
-import { Info, ReceiptText, Repeat2, Users } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ReceiptText, Repeat2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGovernmentReport } from "@/hooks/use-government-report";
@@ -13,6 +12,7 @@ import {
   Donut,
   HorizontalBars,
   LineChart,
+  ReportLimitationsTooltip,
   ReportError,
   integerFormatter,
   money,
@@ -86,16 +86,19 @@ export function GovernmentReports() {
   const data = report.data;
 
   return (
-    <section className="space-y-8">
-      <div>
-        <p className="text-sm font-medium text-blue-700">Executive Reports</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-          รายงานวิเคราะห์เชิงลึก
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          วิเคราะห์งบประมาณ ผลการดำเนินงานร้านค้า พฤติกรรมประชาชน
-          และประสิทธิผลของ Coins
-        </p>
+    <section className="space-y-7">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-blue-700">Executive Reports</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+            รายงานวิเคราะห์เชิงลึก
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            วิเคราะห์งบประมาณ ผลการดำเนินงานร้านค้า พฤติกรรมประชาชน
+            และประสิทธิผลของ Coins
+          </p>
+        </div>
+        {data ? <ReportLimitationsTooltip items={data.limitations} /> : null}
       </div>
 
       <DateRangeFilter
@@ -112,31 +115,13 @@ export function GovernmentReports() {
 
       {data ? (
         <>
-          <div className="space-y-5">
+          <div className="space-y-4">
             <SectionHeading
               eyebrow="Budget Analysis"
               title="วิเคราะห์งบประมาณ"
               description="ติดตามการใช้ Base Subsidy และ Main Quest Reward โดยไม่รวมรายการคืนเงิน"
             />
-            <div className="grid gap-6 xl:grid-cols-2">
-              <AnalyticsCard
-                title="Base Subsidy vs Reward Subsidy"
-                description="ยอดใช้จริงจากรายการซื้อสำเร็จ"
-              >
-                <HorizontalBars
-                  items={[
-                    {
-                      label: "Base Subsidy",
-                      value: Number(data.budget.subsidySplit.baseSubsidy),
-                    },
-                    {
-                      label: "Main Quest Reward",
-                      value: Number(data.budget.subsidySplit.rewardSubsidy),
-                    },
-                  ]}
-                  formatValue={(value) => `${money(value)} บาท`}
-                />
-              </AnalyticsCard>
+            <div className="grid gap-5 xl:grid-cols-2">
               <AnalyticsCard
                 title="Monthly Subsidy Spending"
                 description="แนวโน้มเงินสนับสนุนรายเดือน"
@@ -158,95 +143,97 @@ export function GovernmentReports() {
                   ]}
                 />
               </AnalyticsCard>
-            </div>
-            <AnalyticsCard
-              title="Budget Utilization"
-              description="งบ Main Quest รายเดือน; เดือนที่ช่วงวันที่ทับซ้อนจะนับเพดานงบเต็มเดือน"
-            >
-              {data.budget.utilization.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] text-sm">
-                    <thead className="border-y bg-muted/50 text-xs text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-3 text-left font-medium">
-                          เดือน
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          งบตั้งต้น
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          ใช้จริง
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          คงเหลือ
-                        </th>
-                        <th className="px-3 py-3 text-left font-medium">
-                          สัดส่วน
-                        </th>
-                        <th className="px-3 py-3 text-center font-medium">
-                          สถานะ
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {data.budget.utilization.map((row) => (
-                        <tr key={row.month}>
-                          <td className="px-3 py-3 font-medium">
-                            {monthLabel(row.month)}
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono">
-                            {money(row.budgetLimit)}
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono">
-                            {money(row.spent)}
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono">
-                            {money(row.remaining)}
-                          </td>
-                          <td className="w-48 px-3 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                                <span
-                                  className="block h-full rounded-full bg-blue-600"
-                                  style={{
-                                    width: `${Math.min(100, Math.max(0, row.usagePercent))}%`,
-                                  }}
-                                />
-                              </div>
-                              <span className="w-12 text-right text-xs">
-                                {row.usagePercent}%
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-center">
-                            <Badge
-                              variant={
-                                row.status === "OPEN" ? "default" : "secondary"
-                              }
-                            >
-                              {statusLabel(row.status)}
-                            </Badge>
-                          </td>
+              <AnalyticsCard
+                title="Budget Utilization"
+                description="งบ Main Quest รายเดือน; เดือนที่ช่วงวันที่ทับซ้อนจะนับเพดานงบเต็มเดือน"
+              >
+                {data.budget.utilization.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-sm">
+                      <thead className="border-y bg-muted/50 text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-3 text-left font-medium">
+                            เดือน
+                          </th>
+                          <th className="px-3 py-3 text-right font-medium">
+                            งบตั้งต้น
+                          </th>
+                          <th className="px-3 py-3 text-right font-medium">
+                            ใช้จริง
+                          </th>
+                          <th className="px-3 py-3 text-right font-medium">
+                            คงเหลือ
+                          </th>
+                          <th className="px-3 py-3 text-left font-medium">
+                            สัดส่วน
+                          </th>
+                          <th className="px-3 py-3 text-center font-medium">
+                            สถานะ
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  ยังไม่มีการตั้งงบ Main Quest ในช่วงเวลานี้
-                </p>
-              )}
-            </AnalyticsCard>
+                      </thead>
+                      <tbody className="divide-y">
+                        {data.budget.utilization.map((row) => (
+                          <tr key={row.month}>
+                            <td className="px-3 py-2.5 font-medium">
+                              {monthLabel(row.month)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono">
+                              {money(row.budgetLimit)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono">
+                              {money(row.spent)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono">
+                              {money(row.remaining)}
+                            </td>
+                            <td className="w-48 px-3 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                                  <span
+                                    className="block h-full rounded-full bg-blue-600"
+                                    style={{
+                                      width: `${Math.min(100, Math.max(0, row.usagePercent))}%`,
+                                    }}
+                                  />
+                                </div>
+                                <span className="w-12 text-right text-xs">
+                                  {row.usagePercent}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <Badge
+                                variant={
+                                  row.status === "OPEN"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {statusLabel(row.status)}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                    ยังไม่มีการตั้งงบ Main Quest ในช่วงเวลานี้
+                  </p>
+                )}
+              </AnalyticsCard>
+            </div>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <SectionHeading
               eyebrow="Shop Performance"
               title="ประสิทธิภาพร้านค้า"
-              description="เปรียบเทียบยอดขายตามขนาด ร้านที่มีผลงานสูง และการกระจายตามหมวดหมู่"
+              description="เปรียบเทียบยอดขายตามขนาดและการกระจายร้านค้าตามหมวดหมู่"
             />
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-5 xl:grid-cols-2">
               <AnalyticsCard title="Sales by Shop Size">
                 <HorizontalBars
                   items={data.shops.salesBySize.map((row) => ({
@@ -274,76 +261,15 @@ export function GovernmentReports() {
                 />
               </AnalyticsCard>
             </div>
-            <AnalyticsCard
-              title="Top Performing Shops"
-              description="เรียงตามยอดขายสุทธิสูงสุด 10 ร้าน"
-            >
-              {data.shops.topShops.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px] text-sm">
-                    <thead className="border-y bg-muted/50 text-xs text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-3 text-left font-medium">
-                          อันดับ
-                        </th>
-                        <th className="px-3 py-3 text-left font-medium">
-                          ร้านค้า
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          ยอดขาย
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          ธุรกรรม
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {data.shops.topShops.map((shop, index) => (
-                        <tr key={shop.shopId}>
-                          <td className="px-3 py-3 text-muted-foreground">
-                            #{index + 1}
-                          </td>
-                          <td className="px-3 py-3 font-medium">{shop.name}</td>
-                          <td className="px-3 py-3 text-right font-mono">
-                            {money(shop.sales)} บาท
-                          </td>
-                          <td className="px-3 py-3 text-right">
-                            {integerFormatter.format(shop.transactionCount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  ยังไม่มีร้านค้าที่มีธุรกรรมสำเร็จในช่วงเวลานี้
-                </p>
-              )}
-            </AnalyticsCard>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <SectionHeading
               eyebrow="Customer Behavior"
               title="พฤติกรรมประชาชน"
-              description="ดูแนวโน้มธุรกรรม มูลค่าเฉลี่ย และสัดส่วนการกลับมาซื้อร้านเดิม"
+              description="ดูแนวโน้มธุรกรรม มูลค่าเฉลี่ย และรายการที่มีประวัติซื้อร้านเดิม"
             />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <MetricCard
-                label="มูลค่าธุรกรรมเฉลี่ย"
-                value={`${money(data.customers.summary.averageTransaction)} บาท`}
-                helper={`${integerFormatter.format(data.customers.summary.transactionCount)} ธุรกรรมสำเร็จ`}
-                icon={ReceiptText}
-              />
-              <MetricCard
-                label="ประชาชนที่มีธุรกรรม"
-                value={`${integerFormatter.format(data.customers.summary.uniqueCustomers)} คน`}
-                helper="นับผู้ใช้แบบไม่ซ้ำในช่วงเวลา"
-                icon={Users}
-              />
-            </div>
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.7fr)]">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)]">
               <AnalyticsCard
                 title="Transaction Trends"
                 description="จำนวนธุรกรรมและผู้ใช้ไม่ซ้ำรายเดือน"
@@ -366,71 +292,53 @@ export function GovernmentReports() {
                   ]}
                 />
               </AnalyticsCard>
-              <AnalyticsCard title="Repeat Customer Analysis">
-                <Donut
-                  percent={data.customers.repeatAnalysis.repeatRate}
-                  label="ซื้อซ้ำร้านเดิม"
-                  detail={`${integerFormatter.format(data.customers.repeatAnalysis.repeatTransactions)} ซื้อซ้ำ / ${integerFormatter.format(data.customers.repeatAnalysis.firstTransactions)} ครั้งแรก`}
+              <div className="grid gap-5">
+                <MetricCard
+                  label="มูลค่าธุรกรรมเฉลี่ย"
+                  value={`${money(data.customers.summary.averageTransaction)} บาท`}
+                  helper={`${integerFormatter.format(data.customers.summary.transactionCount)} ธุรกรรมสำเร็จ`}
+                  icon={ReceiptText}
                 />
-              </AnalyticsCard>
+                <AnalyticsCard
+                  title="Repeat Purchase Analysis"
+                  description="สัดส่วนรายการซื้อที่ผู้ซื้อเคยซื้อร้านเดิมมาก่อน"
+                >
+                  <Donut
+                    percent={data.customers.repeatAnalysis.repeatRate}
+                    label="รายการซื้อซ้ำร้านเดิม"
+                    detail={`${integerFormatter.format(data.customers.repeatAnalysis.repeatTransactions)} รายการมีประวัติ / ${integerFormatter.format(data.customers.repeatAnalysis.firstTransactions)} รายการครั้งแรก`}
+                  />
+                </AnalyticsCard>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <SectionHeading
               eyebrow="Coin & Reward Effectiveness"
               title="ประสิทธิผล Coins และรางวัล"
               description="นับเฉพาะ Coins ที่ไม่ถูกยกเลิกและรายการซื้อที่ยังสำเร็จ"
             />
-            <div className="grid gap-6 xl:grid-cols-3">
-              <AnalyticsCard title="Coin Distribution Trends">
-                <HorizontalBars
-                  items={data.coinsAndRewards.monthly.map((row) => ({
-                    label: monthLabel(row.month),
-                    value: Number(row.coinsAwarded),
-                    helper: `${integerFormatter.format(row.coinAwards)} ครั้ง`,
-                  }))}
-                  formatValue={(value) =>
-                    `${integerFormatter.format(value)} Coins`
-                  }
-                />
-              </AnalyticsCard>
-              <AnalyticsCard title="Monthly Reward Recipients">
-                <HorizontalBars
-                  items={data.coinsAndRewards.monthly.map((row) => ({
-                    label: monthLabel(row.month),
-                    value: row.rewardRecipients,
-                  }))}
-                  formatValue={(value) =>
-                    `${integerFormatter.format(value)} คน`
-                  }
-                  color="bg-violet-600"
-                />
-              </AnalyticsCard>
-              <AnalyticsCard title="Reward Allocation Amount">
-                <HorizontalBars
-                  items={data.coinsAndRewards.monthly.map((row) => ({
-                    label: monthLabel(row.month),
-                    value: Number(row.rewardAllocation),
-                  }))}
-                  formatValue={(value) => `${money(value)} บาท`}
-                  color="bg-amber-500"
-                />
-              </AnalyticsCard>
-            </div>
+            <AnalyticsCard
+              title="Coin Distribution Trends"
+              description="จำนวน Coins ที่แจกสำเร็จรายเดือน"
+            >
+              <LineChart
+                data={data.coinsAndRewards.monthly}
+                label={(row) => monthLabel(row.month)}
+                valueLabel={(value) =>
+                  `${integerFormatter.format(value)} Coins`
+                }
+                series={[
+                  {
+                    label: "Coins ที่แจก",
+                    color: "#2563eb",
+                    value: (row) => Number(row.coinsAwarded),
+                  },
+                ]}
+              />
+            </AnalyticsCard>
           </div>
-
-          <Alert>
-            <Info />
-            <AlertTitle>ข้อจำกัดของข้อมูล</AlertTitle>
-            <AlertDescription>
-              <ul className="list-disc space-y-1 pl-5">
-                {data.limitations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
 
           <div className="flex flex-col gap-1 border-t pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span className="flex items-center gap-2">

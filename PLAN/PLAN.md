@@ -24,8 +24,8 @@
 | F08     | PARTIAL: wallet/payment lifecycle + unit tests; live DB gates pending                   | D5                     | I               | F06                   |
 | F09     | PARTIAL: chat resets on entry + current GPS/scoped cards; browser/live AI QA pending    | D5                     | A               | F07/F08               |
 | F10     | PARTIAL: rules UI + seller payment API; full UI/E2E pending                             | D5                     | B               | F06/F08               |
-| F11     | DB views มีแล้ว; API TODO                                                               | D6                     | I               | F08                   |
-| F12     | SHELL ONLY: มี government routes; dashboard ยังไม่มี                                    | D6                     | B               | F11                   |
+| F11     | PARTIAL: report aggregation API/read-only DB verification; reconciliation/NFR pending   | D6                     | I               | F08                   |
+| F12     | PARTIAL: Government Overview/Reports ใช้ข้อมูลจริง; browser review pending              | D6                     | B               | F11                   |
 | F13     | PARTIAL: Auth tests/route checks; full E2E/NFR ยังไม่ครบ                                | D6–7                   | ทุกคน / I รวมผล | F09–F12               |
 | F14     | TODO                                                                                    | D7 หรือหลัง gates ผ่าน | ทุกคน / I รวมผล | F13                   |
 
@@ -52,13 +52,13 @@
 | D4 / 10 ต.ค. | [`R1-D4-AI`](AI_DEV.md) | F07 | PARTIAL: verified IDs/active rates + public Search/citations/limits | อ่าน stored rates เท่านั้น; Search ล่มแจ้งข้อจำกัด; broader grounding pending | — |
 | D4 / 10 ต.ค. | [`R1-D4-I`](INTEGRATION.md) | F06 | PARTIAL: rules API/UI + rate generation; live DB/review pending | D4 | I | F02/F03 |
 | D5 / 11 ต.ค. | [`R1-D5-A`](APP_DEV_A.md) | F09 | PARTIAL: chat recommendation cards from scoped ID hydration + retries | F07/F08; integrated confirm/idempotency/browser/live AI E2E pending | — |
-| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md) | F10/F12 | TODO | F08; ร้านเห็นเฉพาะรายการตน; F11 ยังไม่พร้อมใช้ contract fixture ชัดเจน | — |
+| D5 / 11 ต.ค. | [`R1-D5-B`](APP_DEV_B.md) | F10/F12 | PARTIAL: Government reports UI ต่อ API จริง; browser review pending | F08; ไม่เปิดเผยรายบุคคล | — |
 | D5 / 11 ต.ค. | [`R1-D5-AI`](AI_DEV.md) | F07/F13 | TODO | F07/F09; รายงานผลจริงและข้อจำกัด | — |
 | D5 / 11 ต.ค. | [`R1-D5-I`](INTEGRATION.md) | F08 | TODO | F06; duplicate/concurrent, insufficient funds/budget และ month boundary tests | — |
 | D6 / 12 ต.ค. | [`R1-D6-A`](APP_DEV_A.md) | F13 | TODO | F04/F09; browser evidence และผลทดสอบจริง | — |
-| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md) | F12/F13 | TODO | F11 เมื่อ merge; KPI ตรง seed และไม่เปิดเผยรายบุคคล | — |
+| D6 / 12 ต.ค. | [`R1-D6-B`](APP_DEV_B.md) | F12/F13 | PARTIAL: responsive source/lint/typecheck pass | KPI ใช้ aggregation จริง; 360/1920 browser QA pending | — |
 | D6 / 12 ต.ค. | [`R1-D6-AI`](AI_DEV.md) | F13 | PARTIAL: 72 AI tests + previous live SQL fixture; description model smoke pending | F07/F09; prior token-free/Qwen/DDGS smoke historical; new local Ollama connection failed | — |
-| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13 | TODO | F08; report privacy/filter/KPI, 100 concurrent p95 ≤ 3s เป็นเป้าหมายไม่ใช่ผลยืนยัน | — |
+| D6 / 12 ต.ค. | [`R1-D6-I`](INTEGRATION.md) | F11/F13 | PARTIAL: read-only report APIs + tests/live shape verification | reconciliation และ 100 concurrent p95 ≤ 3s ยังไม่ยืนยัน | — |
 | D7 / 13 ต.ค. | [`R1-D7-A`](APP_DEV_A.md) | F14 | TODO | F13 และ blocker ที่เกี่ยวปิดแล้ว | — |
 | D7 / 13 ต.ค. | [`R1-D7-B`](APP_DEV_B.md) | F14 | TODO | F12/F13; ไม่มี KPI mock ใน demo integrated | — |
 | D7 / 13 ต.ค. | [`R1-D7-AI`](AI_DEV.md) | F14 | TODO | F13; grounded response ตรวจซ้ำ | — |
@@ -592,3 +592,17 @@
 - Compared current frontend/AI call paths for the user's performance question. Chat waits for current GPS before API send (10s geolocation timeout,12s outer deadline), fetches recommendation context, runs model tool selection, shared batched description relevance, Backend quota/ranking, then model final prose and scoped card hydration. Typical successful store-only flow with one relevance batch requires3 model calls; empty candidates can skip final prose and mixed public queries may add web/tool work. Explore starts with an already selected origin, directly invokes shared relevance per discovery page, returns IDs and hydrates cards; blank query skips AI entirely. Both model paths use stream:false;5 chat results is a post-relevance quota, not a limit of5 stores examined by AI.
 - Evidence: source reads/rg in ai-chat.tsx, chat-location.ts, use-nearby-stores.ts, router/chat.py, router/store_search.py and services/llm.py. No live timings, personal reads, model calls or implementation changes; do not treat call-count example as benchmark or claim GPS/GPU is the measured bottleneck. Feature/Daily statuses unchanged. Formatted/checked this Markdown with installed web Prettier; no app tests/build for explanation-only work.
 - No new business decision/blocker. Next: instrument per-stage GPS/context/router-model/relevance/candidates/final-model/hydration timing on equivalent query/scope and warm model before deciding which stage to optimize; existing live/browser acceptance remains pending.
+
+### 2026-10-30 02:02 Asia/Bangkok - F11/F12 Government executive dashboard and compact reports
+
+- Implemented read-only Government Overview and Reports on the existing routes/layout using the existing component stack and real PostgreSQL aggregations. Overview keeps six KPIs plus sales/subsidy trend and budget-utilization charts. Reports covers monthly budget use, shop size/category, transaction behavior and Coins; no schema, migration, seed or financial write path changed.
+- Refined the executive UI by removing Overview shop-size sales, report subsidy split, top shops, active-customer KPI and reward-recipient/allocation charts. Data limitations now live in an accessible tooltip, empty states and spacing are smaller, Coin Distribution is one compact trend chart, and Repeat Purchase wording now describes transactions whose customer had an earlier purchase at the same shop rather than claiming a customer count.
+- Verification for the implementation: API focused tests passed 3, full API suite passed 110 with 19 skipped, API lint/build passed, read-only live DB result-shape verification passed without logging financial/customer values, and Postman/API contract/decision notes were updated. Latest UI refinement passed web TypeScript and lint with no errors; production web build remains unconfirmed because Google Font access and the restricted environment's stale `.next`/PostCSS subprocess permissions blocked the attempted builds.
+- F11/F12 and related Daily Flags remain PARTIAL. Next: run a clean production build outside the restricted workspace, compare aggregate totals against approved source queries, measure the report endpoints under the agreed load, and complete authenticated 360/1920 px browser/keyboard/tooltip review before acceptance.
+
+### 2026-10-30 02:15 Asia/Bangkok - F08/F11 default Main Quest monthly budget
+
+- Superseded the previous zero-budget lazy-period policy: [WalletsService](../apps/api/src/wallets/wallets.service.ts) now creates an absent Bangkok `monthly_periods` row as `DRAFT` with `budget_limit = 100000.00`; the unique-month upsert retains `update: {}`, so persisted budgets for existing periods are unchanged. No schema, migration, seed, API route, UI or library change.
+- Government report aggregation still reads each persisted `budget_limit` and successful purchase `reward_subsidy_used`. Added a shared calculation that sums configured budget and actual spending, derives remaining as budget minus spending and preserves negative overspend. Updated unit/integration expectations, current contract, decision record and ignored local Summary-api quick reference.
+- Newly verified: focused wallet/report tests 11 passed; full API suite 112 passed/19 skipped; API type-aware lint and Nest build passed; owning-package Prettier write/check passed. The opt-in PostgreSQL Coin settlement suite could not connect because external DNS/network permission was unavailable (`ENOTFOUND`) before fixture setup; it did not modify an existing monthly period or production data.
+- F08/F11 remain PARTIAL. Next: rerun `RUN_COIN_AWARDS_DB_TESTS=true` with approved database connectivity to confirm the new-period value through PostgreSQL and the existing-period no-update case, then reconcile one authenticated Government Dashboard month against the persisted period and successful purchases.

@@ -5,19 +5,10 @@ import {
   BanknoteArrowDown,
   Gift,
   HandCoins,
-  Info,
-  ShoppingBag,
   Store,
   Users,
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
 import { useGovernmentReport } from "@/hooks/use-government-report";
 import type { GovernmentDashboardResponse } from "@/lib/government-report-types";
@@ -26,8 +17,8 @@ import {
   DashboardSkeleton,
   DateRangeFilter,
   Donut,
-  HorizontalBars,
   LineChart,
+  ReportLimitationsTooltip,
   ReportError,
   integerFormatter,
   money,
@@ -68,12 +59,6 @@ function KpiCard({
   );
 }
 
-const sizeLabels: Record<string, string> = {
-  SMALL: "ร้านขนาดเล็ก",
-  MEDIUM: "ร้านขนาดกลาง",
-  LARGE: "ร้านขนาดใหญ่",
-};
-
 export function GovernmentOverview() {
   const { user } = useAuth();
   const report = useGovernmentReport<GovernmentDashboardResponse>(
@@ -83,14 +68,19 @@ export function GovernmentOverview() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-blue-700">Government Overview</p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          ภาพรวมสถานะโครงการ
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          ยินดีต้อนรับ {user.displayName} · สรุปข้อมูลสำคัญเพื่อการตัดสินใจ
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-blue-700">
+            Government Overview
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            ภาพรวมสถานะโครงการ
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            ยินดีต้อนรับ {user.displayName} · สรุปข้อมูลสำคัญเพื่อการตัดสินใจ
+          </p>
+        </div>
+        {data ? <ReportLimitationsTooltip items={data.limitations} /> : null}
       </div>
 
       <DateRangeFilter
@@ -200,32 +190,6 @@ export function GovernmentOverview() {
               </div>
             </AnalyticsCard>
           </div>
-
-          <AnalyticsCard
-            title="ยอดขายตามขนาดร้านค้า"
-            description="ใช้ขนาดร้านที่บันทึกไว้ ณ เวลาซื้อ เพื่อให้ตรวจสอบย้อนหลังได้"
-          >
-            <HorizontalBars
-              items={data.salesByShopSize.map((row) => ({
-                label: sizeLabels[row.size] ?? row.size,
-                value: Number(row.sales),
-                helper: `${integerFormatter.format(row.transactionCount)} รายการ`,
-              }))}
-              formatValue={(value) => `${money(value)} บาท`}
-            />
-          </AnalyticsCard>
-
-          <Alert>
-            <Info />
-            <AlertTitle>ขอบเขตของรายงาน</AlertTitle>
-            <AlertDescription>
-              <ul className="list-disc space-y-1 pl-5">
-                {data.limitations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
 
           <div className="flex flex-col gap-1 border-t pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>

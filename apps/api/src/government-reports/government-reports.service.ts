@@ -155,6 +155,26 @@ export function usagePercent(spent: string, limit: string) {
   );
 }
 
+export function summarizeBudget(
+  rows: Array<{ budgetLimit: string; spent: string }>,
+) {
+  const totals = rows.reduce(
+    (total, row) => ({
+      budgetLimit: total.budgetLimit.add(row.budgetLimit),
+      spent: total.spent.add(row.spent),
+    }),
+    {
+      budgetLimit: new Prisma.Decimal(0),
+      spent: new Prisma.Decimal(0),
+    },
+  );
+  return {
+    budgetLimit: totals.budgetLimit.toFixed(2),
+    spent: totals.spent.toFixed(2),
+    remaining: totals.budgetLimit.minus(totals.spent).toFixed(2),
+  };
+}
+
 const definitions = {
   netSales: 'ยอดซื้อสำเร็จสุทธิ โดยไม่นับรายการคืนเงิน',
   benefitUsers: 'ประชาชนไม่ซ้ำที่ใช้ Base หรือ Main Quest ในรายการสำเร็จ',
@@ -283,18 +303,7 @@ export class GovernmentReportsService {
       transactingShops: 0,
       rewardRecipients: 0,
     };
-    const budget = budgetMonths.reduce<BudgetRow>(
-      (total, month) => ({
-        budgetLimit: new Prisma.Decimal(total.budgetLimit)
-          .add(month.budgetLimit)
-          .toFixed(2),
-        spent: new Prisma.Decimal(total.spent).add(month.spent).toFixed(2),
-        remaining: new Prisma.Decimal(total.remaining)
-          .add(month.remaining)
-          .toFixed(2),
-      }),
-      { budgetLimit: '0.00', spent: '0.00', remaining: '0.00' },
-    );
+    const budget = summarizeBudget(budgetMonths);
     return {
       filters: this.filter(range),
       kpis: {
@@ -436,6 +445,9 @@ export class GovernmentReportsService {
         monthlySpending,
         utilization: utilization.map((row) => ({
           ...row,
+          remaining: new Prisma.Decimal(row.budgetLimit)
+            .minus(row.spent)
+            .toFixed(2),
           usagePercent: usagePercent(row.spent, row.budgetLimit),
         })),
       },
