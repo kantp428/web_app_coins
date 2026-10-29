@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from config import get_settings
 from router.chat import router as chat_router
+from router.store_search import router as store_search_router
 from schemas.chat import HealthResponse
 
 
@@ -22,6 +23,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(chat_router)
+app.include_router(store_search_router)
 
 
 @app.get(

@@ -4,14 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Map, MapPin, Search, Store, ExternalLink, Route } from "lucide-react";
 import { toast } from "sonner";
-import {
-  api,
-  getApiError,
-  getCategories,
-  type ShopCategory,
-  type NearbyStore,
-  type ShopAddress,
-} from "@/lib/api";
+import { api, type NearbyStore, type ShopAddress } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -22,16 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useReverseGeocode } from "@/hooks/use-reverse-geocode";
 import { useNearbyStores } from "@/hooks/use-nearby-stores";
-import { CategoryIcon, CategoryLabels } from "./category-icon";
+import { CategoryLabels } from "./category-icon";
 import type { DrivingRoute } from "./nearby-stores-map";
 
 const ExploreMap = dynamic(() => import("./nearby-stores-map"), {
@@ -46,7 +32,7 @@ const noStores: NearbyStore[] = [];
 const initialPoint: [number, number] = [14.020894, 99.991808];
 
 export function NearbyStores() {
-  const { stores, loading, loaded, error, source, search } = useNearbyStores();
+  const { stores, loading, loaded, error, search } = useNearbyStores();
   const [radius, setRadius] = useState("5");
   const [origin, setOrigin] = useState<[number, number]>(initialPoint);
   const [searchRadius, setSearchRadius] = useState(5);
@@ -67,9 +53,7 @@ export function NearbyStores() {
   const [showMap, setShowMap] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [category, setCategory] = useState("all");
-  const [categories, setCategories] = useState<ShopCategory[]>([]);
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [dismissedRouteError, setDismissedRouteError] = useState<string | null>(
@@ -83,25 +67,11 @@ export function NearbyStores() {
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
-    const controller = new AbortController();
-    getCategories(controller.signal)
-      .then(setCategories)
-      .catch((error) => {
-        if (!controller.signal.aborted) toast.error(getApiError(error));
-      });
     return () => {
       active.current = false;
-      controller.abort();
     };
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-      setSelectedId(null);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
   useEffect(() => {
     if (!hasLocation) return;
     void search(
@@ -109,11 +79,11 @@ export function NearbyStores() {
         latitude: origin[0],
         longitude: origin[1],
         radiusKm: searchRadius,
-        categoryIds: category === "all" ? [] : [category],
+        categoryIds: [],
       },
-      debouncedQuery,
+      submittedQuery,
     );
-  }, [category, debouncedQuery, hasLocation, origin, search, searchRadius]);
+  }, [submittedQuery, hasLocation, origin, search, searchRadius]);
 
   const filtered = stores;
   const selected = filtered.find((store) => store.id === selectedId) ?? null;
@@ -200,7 +170,6 @@ export function NearbyStores() {
     setSelectedId(id);
     setShowMap(true);
   }
-  const selectedCategory = categories.find((item) => item.id === category);
   return (
     <section className="space-y-4">
       <div>
@@ -290,7 +259,7 @@ export function NearbyStores() {
         className="space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
-          setDebouncedQuery(query);
+          setSubmittedQuery(query.trim());
           commitPoint(...origin);
         }}
       >
@@ -310,7 +279,7 @@ export function NearbyStores() {
                 onChange={(event) => {
                   const value = event.target.value;
                   setQuery(value);
-                  if (!value.trim()) setDebouncedQuery("");
+                  if (!value.trim()) setSubmittedQuery("");
                 }}
                 placeholder="เช่น อยากกินขนมกับกาแฟ"
               />
@@ -330,56 +299,13 @@ export function NearbyStores() {
               required
               value={radius}
               onChange={(event) => setRadius(event.target.value)}
-              onBlur={() => {
-                if (Number(radius) !== searchRadius) commitPoint(...origin);
-              }}
               inputMode="decimal"
             />
           </label>
-          <div className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="block leading-5" id="explore-category-label">
-              หมวดหมู่
-            </span>
-            <Select
-              items={[
-                { value: "all", label: "ทุกหมวดหมู่" },
-                ...categories.map((item) => ({
-                  value: item.id,
-                  label: item.name,
-                })),
-              ]}
-              value={category}
-              onValueChange={(value) => {
-                setCategory(value ?? "all");
-                setSelectedId(null);
-              }}
-            >
-              <SelectTrigger
-                className="h-10 w-full min-w-0 data-[size=default]:h-10"
-                aria-labelledby="explore-category-label"
-              >
-                <SelectValue>
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    {selectedCategory && (
-                      <CategoryIcon category={selectedCategory.name} />
-                    )}
-                    <span className="truncate">
-                      {selectedCategory?.name ?? "ทุกหมวดหมู่"}
-                    </span>
-                  </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} side="bottom">
-                <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
-                {categories.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    <CategoryIcon category={item.name} />
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Button type="submit" className="h-10" disabled={loading}>
+            <Search className="size-4" />
+            {loading ? "กำลังค้นหา…" : "ค้นหาด้วย AI"}
+          </Button>
         </div>
       </form>
       {showMap && (
@@ -508,16 +434,7 @@ export function NearbyStores() {
       )}
       {loaded && !loading && filtered.length === 0 && (
         <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
-          ไม่พบร้านที่ตรงกับขอบเขต คำค้นหา หรือหมวดหมู่ที่เลือก
-        </p>
-      )}
-      {loaded && !loading && debouncedQuery.trim() && source === "fallback" && (
-        <p
-          className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
-          role="status"
-        >
-          ระบบ AI ไม่พร้อมใช้งาน จึงใช้การค้นหาพื้นฐานจากข้อมูลร้าน
-          ซึ่งอาจไม่เข้าใจความหมายของคำค้นหาทั้งหมด
+          ไม่พบร้านที่เกี่ยวข้องกับคำค้นหาในรัศมีที่เลือก
         </p>
       )}
       <div className="grid gap-3">

@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
+    "test:chat": "node scripts/check-chat.mjs",
+    "test:chat-location": "node scripts/check-chat-location.mjs",
+    "test:chat-entry": "node scripts/check-chat-entry.mjs",
+    "test:store-search": "node scripts/check-store-search.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" components.json package.json",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" components.json package.json"
   },

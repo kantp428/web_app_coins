@@ -127,9 +127,11 @@ async function qrPngBlob(svg: SVGSVGElement) {
 export function LiveWallet({
   role,
   section,
+  onOpenChat,
 }: {
   role: "CUSTOMER" | "SELLER";
   section: "home" | "scan" | "topup" | "history" | "receive";
+  onOpenChat?: () => void;
 }) {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryLoadFailed, setSummaryLoadFailed] = useState(false);
@@ -620,7 +622,9 @@ export function LiveWallet({
             <Button
               variant="outline"
               className="h-22 flex-col gap-2 rounded-xl px-2"
-              onClick={() => toast.info("ผู้ช่วย AI ยังอยู่ระหว่างเชื่อมต่อ")}
+              onClick={() =>
+                onOpenChat ? onOpenChat() : router.push("/AI-chatbot")
+              }
             >
               <MessageCircle className="size-5" />
               <span className="text-xs">ผู้ช่วย AI</span>

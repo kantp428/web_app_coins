@@ -1,5 +1,6 @@
 export const customerRoutes: Record<string, string> = {
   home: "/wallet",
+  chat: "/AI-chatbot",
   scan: "/wallet/scan",
   topup: "/wallet/top-up",
   explore: "/wallet/explore",

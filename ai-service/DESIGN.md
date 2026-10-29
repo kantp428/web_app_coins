@@ -1,6 +1,10 @@
 # Service1 — Chat และ Recommendation
 
-สถานะ: implement FastAPI → Qwen3 4B/Ollama native Tool Calling → authenticated NestJS Database Filtering และ DDGS public Search แล้ว. Conversation memory และการเชื่อมหน้าเว็บยังรอทำเพิ่มเติม. กติกาล่าสุดแทนแบบ unvisited-only เดิม ดู [recommendation decisions](../docs/decisions.md#2026-10-12--recommendation-implementation-three-new-two-repeat) และ [Search decisions](../docs/decisions.md#2026-10-12--related-public-web-search-and-four-chat-examples)
+## Explore search (29 October 2026)
+
+Explore uses FastAPI `POST /stores/search`, independent of chat's tool orchestration and 3+2 selection. Per request: CUSTOMER `/me` verification → one all-category `/stores` page (50 shops, selected radius) → shared full-description relevance evaluation → every selected ID plus discovery pagination metadata. The web follows all pages, including empty match pages, then hydrates every selected ID through scoped `/stores/batch`. No total result cap, purchase-history reads, Coins ranking or public DDGS search; errors remain explicit with no fabricated fallback. The old Nest `/recommendations/search` remains paused. See the current [API contract](../docs/api-contract.md#explore-all-match-search-29-october-2026) for validation/error details. Web chat/Explore integration exists; live model/browser E2E and conversation memory remain pending.
+
+สถานะ: implement FastAPI → Qwen3 4B/Ollama native Tool Calling → authenticated NestJS Database Filtering และ DDGS public Search แล้ว. หน้าแชต/Explore เชื่อมแล้ว; conversation memory และ live E2E ยังรอทำเพิ่มเติม. กติกาล่าสุดแทนแบบ unvisited-only เดิม ดู [recommendation decisions](../docs/decisions.md#2026-10-12--recommendation-implementation-three-new-two-repeat) และ [Search decisions](../docs/decisions.md#2026-10-12--related-public-web-search-and-four-chat-examples)
 
 ## พฤติกรรม
 
@@ -13,7 +17,7 @@
 | ถามข้อมูลสาธารณะพร้อมขอร้าน                  | ใช้ Search และ DB tools อย่างละหนึ่งครั้ง                                             | reply, sources, storeIds      |
 | นอกเรื่อง เช่น “หมาผมน่ารักไหม”              | แจ้งขอบเขตอย่างสุภาพ                                                                  | reply, storeIds ว่าง          |
 
-ทุก `/chat` ต้องใช้ CUSTOMER Bearer token. ไม่มีการรับ userId, role, ประวัติที่ผู้ใช้ส่งเอง หรือ arbitrary URL/SQL ใน body/tool. Request มี `message` และ optional `location:{latitude,longitude,radiusKm}`; Backend อ่านตัวตนและประวัติจาก token. ไม่มี location จะปิด shop tool และขอให้เลือกจุดค้นหาก่อน โดยยังคุยทั่วไป/ค้นเว็บได้ พิกัดไม่เข้า prompt และโมเดลเปลี่ยนขอบเขตไม่ได้ `/chat/test` ยังเป็น message-only
+ทุก `/chat` ต้องใช้ CUSTOMER Bearer token. ไม่มีการรับ userId, role, ประวัติที่ผู้ใช้ส่งเอง หรือ arbitrary URL/SQL ใน body/tool. Request มี `message` และ optional `location:{latitude,longitude,radiusKm}`; Backend อ่านตัวตนและประวัติจาก token. ไม่มี location จะปิด shop tool และแจ้งว่าต้องอนุญาตตำแหน่งปัจจุบันหรือส่งพิกัดมาก่อน โดยยังคุยทั่วไป/ค้นเว็บได้ พิกัดไม่เข้า prompt และโมเดลเปลี่ยนขอบเขตไม่ได้ `/chat/test` ยังเป็น message-only หน้าเว็บใช้ตำแหน่งอุปกรณ์ตอนส่งข้อความ/ส่งใหม่ รัศมี5กม. ไม่มี picker แล้ว ส่วน direct API clients ยังส่ง location DTO ได้ตามเดิม
 
 ## Token-free model test
 

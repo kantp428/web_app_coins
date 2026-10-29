@@ -133,9 +133,6 @@ export function WalletApp({
   }
   const [selected, setSelected] = useState<(typeof shops)[number] | null>(null);
   const [notice, setNotice] = useState("");
-  const [chat, setChat] = useState(false);
-  const [message, setMessage] = useState("");
-  const [answer, setAnswer] = useState(false);
   const [storeName, setStoreName] = useState("ครัวป้าเล็ก");
   const [storeCategory, setStoreCategory] = useState("อาหาร");
   const [area, setArea] = useState("ตลาดสามย่าน กรุงเทพมหานคร");
@@ -216,6 +213,7 @@ export function WalletApp({
         <main className="space-y-7 px-5 pb-28">
           {["home", "scan", "topup", "receive", "history"].includes(tab) && (
             <LiveWallet
+              onOpenChat={() => navigate("chat")}
               role={seller ? "SELLER" : "CUSTOMER"}
               section={tab as "home" | "scan" | "topup" | "history" | "receive"}
             />
@@ -296,7 +294,7 @@ export function WalletApp({
                     className="h-22 flex-col gap-2 rounded-xl"
                     onClick={() =>
                       a.target === "chat"
-                        ? setChat(true)
+                        ? navigate("chat")
                         : a.target === "scan"
                           ? setNotice(
                               "ต้นแบบยังไม่เปิดกล้อง เลือกร้านในหน้าค้นหาเพื่อดูรายละเอียดได้",
@@ -595,41 +593,6 @@ export function WalletApp({
                 </Button>
               </>
             )}
-          </DialogContent>
-        </Dialog>
-        <Dialog open={chat} onOpenChange={setChat}>
-          <DialogContent>
-            <DialogTitle>ผู้ช่วยค้นหาร้าน</DialogTitle>
-            <DialogDescription>
-              บทสนทนาตัวอย่าง ยังไม่เชื่อมต่อ AI
-            </DialogDescription>
-            <p className="rounded-xl bg-muted p-4 text-sm">
-              วันนี้อยากลองร้านแบบไหน? ลองพิมพ์ “หาร้านอาหารแถวสามย่าน”
-            </p>
-            {answer && (
-              <p role="status" className="rounded-xl border p-4 text-sm">
-                ตัวอย่างคำแนะนำ: ลองครัวป้าเล็ก อาหารตามสั่งในชุมชน ระยะ 350 ม.
-                รับ 10 Coins ตามข้อมูลจำลอง
-              </p>
-            )}
-            <form
-              className="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setAnswer(true);
-                setMessage("");
-              }}
-            >
-              <Input
-                autoComplete="off"
-                required
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="อยากหาร้านอะไร..."
-                aria-label="ข้อความหาผู้ช่วย"
-              />
-              <Button type="submit">ส่ง</Button>
-            </form>
           </DialogContent>
         </Dialog>
       </div>

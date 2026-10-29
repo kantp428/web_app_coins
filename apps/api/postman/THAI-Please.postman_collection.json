@@ -4423,6 +4423,684 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Customer web chat (HttpOnly session)",
+      "description": "Next BFF integration, distinct from Nest and FastAPI endpoints. Run missing-session/Origin checks then web Login before success/validation cases. Cookie jar enabled after login; AI/provider errors require corresponding service setup and are covered by the local HTTP fixture checks. Do not export cookies or credentials. Tests here have not been run live. Current web UI requests device location on each send/retry at fixed5km, with browser permission; no location picker. Coordinates in these direct BFF examples are explicit test data. Missing location still permits general chat. Web errors no longer suggest a removed radius control.",
+      "item": [
+        {
+          "name": "Chat missing session cookie (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"hello\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          }
+        },
+        {
+          "name": "Chat untrusted Origin (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "https://untrusted.invalid"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"hello\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login CUSTOMER to web session (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{customerUsername}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"CUSTOMER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Uses the real web login and stores HttpOnly session in the Postman cookie jar. Set webBaseUrl without a trailing slash; never export session cookies/passwords."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat through web BFF (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Please explain how THAI Please can help me.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Validated chat reply',()=>{const b=pm.response.json();pm.expect(b.reply).to.be.a('string');pm.expect(b.storeIds).to.be.an('array');pm.expect(b.sources).to.be.an('array');pm.expect(b.mode).to.eql('model');pm.expect(Object.keys(b)).not.to.include('accessToken');});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat nearby recommendations through web BFF (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Please recommend nearby food or coffee shops.\",\n  \"location\": {\n    \"latitude\": {{recommendationLatitude}},\n    \"longitude\": {{recommendationLongitude}},\n    \"radiusKm\": {{recommendationRadiusKm}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "AI-service/Ollama and Nest must be running with CUSTOMER session cookie. Location is selected test data. Response contains IDs only; page separately loads /api/stores/batch in the same scope for cards. BFF deadline180s; allow sufficient runner timeout. No browser Bearer needed."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('At most five unique recommendation IDs',()=>{const ids=pm.response.json().storeIds;pm.expect(ids.length).to.be.at.most(5);pm.expect(new Set(ids).size).to.eql(ids.length);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat rejects browser actor injection (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"hello\",\n  \"userId\": \"2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat rejects invalid location (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"hello\",\n  \"location\": {\n    \"latitude\": 91,\n    \"longitude\": 100.5,\n    \"radiusKm\": 5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat rejects blank message (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/chat",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"   \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Explore standalone AI all-match search",
+      "description": "Current Explore flow. Start Nest + AI service + Ollama. CUSTOMER token required. Follow every meta.hasNextPage page even when shopIds is empty; total counts discovery candidates, not matches. No chatbot five-store quota or category selector. Live success requires actual stores/model; saved assertions are not an executed live run.",
+      "item": [
+        {
+          "name": "Search related stores page 1 (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('All matches on this discovery page', () => { const r=pm.response.json(); pm.expect(r.source).to.eql('llm'); pm.expect(r.meta.pageSize).to.eql(50); pm.expect(r.shopIds.length).to.be.at.most(50); pm.expect(new Set(r.shopIds).size).to.eql(r.shopIds.length); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search related stores page 2 (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('All matches on this discovery page', () => { const r=pm.response.json(); pm.expect(r.source).to.eql('llm'); pm.expect(r.meta.pageSize).to.eql(50); pm.expect(r.shopIds.length).to.be.at.most(50); pm.expect(new Set(r.shopIds).size).to.eql(r.shopIds.length); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search missing token (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search non-customer token (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{nonCustomerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search rejects categoryIds (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 1,\n  \"categoryIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search rejects radius outside scope range (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 51,\n  \"page\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search rejects blank query (422)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/stores/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \" \",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Web search missing session cookie (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/recommendations/search",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"coffee\",\n  \"latitude\": 13.75,\n  \"longitude\": 100.5,\n  \"radiusKm\": 5,\n  \"page\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          }
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { collectMatchingStoreIds } from "@/lib/collect-store-search";
 import {
   getNearbyStores,
   getApiError,
@@ -14,9 +15,6 @@ export function useNearbyStores() {
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const [source, setSource] = useState<"llm" | "fallback" | "discovery">(
-    "discovery",
-  );
   const active = useRef(true),
     controller = useRef<AbortController | null>(null),
     request = useRef(0);
@@ -31,6 +29,7 @@ export function useNearbyStores() {
   const search = useCallback(async (scope: ShopSearchScope, query: string) => {
     controller.current?.abort();
     controller.current = new AbortController();
+    const signal = controller.current.signal;
     const current = ++request.current;
     setLoading(true);
     setError(false);
@@ -38,20 +37,17 @@ export function useNearbyStores() {
     setStores([]);
     try {
       const resultStores: NearbyStore[] = [];
-      let resultSource: "llm" | "fallback" | "discovery" = "discovery";
       if (query.trim()) {
-        const result = await searchRecommendedStores(
-          query.trim(),
-          scope,
-          controller.current.signal,
+        const shopIds = await collectMatchingStoreIds(
+          (page) => searchRecommendedStores(query.trim(), scope, signal, page),
+          signal,
         );
-        resultSource = result.source;
-        if (result.shopIds.length > 0) {
-          for (let index = 0; index < result.shopIds.length; index += 100) {
+        if (shopIds.length > 0) {
+          for (let index = 0; index < shopIds.length; index += 100) {
             const hydrated = await hydrateStores(
-              result.shopIds.slice(index, index + 100),
+              shopIds.slice(index, index + 100),
               scope,
-              controller.current.signal,
+              signal,
             );
             resultStores.push(...hydrated.stores);
           }
@@ -64,7 +60,7 @@ export function useNearbyStores() {
             scope.radiusKm,
             scope.categoryIds,
             page,
-            controller.current.signal,
+            signal,
           );
           resultStores.push(...result.stores);
           if (!result.meta.hasNextPage) break;
@@ -72,15 +68,10 @@ export function useNearbyStores() {
       }
       if (active.current && current === request.current) {
         setStores(resultStores);
-        setSource(resultSource);
         setLoaded(true);
       }
     } catch (error) {
-      if (
-        active.current &&
-        current === request.current &&
-        !controller.current?.signal.aborted
-      ) {
+      if (active.current && current === request.current && !signal.aborted) {
         setError(true);
         toast.error(getApiError(error));
       }
@@ -88,5 +79,5 @@ export function useNearbyStores() {
       if (active.current && current === request.current) setLoading(false);
     }
   }, []);
-  return { stores, loading, loaded, error, source, search };
+  return { stores, loading, loaded, error, search };
 }

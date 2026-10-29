@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { AuthRole } from "@/lib/auth-types";
+import { chatReplySchema, type ChatRequest } from "@/lib/chat-contract";
 
 // Same-origin Next handlers manage the HttpOnly session cookie.
 // Server components continue to call Nest through lib/auth.ts.
@@ -15,6 +16,13 @@ export const authApi = axios.create({
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
+export async function sendChat(body: ChatRequest, signal: AbortSignal) {
+  const response = await api.post<unknown>("/chat", body, {
+    signal,
+    timeout: 190000,
+  });
+  return chatReplySchema.parse(response.data);
+}
 export type LoginPayload = {
   username: string;
   password: string;
@@ -204,15 +212,19 @@ export async function searchRecommendedStores(
   query: string,
   scope: ShopSearchScope,
   signal?: AbortSignal,
+  page = 1,
 ) {
   return (
-    await api.post<{
-      shopIds: string[];
-      source: "llm" | "fallback" | "discovery";
-    }>(
+    await api.post<import("./store-search-contract").StoreSearchReply>(
       "/recommendations/search",
-      { query, ...scope },
-      { signal, timeout: 30000 },
+      {
+        query,
+        latitude: scope.latitude,
+        longitude: scope.longitude,
+        radiusKm: scope.radiusKm,
+        page,
+      },
+      { signal, timeout: 190000 },
     )
   ).data;
 }

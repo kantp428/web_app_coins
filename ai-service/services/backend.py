@@ -129,6 +129,45 @@ class BackendService:
                 502, "Backend ส่งบริบทผู้ใช้ไม่ถูกต้อง"
             ) from error
 
+    async def require_customer(self, token: str) -> None:
+        body = await self._read("GET", "me", token)
+        if isinstance(body, dict) and body.get("role") in ("SELLER", "GOVERNMENT"):
+            raise BackendServiceError(403, "ใช้ได้เฉพาะบัญชีลูกค้า")
+        try:
+            User.model_validate(body)
+        except ValidationError as error:
+            raise BackendServiceError(
+                502, "Backend ส่งข้อมูลผู้ใช้ไม่ถูกต้อง"
+            ) from error
+
+    async def nearby_page(
+        self, token: str, location: StoreLocation, page_number: int
+    ) -> DiscoveryPage:
+        body = await self._read(
+            "GET",
+            "stores",
+            token,
+            params={**location.model_dump(), "page": page_number, "pageSize": 50},
+        )
+        try:
+            page = DiscoveryPage.model_validate(body)
+            remaining = max(0, page.meta.total - (page_number - 1) * 50)
+            if (
+                page.meta.page != page_number
+                or page.meta.pageSize != 50
+                or page.radiusKm != location.radiusKm
+                or len(page.stores) != min(50, remaining)
+                or page.meta.hasNextPage != (remaining > 50)
+                or len({shop.id for shop in page.stores}) != len(page.stores)
+                or any(shop.distanceKm > location.radiusKm for shop in page.stores)
+            ):
+                raise ValueError("Invalid discovery scope or pagination")
+            return page
+        except (ValidationError, ValueError) as error:
+            raise BackendServiceError(
+                502, "Backend ส่งขอบเขตร้านไม่ถูกต้อง กรุณาลองใหม่"
+            ) from error
+
     async def nearby(
         self, token: str, category_ids: list[str], location: StoreLocation
     ) -> list[NearbyShop]:

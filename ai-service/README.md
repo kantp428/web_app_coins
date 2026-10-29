@@ -1,6 +1,20 @@
 # AI chatbot service
 
-FastAPI chatbot ใช้ Python 3.12+ เชื่อม **Qwen3 4B ผ่าน Ollama native API** พร้อม Tool Calling, Backend Database Filtering สำหรับแนะนำร้าน และ **Search อินเทอร์เน็ตผ่าน DDGS แบบไม่ใช้ API key** ดู [workflow](DESIGN.md) การเรียก `/chat` ต้องแนบ CUSTOMER Bearer token; ประวัติมาจาก Backend ตามบัญชีที่ยืนยันแล้ว ไม่มี mock fallback การเชื่อมหน้าเว็บยังรอทำเพิ่มเติม
+## Explore search: คืนร้านที่เกี่ยวข้องทั้งหมดในรัศมี
+
+`POST /stores/search` เป็นเส้นทางใหม่แยกจาก `/chat` ใช้ CUSTOMER Bearer และ Nest `GET /me`/`GET /stores` ไม่โหลดประวัติการซื้อหรือเรียก candidates จึงไม่มีโควตา5ร้าน/3+2 ใช้โมเดลเดิมประเมินชื่อ คำอธิบาย และหมวดหมู่ รวมร้านที่อธิบายกว้างแต่มีโอกาสเกี่ยวข้อง โดยไม่รับรองเมนูหรือสต็อก
+
+```powershell
+# หลังเริ่ม Nest + Ollama + ai-service ตามคู่มือด้านล่าง; ใช้ token ลูกค้าจากการ login
+$searchBody = @{ query="อยากกินผัดกะเพรา"; latitude=13.75; longitude=100.5; radiusKm=5; page=1 } | ConvertTo-Json
+Invoke-RestMethod http://127.0.0.1:8000/stores/search -Method Post -Headers @{Authorization="Bearer $token"} -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($searchBody))
+```
+
+คืน `{shopIds,source:"llm",meta:{page,pageSize:50,total,hasNextPage}}` โดย total คือจำนวนร้านในขอบเขตก่อนกรอง AI ต้องเรียกทุกหน้าจน hasNextPage=false แม้บางหน้าคืน shopIds:[] เพื่อรวบรวมผลทั้งหมด ไม่มีขีดจำกัดจำนวนผลลัพธ์รวม ใช้ `/stores/batch` ของ Nest แสดงการ์ดตาม scope เดิม รัศมี0.1–50/default5, query1–500ตัวอักษร, page>=1/default1 ไม่รับ categoryIds; ข้อมูลผิด422, auth401/403, upstream502/503/504 ไม่มี mock/lexical fallback
+
+หน้า Explore เชื่อมผ่าน Next BFF ด้วย AI_SERVICE_URL แล้ว เส้นทาง Nest `/recommendations/search` เดิมยังปิดอยู่ ทดสอบเฉพาะเส้นทางใหม่นี้โดย `cd ai-service` แล้ว `.venv/Scripts/python.exe -m unittest discover -s tests -p test_store_search.py` ผลชุดเต็ม72tests/เส้นทางใหม่7testsผ่านด้วย mock transports ไม่ต้องมี DB/โมเดล; live Ollama/DB/Browser ยังไม่ได้ยืนยันรอบนี้
+
+FastAPI chatbot ใช้ Python 3.12+ เชื่อม **Qwen3 4B ผ่าน Ollama native API** พร้อม Tool Calling, Backend Database Filtering สำหรับแนะนำร้าน และ **Search อินเทอร์เน็ตผ่าน DDGS แบบไม่ใช้ API key** ดู [workflow](DESIGN.md) การเรียก `/chat` ต้องแนบ CUSTOMER Bearer token; ประวัติมาจาก Backend ตามบัญชีที่ยืนยันแล้ว ไม่มี mock fallback หน้าแชตและ Explore เชื่อมผ่าน Next BFF แล้ว; live E2E ยังรอตรวจ
 
 ทดสอบโมเดลโดยไม่ต้อง login หรือเปิด Backend ใช้ **`POST /chat/test`** รองรับแชทปกติ Search และถามนอกเรื่อง โดยไม่เปิด tool แนะนำร้าน ดู [ตัวอย่างไม่ใช้ token](#ทดสอบโมเดลโดยไม่แนบ-token)
 
@@ -99,6 +113,34 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 หากมี `.venv` แล้ว ข้ามคำสั่งสร้าง environment ได้ ใช้ Python จาก `.venv` โดยตรงโดยไม่ต้อง activate คง terminal ที่รัน Uvicorn ไว้ระหว่างทดสอบ และกด `Ctrl+C` เพื่อหยุด service
 
+### เปิดด้วย CMD เมื่อ activate Conda แล้ว
+
+ใช้ Python3.12+ ใน Conda environment ที่ activate อยู่ได้ โดยเรียก `python` แทน Python ใน `.venv` จาก root โปรเจกต์:
+
+```bat
+cd ai-service
+if not exist .env copy .env.example .env
+python -m uvicorn main:app --reload --env-file .env --host 127.0.0.1 --port 8000
+```
+
+หาก environment นี้ยังไม่ได้ติดตั้ง dependencies ให้รัน `python -m pip install -r requirements.lock.txt` จากโฟลเดอร์ ai-service ก่อนเปิด API ตรวจ Python ที่เลือกด้วย `where python` และ `python --version` ไม่ต้องสร้างหรือ activate `.venv` ซ้ำ
+
+หาก Ollama ยังไม่ทำงาน ให้เปิด CMD อีกหน้าต่างจาก root โปรเจกต์:
+
+```bat
+set "OLLAMA_MODELS=%CD%\ai-service\.tools\ollama-models"
+set "OLLAMA_HOST=127.0.0.1:11434"
+ai-service\.tools\ollama\ollama.exe serve
+```
+
+คง terminal ทั้งสองไว้ เปิด Swagger ที่ http://127.0.0.1:8000/docs หรือตรวจ http://127.0.0.1:8000/health และหยุดด้วย Ctrl+C ต้องเปิด Nest ด้วยสำหรับ authenticated chat/ค้นหาร้าน ข้อมูลใน `.env` เป็นการตั้งค่า service แยกจากการ activate Conda environment
+
+### ตรวจ 503 ขณะใช้ chatbot (CMD)
+
+ถ้า `/health` ตอบ200 แต่ chatbot ตอบ503 ยังอาจเป็นเพราะ Ollama ไม่ทำงาน: health ตรวจเฉพาะ FastAPI ไม่ได้ตรวจโมเดล ลอง `curl http://127.0.0.1:11434/api/tags` ใน CMD หากเชื่อมต่อไม่ได้ ให้เปิด Ollama ในอีก terminal ตามคำสั่งด้านบนแล้วคง terminal นั้นไว้ Conda/Uvicorn ไม่ได้เปิด Ollama ให้อัตโนมัติ
+
+ข้อความ `เชื่อมต่อ Ollama ไม่ได้ กรุณาตรวจสอบ model server` จาก `/chat/test` ยืนยันปัญหาการเชื่อมต่อโมเดลโดยไม่ต้องใช้ token/Backend สำหรับ503ชนิดอื่นให้ตรวจ detail จาก ai-service, OLLAMA_BASE_URL/OLLAMA_MODEL และ BACKEND_BASE_URL เพิ่มเติม เมื่อ `/api/tags` ตอบแล้วให้ตรวจว่ามีโมเดลตรงกับ OLLAMA_MODEL และลอง chatbot ใหม่
+
 | Environment                  | ค่าเริ่มต้น              | ความหมาย                                                               |
 | ---------------------------- | ------------------------ | ---------------------------------------------------------------------- |
 | `OLLAMA_BASE_URL`            | `http://127.0.0.1:11434` | URL server Ollama ไม่รวม `/api`                                        |
@@ -155,7 +197,7 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/chat -Method Post -Headers $headers
 
 การแนะนำคืน `storeIds` อย่างเดียวสำหรับข้อมูลการ์ด: สูงสุด **ร้านใหม่ 3 + ร้านที่เคยซื้อ 2**, ไม่ครบคืนเท่าที่มี ไม่เติมข้ามกลุ่ม ทั้งสองกลุ่มต้องตรงประเภทที่ตีความได้ (หลายประเภทใช้ OR). จัดอันดับตาม Coins ที่ทราบจากอัตรารอบปัจจุบัน สูงไปต่ำ; ไม่ทราบอยู่ท้าย; เสมอกันใช้รหัสร้านตามตัวเลข. ถ้าไม่มีอัตราเลยใช้รหัสร้านเรียงตามตัวเลข ไม่คำนวณ Coins ขึ้นใหม่ เช่น `{ "reply":"พบร้านใหม่ 2 ร้านและร้านที่เคยซื้อ 1 ร้านครับ", "storeIds":["101","205","310"], "sources":[], "mode":"model", "model":"qwen3:4b" }` เป็นตัวอย่างรูปแบบเท่านั้น
 
-`message` ต้องเป็น string หลัง trim ยาว 1–2000 ตัวอักษร; `/chat` รับ `location:{latitude,longitude,radiusKm}` เพิ่มได้ โดยพิกัดต้องเป็น JSON number ในช่วง [-90,90]/[-180,180], radiusKm 0.1–50 ค่าเริ่มต้น 5 กม. ต้องส่ง location ทุกคำขอที่ต้องการค้นร้านเพราะ chat เป็น stateless หากไม่มี location/null ยังคุยทั่วไปหรือค้นเว็บได้ แต่ไม่มี shop tool และจะขอให้เลือกจุดค้นหาก่อน ไม่รับฟิลด์อื่น; `/chat/test` ยังรับเฉพาะ message และปฏิเสธ location
+`message` ต้องเป็น string หลัง trim ยาว 1–2000 ตัวอักษร; `/chat` รับ `location:{latitude,longitude,radiusKm}` เพิ่มได้ โดยพิกัดต้องเป็น JSON number ในช่วง [-90,90]/[-180,180], radiusKm 0.1–50 ค่าเริ่มต้น 5 กม. ต้องส่ง location ทุกคำขอที่ต้องการค้นร้านเพราะ chat เป็น stateless หากไม่มี location/null ยังคุยทั่วไปหรือค้นเว็บได้ แต่ไม่มี shop tool และจะแจ้งว่าต้องอนุญาตตำแหน่งปัจจุบันหรือส่งพิกัดมาก่อน ไม่รับฟิลด์อื่น; `/chat/test` ยังรับเฉพาะ message และปฏิเสธ location หน้าเว็บขอตำแหน่งอุปกรณ์เมื่อส่งข้อความ/ส่งใหม่ รัศมี5กม. ไม่มีปุ่มเลือกตำแหน่งแล้ว; direct API clients ยังส่ง location DTO ได้ตามเดิม
 
 AI เรียก `GET /stores` จริงพร้อม location/category แล้วอ่านครบทุกหน้า ก่อนส่งเฉพาะ id/name/categories/description และข้อความต้นฉบับให้โมเดลประเมินความเกี่ยวข้อง ร้านคำอธิบายกว้าง เช่น “อาหารตามสั่ง” หรือ “อาหารไทย” ยังเป็นตัวเลือกสำหรับคำขอ “ผัดกะเพรา” ได้ ไม่บังคับตรงคำ 100% แต่ไม่ยืนยันว่าร้านมีเมนูนั้นแน่นอน จากนั้นส่ง IDs ที่ผ่านเป็น `shopIds` ไป `POST /recommendations/candidates` ซึ่งตรวจ APPROVED/ระยะ/ประเภทซ้ำก่อนจัด Coins และโควตา 3+2 ไม่มีการเติมร้านไม่เกี่ยวข้องหรือขยายระยะให้ครบโควตา
 
@@ -300,7 +342,7 @@ System prompt มี `/no_think` ตาม [คำแนะนำของ Qwen3
 
 สรุป Backend API/Token/Auth อยู่ใน [DESIGN.md](DESIGN.md). `/chat` ตรวจ token ผ่าน authenticated context ซึ่ง Backend เรียก AuthService.me ก่อนอ่านประวัติ ไม่ต้องเรียก `/me` ซ้ำอีกครั้ง
 
-เว็บและ AI รันบนเครื่องนี้ทั้งคู่ แต่ Next chat proxy/UI ยังไม่ได้ต่อ. ขั้นต่อไปให้ Next.js อ่าน HttpOnly cookie ฝั่ง server แล้วส่ง Bearer ไป AI ผ่าน loopback8000; AI เรียก Ollama loopback11434 และ Backend ตาม BACKEND_BASE_URL. ห้ามให้โมเดลหรือ request body ระบุ URL/actor เอง
+เว็บมีหน้า CUSTOMER `/AI-chatbot` และ Next BFF `/api/chat` แล้ว Browser ส่ง message/optional location ด้วย HttpOnly session cookie; Next ส่ง Bearer ไป server-only `AI_SERVICE_URL` (default loopback8000) จากนั้น UI hydrate storeIds เป็นการ์ดผ่าน `/api/stores/batch` ด้วย scope ตอนส่งข้อความ ดูการตั้งค่าและทดสอบเว็บที่ [apps/web/README.md](../apps/web/README.md) AI ยังเรียก Ollama ตาม OLLAMA_BASE_URL และ Nest ตาม BACKEND_BASE_URL ไม่รับ URL/actor จาก request หรือโมเดล การเชื่อม UI นี้ยังรอ live model/Backend/browser E2E; ผล HTTP fixtures ของเว็บไม่ใช่ผล Qwen จริง
 
 ## ตรวจงาน
 
