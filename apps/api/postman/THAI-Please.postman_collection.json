@@ -5101,6 +5101,119 @@
           }
         }
       ]
+    },
+    {
+      "name": "Government executive dashboard and reports",
+      "item": [
+        {
+          "name": "Get government overview dashboard",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/government/dashboard?from=2026-01-01&to=2026-12-31",
+            "description": "GOVERNMENT-only aggregate overview. token must be a government token. Refunded purchases and reversed Coins are excluded according to the reporting contract."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns six KPIs and aggregate charts', () => { const b=pm.response.json(); pm.expect(b.kpis).to.have.all.keys('budgetSpent','budgetRemaining','totalSales','citizensUsingBenefit','transactingShops','rewardRecipients'); pm.expect(b.trends).to.be.an('array'); pm.expect(b.salesByShopSize).to.have.length(3); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get government deep reports",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/government/reports?from=2026-01-01&to=2026-12-31",
+            "description": "GOVERNMENT-only aggregate Budget, Shop, Customer and Coin/Reward analysis. No customer-level rows are returned."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns all analysis groups', () => { const b=pm.response.json(); pm.expect(b).to.have.property('budget'); pm.expect(b).to.have.property('shops'); pm.expect(b).to.have.property('customers'); pm.expect(b).to.have.property('coinsAndRewards'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject invalid government report range (400)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/government/dashboard?from=2026-12-31&to=2026-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject non-government report access (403)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{nonGovernmentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/government/reports?from=2026-01-01&to=2026-12-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject unauthenticated dashboard access (401)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": "{{baseUrl}}/government/dashboard?from=2026-01-01&to=2026-12-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

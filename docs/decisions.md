@@ -1,5 +1,14 @@
 # UI prototype decisions
 
+## 2026-10-30 — Government executive reporting semantics (F11/F12)
+
+- Keep the existing `/government` and `/government/reports` routes, government shell and navigation. Add read-only GOVERNMENT APIs and aggregate SQL only; do not change Prisma schema, migrations, seed data, ledgers or transaction rules.
+- Date filters are inclusive Bangkok calendar dates and use half-open UTC timestamps internally. Default is 1 January of the current Bangkok year through today; a request is limited to 731 days. Transaction, shop and customer metrics use the exact selected range. Monthly Main Quest budget utilization uses every configured monthly period that overlaps the selected range because the existing schema stores monthly, not daily, budget limits; the UI explains this distinction.
+- Net sales and subsidy spending include only `purchases.status = SUCCEEDED` at `confirmed_at`. `PENDING`/`FAILED` do not count and full-refund rows (`REFUNDED`) contribute zero to net sales/base/reward spending. The current schema and business flow do not represent partial refunds, so partial-refund reporting is unavailable and must be disclosed rather than estimated.
+- Overview budget spent/remaining refers only to Main Quest reward budget: the sum of configured `monthly_periods.budget_limit` for overlapping periods minus actual `reward_subsidy_used` from non-refunded purchases in those periods. The schema has no global Base Subsidy budget ceiling, so Base Subsidy can be reported as actual spending but cannot be included in a truthful total-program utilization/remaining KPI.
+- Coins count only `coin_entries` with `reversed_at IS NULL` whose linked purchase remains `SUCCEEDED`. Reward recipients/allocation come from persisted `reward_grants`. A current successful purchase is repeat behavior when an earlier confirmed `SUCCEEDED` or `REFUNDED` purchase exists for the same customer/shop, matching the existing visited-history rule while excluding refunded rows from current net sales.
+- Category distribution counts distinct transacting shops per category. Because a shop may have multiple categories, category counts can overlap and are not summed as a unique-shop total. Reports expose aggregate shop rows only (top shop name, sales and transaction count), never customer-level history or identifiers. Every response includes definitions, limitations and `lastUpdatedAt`.
+
 ## 2026-10-29 — Explore search through the standalone AI service
 
 - User requests all relevant stores within Explore's selected origin/radius, without category controls or the chatbot's five-store/3+2 quota. Use FastAPI `POST /stores/search`, leaving the paused Nest `POST /recommendations/search` disabled.

@@ -18,6 +18,8 @@ import { WalletsService } from './wallets/wallets.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { GovernmentStoresController } from './government-stores/government-stores.controller.js';
 import { GovernmentStoresService } from './government-stores/government-stores.service.js';
+import { GovernmentReportsController } from './government-reports/government-reports.controller.js';
+import { GovernmentReportsService } from './government-reports/government-reports.service.js';
 import {
   RecommendationsController,
   RecommendationsService,
@@ -34,6 +36,7 @@ import { OllamaShopSearchProvider } from './recommendations/shop-search.provider
     CategoriesController,
     CoinRulesController,
     GeocodingController,
+    GovernmentReportsController,
     GovernmentStoresController,
     RecommendationsController,
     RecommendationsSearchController,
@@ -47,6 +50,7 @@ import { OllamaShopSearchProvider } from './recommendations/shop-search.provider
     CoinRulesService,
     CoinRatesService,
     GeocodingService,
+    GovernmentReportsService,
     GovernmentStoresService,
     RecommendationsService,
     ShopSearchService,

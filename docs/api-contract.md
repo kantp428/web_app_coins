@@ -1,5 +1,14 @@
 # Authentication contract (F02)
 
+## Government executive dashboard and reports (F11/F12, 30 October 2026)
+
+Both endpoints require a GOVERNMENT Bearer token, return `Cache-Control: no-store`, perform aggregate reads only and never return customer-level rows. Query is exactly `from=YYYY-MM-DD&to=YYYY-MM-DD`; either both may be omitted for Bangkok-year-to-date defaults. Dates are inclusive Bangkok dates, `from <= to`, maximum 731 days. Invalid/missing pairs or unknown query keys return 400; missing/invalid auth returns 401; another role returns 403. Money values are decimal THB strings, counts are numbers and all responses include `filters`, `definitions`, `limitations` and ISO `lastUpdatedAt`.
+
+- `GET /government/dashboard`: 200 `{filters,kpis,trends,budgetUtilization,salesByShopSize,definitions,limitations,lastUpdatedAt}`. KPI keys are `budgetSpent`, `budgetRemaining`, `totalSales`, `citizensUsingBenefit`, `transactingShops`, `rewardRecipients`. `trends[]` contains `{month,totalSales,baseSubsidy,rewardSubsidy}`; size rows contain `size`, `sales`, `transactionCount`. Budget fields refer only to Main Quest monthly periods overlapping the filter and contain `budgetLimit`, `spent`, `remaining`, `usagePercent`.
+- `GET /government/reports`: 200 deep-analysis payload with `budget` (`subsidySplit`, `monthlySpending`, `utilization`), `shops` (`salesBySize`, `topShops`, `categoryDistribution`), `customers` (`summary`, `transactionTrends`, `repeatAnalysis`) and `coinsAndRewards` (`monthly`). Top shops expose aggregate `{shopId,name,sales,transactionCount}` only. Monthly Coin totals exclude reversed awards and awards linked to a non-`SUCCEEDED` purchase.
+
+All net sales/subsidy metrics include only current `SUCCEEDED` purchases; `REFUNDED` rows contribute zero. Main Quest budget utilization uses whole configured monthly periods overlapping the selected range because budget limits are monthly. There is no persisted global Base Subsidy budget ceiling, so Base is shown as spending only and excluded from budget-limit/remaining calculations. Partial refunds are not represented by the current schema/business flow and are disclosed as unavailable rather than estimated. Category counts may overlap for multi-category shops.
+
 ## Standalone AI service — authenticated chat, recommendations and public Search (F07 partial)
 
 ### Explore all-match search (29 October 2026)
