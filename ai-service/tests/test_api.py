@@ -54,6 +54,28 @@ class ChatAPITests(unittest.TestCase):
             if request.method == "GET":
                 if request.url.path == "/recommendations/context":
                     return httpx.Response(200, json=self.context)
+                if request.url.path == "/recommendations/catalog":
+                    if self.discovery_override is not None:
+                        return httpx.Response(
+                            200,
+                            json={
+                                "shops": self.discovery_override["stores"],
+                                "meta": self.discovery_override["meta"],
+                            },
+                        )
+                    page = int(request.url.params["page"])
+                    return httpx.Response(
+                        200,
+                        json={
+                            "shops": self.discovery_stores[(page - 1) * 50 : page * 50],
+                            "meta": {
+                                "page": page,
+                                "pageSize": 50,
+                                "total": len(self.discovery_stores),
+                                "hasNextPage": page * 50 < len(self.discovery_stores),
+                            },
+                        },
+                    )
                 self.assertEqual(request.url.path, "/stores")
                 if self.discovery_override is not None:
                     return httpx.Response(200, json=self.discovery_override)

@@ -9,6 +9,15 @@ import { collectMatchingStoreIds } from "../src/lib/collect-store-search.ts";
 const appDir = fileURLToPath(new URL("../", import.meta.url));
 const base = "http://127.0.0.1:3101";
 const token = "local-chat-fixture-session";
+const sellerToken = "local-seller-fixture-session";
+let ownedStore = {
+  id: "501",
+  name: "Fixture owned shop",
+  latitude: "13.750000",
+  longitude: "100.500000",
+  address: null,
+  participationStatus: "APPROVED",
+};
 let lastChat;
 let lastSearch;
 let failBatch = false;
@@ -22,6 +31,11 @@ const shops = [
     latitude: "13.750100",
     longitude: "100.500100",
     distanceKm: 0.35,
+    coinRate: {
+      coins: 10,
+      minimumPurchase: "50.00",
+      endsAt: "2099-12-31T23:59:59.000Z",
+    },
   },
   {
     id: "102",
@@ -32,6 +46,7 @@ const shops = [
     latitude: "13.750200",
     longitude: "100.500200",
     distanceKm: 0.6,
+    coinRate: null,
   },
 ];
 const exploreShops = Array.from({ length: 251 }, (_, i) => ({
@@ -51,13 +66,15 @@ const fixture = createServer(async (request, response) => {
     });
     return response.end();
   }
-  if (request.headers.authorization !== `Bearer ${token}`)
+  const sellerRequest =
+    request.headers.authorization === `Bearer ${sellerToken}`;
+  if (!sellerRequest && request.headers.authorization !== `Bearer ${token}`)
     return json(response, { detail: "private-fixture-detail" }, 401);
   if (path === "/me")
     return json(response, {
       id: "1",
       displayName: "ผู้ใช้ทดสอบ UI",
-      role: "CUSTOMER",
+      role: sellerRequest ? "SELLER" : "CUSTOMER",
     });
   if (path === "/wallets/me")
     return json(response, {
@@ -72,10 +89,47 @@ const fixture = createServer(async (request, response) => {
       testActionsEnabled: false,
       shopCoinRates: [],
     });
+  if (path === "/stores" && request.method === "GET") {
+    const query = new URL(request.url, "http://127.0.0.1").searchParams;
+    const page = Number(query.get("page") ?? 1);
+    const pageSize = Number(query.get("pageSize") ?? 50);
+    const radiusKm = Number(query.get("radiusKm"));
+    const scoped = exploreShops.filter((shop) => shop.distanceKm <= radiusKm);
+    return json(response, {
+      radiusKm,
+      stores: scoped.slice((page - 1) * pageSize, page * pageSize),
+      meta: {
+        page,
+        pageSize,
+        total: scoped.length,
+        hasNextPage: page * pageSize < scoped.length,
+      },
+    });
+  }
   let raw = "";
   for await (const chunk of request) raw += chunk;
   const body = raw ? JSON.parse(raw) : {};
-  if (path === "/stores/batch") {
+  if (path === "/seller/stores" && request.method === "GET") {
+    return sellerRequest
+      ? json(response, { stores: [ownedStore] })
+      : json(response, { detail: "private-fixture-detail" }, 403);
+  }
+  if (path.startsWith("/seller/stores/") && request.method === "PATCH") {
+    if (!sellerRequest)
+      return json(response, { detail: "private-fixture-detail" }, 403);
+    if (path !== `/seller/stores/${ownedStore.id}/location`)
+      return json(response, { detail: "private-fixture-detail" }, 404);
+    ownedStore = {
+      ...ownedStore,
+      latitude: Number(body.latitude).toFixed(6),
+      longitude: Number(body.longitude).toFixed(6),
+      address: body.address,
+    };
+    return json(response, ownedStore);
+  }
+  if (path === "/stores/batch" || path === "/recommendations/stores") {
+    if (path === "/recommendations/stores" && sellerRequest)
+      return json(response, { detail: "private-fixture-detail" }, 403);
     if (failBatch) {
       failBatch = false;
       return json(
@@ -87,7 +141,10 @@ const fixture = createServer(async (request, response) => {
     return json(response, {
       stores: body.shopIds.flatMap((id) =>
         [...shops, ...exploreShops].filter(
-          (shop) => shop.id === id && shop.distanceKm <= body.radiusKm,
+          (shop) =>
+            shop.id === id &&
+            (path === "/recommendations/stores" ||
+              shop.distanceKm <= body.radiusKm),
         ),
       ),
     });
@@ -141,10 +198,11 @@ const fixture = createServer(async (request, response) => {
     return json(response, { detail: "private-fixture-detail" }, 500);
   if (scenario === "test:cards-error") failBatch = true;
   const result = {
-    reply: body.location
-      ? "คำตอบทดสอบ: พบร้านที่อาจเกี่ยวข้องในพื้นที่ที่เลือก ลองดูรายละเอียดร้านด้านล่างได้เลยครับ"
-      : "คำตอบทดสอบ: ผมช่วยแนะนำร้านและตอบเรื่องระบบ THAI Please ได้ครับ หากต้องการร้านใกล้คุณ เลือกจุดค้นหาก่อนได้เลย",
-    storeIds: body.location ? ["101", "102"] : [],
+    reply: "คำตอบทดสอบ: ลองดูร้านที่น่าสนใจในการ์ดด้านล่างได้เลยครับ",
+    storeIds:
+      body.message === "recommend" || body.message.startsWith("test:")
+        ? ["101", "102"]
+        : [],
     sources: [{ title: "แหล่งข้อมูลทดสอบ", url: "https://www.mof.go.th/" }],
     mode: "model",
     model: "fixture-only",
@@ -264,8 +322,12 @@ try {
   assert.deepEqual(plain.storeIds, []);
   assert.equal("location" in lastChat, false);
   const recommendation = await chat({ message: "recommend", location });
-  assert.deepEqual(lastChat.location, location);
+  assert.equal(lastChat.location, undefined);
   assert.deepEqual(recommendation.storeIds, ["101", "102"]);
+  assert.deepEqual((await chat({ message: "recommend" })).storeIds, [
+    "101",
+    "102",
+  ]);
   for (const [scenario, status] of [
     ["unavailable", 503],
     ["expired", 401],
@@ -277,7 +339,45 @@ try {
     ["unsafe-link", 502],
   ])
     await chat({ message: `test:${scenario}`, location }, { status });
-  await chat({ message: "test:ids-without-location" }, { status: 502 });
+  const unscoped = await chat({ message: "test:ids-without-location" });
+  assert.deepEqual(unscoped.storeIds, ["101"]);
+  const globalHydration = await fetch(`${base}/api/recommendations/stores`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: base,
+      Cookie: `session=${token}`,
+    },
+    body: JSON.stringify({ shopIds: recommendation.storeIds }),
+  });
+  assert.equal(globalHydration.status, 200);
+  const globalShops = (await globalHydration.json()).stores;
+  assert.deepEqual(
+    globalShops.map((shop) => shop.id),
+    ["101", "102"],
+  );
+  assert.ok(globalShops.every((shop) => !("distanceKm" in shop)));
+  checks++;
+  for (const [body, cookie, origin, status] of [
+    [{ shopIds: ["101"] }, "", base, 401],
+    [{ shopIds: ["101"] }, token, "https://untrusted.invalid", 403],
+    [{ shopIds: ["101"] }, sellerToken, base, 403],
+    [{ shopIds: ["101"], latitude: 0 }, token, base, 400],
+    [{ shopIds: ["1", "2", "3", "4", "5", "6"] }, token, base, 400],
+  ]) {
+    const response = await fetch(`${base}/api/recommendations/stores`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: origin,
+        ...(cookie ? { Cookie: `session=${cookie}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    assert.equal(response.status, status);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    checks++;
+  }
   const hydration = await fetch(`${base}/api/stores/batch`, {
     method: "POST",
     headers: {
@@ -293,9 +393,10 @@ try {
   });
   assert.equal(hydration.status, 200);
   assert.deepEqual(
-    (await hydration.json()).stores.map((shop) => shop.id),
+    (await hydration.clone().json()).stores.map((shop) => shop.id),
     ["101", "102"],
   );
+  assert.equal((await hydration.json()).stores[0].coinRate.coins, 10);
   checks++;
   const page = await fetch(`${base}/AI-chatbot`, {
     headers: { Cookie: `session=${token}` },
@@ -384,6 +485,16 @@ try {
     cards.map((card) => card.id),
     allIds,
   );
+  assert.ok(cards.every((card) => card.coinRate.coins === 10));
+  checks++;
+  const discovery = await fetch(
+    `${base}/api/stores?latitude=13.75&longitude=100.5&radiusKm=5&page=1&pageSize=100`,
+    { headers: { Cookie: `session=${token}` } },
+  );
+  assert.equal(discovery.status, 200);
+  const discoveryBody = await discovery.json();
+  assert.equal(discoveryBody.stores.length, 100);
+  assert.deepEqual(discoveryBody.stores[0].coinRate, shops[0].coinRate);
   checks++;
   const explorePage = await fetch(`${base}/wallet/explore`, {
     headers: { Cookie: `session=${token}` },
@@ -393,8 +504,93 @@ try {
   assert.ok(exploreHtml.includes("ค้นหาด้วย AI"));
   assert.ok(!exploreHtml.includes("explore-category-label"));
   checks++;
+  async function sellerStores(
+    method,
+    path,
+    body,
+    { status = 200, cookie = sellerToken, origin = base } = {},
+  ) {
+    const response = await fetch(base + path, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Origin: origin,
+        ...(cookie ? { Cookie: `session=${cookie}` } : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const result = await response.json();
+    assert.equal(response.status, status);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.ok(!JSON.stringify(result).includes(sellerToken));
+    assert.ok(!JSON.stringify(result).includes("private-fixture-detail"));
+    checks++;
+    return result;
+  }
+  const storesPath = "/api/seller/stores",
+    locationPath = `${storesPath}/501/location`;
+  const storeLocation = {
+    latitude: "14.200000",
+    longitude: "101.300000",
+    address: {
+      line1: "New fixture road",
+      province: "",
+      district: "",
+      subDistrict: "",
+      postcode: "",
+    },
+  };
+  await sellerStores("GET", storesPath, undefined, { status: 401, cookie: "" });
+  await sellerStores("GET", storesPath, undefined, {
+    status: 403,
+    cookie: token,
+  });
+  await sellerStores("GET", storesPath + "?ownerId=42", undefined, {
+    status: 400,
+  });
+  await sellerStores("PATCH", locationPath, storeLocation, {
+    status: 401,
+    cookie: "",
+  });
+  await sellerStores("PATCH", locationPath, storeLocation, {
+    status: 403,
+    cookie: token,
+  });
+  await sellerStores("PATCH", locationPath, storeLocation, {
+    status: 403,
+    origin: "https://untrusted.invalid",
+  });
+  for (const changes of [
+    { latitude: "91" },
+    { ownerId: "42" },
+    { address: { ...storeLocation.address, postcode: "123" } },
+  ])
+    await sellerStores(
+      "PATCH",
+      locationPath,
+      { ...storeLocation, ...changes },
+      { status: 400 },
+    );
+  await sellerStores("PATCH", `${storesPath}/999/location`, storeLocation, {
+    status: 404,
+  });
+  const beforeEdit = await sellerStores("GET", storesPath);
+  assert.equal(beforeEdit.stores[0].latitude, "13.750000");
+  const updatedStore = await sellerStores("PATCH", locationPath, storeLocation);
+  assert.equal(updatedStore.participationStatus, "APPROVED");
+  const afterEdit = await sellerStores("GET", storesPath);
+  assert.equal(afterEdit.stores[0].latitude, storeLocation.latitude);
+  assert.equal(afterEdit.stores[0].address.line1, storeLocation.address.line1);
+  const settings = await fetch(base + "/store/settings", {
+    headers: { Cookie: `session=${sellerToken}` },
+  });
+  assert.equal(settings.status, 200);
+  const settingsHtml = await settings.text();
+  assert.ok(settingsHtml.includes("ตำแหน่งร้านของฉัน"));
+  assert.ok(!settingsHtml.includes("UI Preview"));
+  checks++;
   console.log(
-    `Chat/Explore HTTP integration: ${checks} cases PASS (isolated local fixtures; no real AI/DB).`,
+    `Web HTTP integration: ${checks} cases PASS (isolated local fixtures; no real AI/DB).`,
   );
   if (process.argv.includes("--ui")) {
     console.log(`UI fixture session: ${fixtureUrl}/session`);

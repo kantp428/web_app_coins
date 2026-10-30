@@ -1,6 +1,12 @@
 import axios from "axios";
 import type { AuthRole } from "@/lib/auth-types";
 import { chatReplySchema, type ChatRequest } from "@/lib/chat-contract";
+import type { StoreCoinRate } from "@/lib/store-coin-rate";
+import {
+  sellerStoresSchema,
+  sellerStoreSchema,
+  type SellerLocation,
+} from "@/lib/seller-store-contract";
 
 // Same-origin Next handlers manage the HttpOnly session cookie.
 // Server components continue to call Nest through lib/auth.ts.
@@ -23,6 +29,13 @@ export async function sendChat(body: ChatRequest, signal: AbortSignal) {
   });
   return chatReplySchema.parse(response.data);
 }
+export async function hydrateChatStores(
+  shopIds: string[],
+  signal?: AbortSignal,
+) {
+  return (await api.post("/recommendations/stores", { shopIds }, { signal }))
+    .data;
+}
 export type LoginPayload = {
   username: string;
   password: string;
@@ -33,6 +46,20 @@ export async function login(payload: LoginPayload) {
 }
 export async function logout() {
   await authApi.post("/logout");
+}
+export async function getSellerStores(signal?: AbortSignal) {
+  return sellerStoresSchema.parse(
+    (await api.get("/seller/stores", { signal })).data,
+  ).stores;
+}
+export async function updateSellerStoreLocation(
+  id: string,
+  body: SellerLocation,
+) {
+  return sellerStoreSchema.parse(
+    (await api.patch(`/seller/stores/${encodeURIComponent(id)}/location`, body))
+      .data,
+  );
 }
 export function getApiError(error: unknown) {
   if (axios.isAxiosError<{ message?: unknown }>(error)) {
@@ -161,6 +188,7 @@ export async function generateCoinRates(regenerate = false) {
 }
 
 export type NearbyStore = {
+  coinRate: StoreCoinRate | null;
   description: string | null;
   id: string;
   name: string;

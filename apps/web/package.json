@@ -11,6 +11,8 @@
     "test:chat-location": "node scripts/check-chat-location.mjs",
     "test:chat-entry": "node scripts/check-chat-entry.mjs",
     "test:store-search": "node scripts/check-store-search.mjs",
+    "test:store-coins": "node scripts/check-store-coins.mjs",
+    "test:seller-payment-qr": "node scripts/check-seller-payment-qr.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" components.json package.json",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" components.json package.json"
   },

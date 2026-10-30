@@ -10,12 +10,18 @@ import {
   Injectable,
   OnModuleDestroy,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AuthService } from '../auth/auth.service.js';
-import { parseStoreScope, StoresService } from '../stores/stores.service.js';
+import {
+  parseStoreScope,
+  parsePagination,
+  parseShopIds,
+  StoresService,
+} from '../stores/stores.service.js';
 
 export function categoryFilter(body: unknown): string[] {
   if (!body || typeof body !== 'object' || Array.isArray(body))
@@ -132,7 +138,12 @@ export class RecommendationsService implements OnModuleDestroy {
   async candidates(body: unknown, authorization?: string) {
     const user = await this.customer(authorization);
     const categoryIds = categoryFilter(body).map(BigInt);
-    const scope = parseStoreScope(body as Record<string, unknown>);
+    const input = body as Record<string, unknown>;
+    const scope = ['latitude', 'longitude', 'radiusKm'].some(
+      (key) => input[key] !== undefined,
+    )
+      ? parseStoreScope(input)
+      : undefined;
     const shopIds = recommendationShopIds(
       (body as Record<string, unknown>).shopIds,
     );
@@ -153,7 +164,7 @@ export class RecommendationsService implements OnModuleDestroy {
     const stores = await this.db.$queryRaw<
       { shop_id: bigint; visited: boolean; coins: number | null }[]
     >`
-      WITH scoped_stores AS (${this.stores.scopedQuery(scope)}), eligible AS (
+      WITH scoped_stores AS (${scope ? this.stores.scopedQuery(scope) : this.stores.approvedQuery(categoryIds.map(String))}), eligible AS (
         SELECT s.shop_id, EXISTS (
           SELECT 1 FROM purchases p WHERE p.customer_id = ${BigInt(user.id)}
             AND p.shop_id = s.shop_id AND p.status IN ('SUCCEEDED', 'REFUNDED')
@@ -182,6 +193,44 @@ export class RecommendationsService implements OnModuleDestroy {
     };
   }
 
+  async catalog(query: Record<string, unknown>, authorization?: string) {
+    await this.customer(authorization);
+    if (
+      Object.keys(query).some(
+        (key) => !['categoryIds', 'page', 'pageSize'].includes(key),
+      )
+    )
+      throw new BadRequestException('query parameter ไม่ถูกต้อง');
+    const ids = categoryFilter({
+      categoryIds:
+        typeof query.categoryIds === 'string'
+          ? query.categoryIds.split(',')
+          : [],
+    });
+    if (
+      (await this.db.categories.count({
+        where: { category_id: { in: ids.map(BigInt) } },
+      })) !== ids.length
+    )
+      throw new BadRequestException('ไม่พบประเภทร้านที่ระบุ');
+    const { page, pageSize } = parsePagination(query);
+    return this.stores.catalog(ids, page, pageSize);
+  }
+  async cards(body: unknown, authorization?: string) {
+    const user = await this.customer(authorization);
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      Array.isArray(body) ||
+      Object.keys(body).some((key) => key !== 'shopIds')
+    )
+      throw new BadRequestException('ต้องระบุ shopIds เท่านั้น');
+    const ids = parseShopIds((body as Record<string, unknown>).shopIds);
+    if (ids.length > 5)
+      throw new BadRequestException('อ่านการ์ดแนะนำได้ไม่เกิน5ร้าน');
+    return { stores: await this.stores.hydrateGlobal(ids, user.id) };
+  }
+
   async onModuleDestroy() {
     await this.db.$disconnect();
   }
@@ -195,6 +244,23 @@ export class RecommendationsController {
   @Header('Cache-Control', 'no-store')
   context(@Headers('authorization') authorization?: string) {
     return this.recommendations.context(authorization);
+  }
+  @Get('catalog')
+  @Header('Cache-Control', 'no-store')
+  catalog(
+    @Query() query: Record<string, unknown>,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return this.recommendations.catalog(query, authorization);
+  }
+  @Post('stores')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  cards(
+    @Body() body: unknown,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return this.recommendations.cards(body, authorization);
   }
 
   @Post('candidates')

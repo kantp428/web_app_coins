@@ -76,6 +76,35 @@
     {
       "key": "recommendationRadiusKm",
       "value": "5"
+    },
+    {
+      "key": "sellerToken",
+      "value": ""
+    },
+    {
+      "key": "customerToken",
+      "value": ""
+    },
+    {
+      "key": "ownedShopId",
+      "value": ""
+    },
+    {
+      "key": "ownedShopLatitude",
+      "value": ""
+    },
+    {
+      "key": "ownedShopLongitude",
+      "value": ""
+    },
+    {
+      "key": "nonOwnedShopId",
+      "value": "9223372036854775807"
+    },
+    {
+      "key": "globalChatShopIds",
+      "value": "[]",
+      "type": "string"
     }
   ],
   "item": [
@@ -122,7 +151,8 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('Expected status 200', function () { pm.response.to.have.status(200); });",
-              "if (pm.response.code === 200) pm.collectionVariables.set('token', pm.response.json().accessToken);"
+              "if (pm.response.code === 200) pm.collectionVariables.set('token', pm.response.json().accessToken);",
+              "if (pm.response.code === 200) pm.collectionVariables.set('customerToken', pm.response.json().accessToken);"
             ]
           }
         }
@@ -151,7 +181,8 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('Expected status 200', function () { pm.response.to.have.status(200); });",
-              "if (pm.response.code === 200) pm.collectionVariables.set('token', pm.response.json().accessToken);"
+              "if (pm.response.code === 200) pm.collectionVariables.set('token', pm.response.json().accessToken);",
+              "if (pm.response.code === 200) pm.collectionVariables.set('sellerToken', pm.response.json().accessToken);"
             ]
           }
         }
@@ -1068,7 +1099,8 @@
             {
               "script": {
                 "exec": [
-                  "pm.test('Expected status', function(){pm.response.to.have.status(200);});"
+                  "pm.test('Expected status', function(){pm.response.to.have.status(200);});",
+                  "if (pm.response.code === 200) pm.test('Store card Coins from Backend', () => { pm.response.json().stores.forEach(s => { pm.expect(s).to.have.property('coinRate'); const r=s.coinRate; if (r !== null) { pm.expect(r).to.have.all.keys('coins','minimumPurchase','endsAt'); pm.expect(r.coins).to.be.a('number'); pm.expect(Number.isInteger(r.coins)).to.eql(true); pm.expect(r.coins).to.be.within(1,10); pm.expect(r.minimumPurchase).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isFinite(Date.parse(r.endsAt))).to.eql(true); } }); });"
                 ],
                 "type": "text/javascript"
               },
@@ -1092,7 +1124,8 @@
             {
               "script": {
                 "exec": [
-                  "pm.test('Expected status', function(){pm.response.to.have.status(400);});"
+                  "pm.test('Expected status', function(){pm.response.to.have.status(400);});",
+                  "if (pm.response.code === 200) pm.test('Store card Coins from Backend', () => { pm.response.json().stores.forEach(s => { pm.expect(s).to.have.property('coinRate'); const r=s.coinRate; if (r !== null) { pm.expect(r).to.have.all.keys('coins','minimumPurchase','endsAt'); pm.expect(r.coins).to.be.a('number'); pm.expect(Number.isInteger(r.coins)).to.eql(true); pm.expect(r.coins).to.be.within(1,10); pm.expect(r.minimumPurchase).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isFinite(Date.parse(r.endsAt))).to.eql(true); } }); });"
                 ],
                 "type": "text/javascript"
               },
@@ -1116,7 +1149,8 @@
             {
               "script": {
                 "exec": [
-                  "pm.test('Expected status', function(){pm.response.to.have.status(401);});"
+                  "pm.test('Expected status', function(){pm.response.to.have.status(401);});",
+                  "if (pm.response.code === 200) pm.test('Store card Coins from Backend', () => { pm.response.json().stores.forEach(s => { pm.expect(s).to.have.property('coinRate'); const r=s.coinRate; if (r !== null) { pm.expect(r).to.have.all.keys('coins','minimumPurchase','endsAt'); pm.expect(r.coins).to.be.a('number'); pm.expect(Number.isInteger(r.coins)).to.eql(true); pm.expect(r.coins).to.be.within(1,10); pm.expect(r.minimumPurchase).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isFinite(Date.parse(r.endsAt))).to.eql(true); } }); });"
                 ],
                 "type": "text/javascript"
               },
@@ -1140,7 +1174,8 @@
             {
               "script": {
                 "exec": [
-                  "pm.test('Expected status', function(){pm.response.to.have.status(403);});"
+                  "pm.test('Expected status', function(){pm.response.to.have.status(403);});",
+                  "if (pm.response.code === 200) pm.test('Store card Coins from Backend', () => { pm.response.json().stores.forEach(s => { pm.expect(s).to.have.property('coinRate'); const r=s.coinRate; if (r !== null) { pm.expect(r).to.have.all.keys('coins','minimumPurchase','endsAt'); pm.expect(r.coins).to.be.a('number'); pm.expect(Number.isInteger(r.coins)).to.eql(true); pm.expect(r.coins).to.be.within(1,10); pm.expect(r.minimumPurchase).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isFinite(Date.parse(r.endsAt))).to.eql(true); } }); });"
                 ],
                 "type": "text/javascript"
               },
@@ -2139,7 +2174,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "const r=pm.response.json(); pm.test('Pagination metadata', () => { pm.expect(r.stores).to.be.an('array'); pm.expect(r.meta.hasNextPage).to.be.a('boolean'); });"
+                  "const r=pm.response.json(); pm.test('Pagination metadata', () => { pm.expect(r.stores).to.be.an('array'); pm.expect(r.meta.hasNextPage).to.be.a('boolean'); });",
+                  "if (pm.response.code === 200) pm.test('Store card Coins from Backend', () => { pm.response.json().stores.forEach(s => { pm.expect(s).to.have.property('coinRate'); const r=s.coinRate; if (r !== null) { pm.expect(r).to.have.all.keys('coins','minimumPurchase','endsAt'); pm.expect(r.coins).to.be.a('number'); pm.expect(Number.isInteger(r.coins)).to.eql(true); pm.expect(r.coins).to.be.within(1,10); pm.expect(r.minimumPurchase).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isFinite(Date.parse(r.endsAt))).to.eql(true); } }); });"
                 ]
               }
             }
@@ -2256,7 +2292,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Hydrated stores', () => pm.expect(pm.response.json().stores).to.be.an('array'));"
+                  "pm.test('Hydrated stores', () => pm.expect(pm.response.json().stores).to.be.an('array'));",
+                  "if (pm.response.code === 200) pm.test('Store card Coins from Backend', () => { pm.response.json().stores.forEach(s => { pm.expect(s).to.have.property('coinRate'); const r=s.coinRate; if (r !== null) { pm.expect(r).to.have.all.keys('coins','minimumPurchase','endsAt'); pm.expect(r.coins).to.be.a('number'); pm.expect(Number.isInteger(r.coins)).to.eql(true); pm.expect(r.coins).to.be.within(1,10); pm.expect(r.minimumPurchase).to.match(/^\\d+\\.\\d{2}$/); pm.expect(Number.isFinite(Date.parse(r.endsAt))).to.eql(true); } }); });"
                 ]
               }
             }
@@ -2266,7 +2303,7 @@
     },
     {
       "name": "AI service (Qwen3 4B)",
-      "description": "Authenticated standalone FastAPI /chat: Qwen3 4B, Backend 3+2 recommendations and DDGS public Search (no API key). Configure aiBaseUrl/aiModel; login CUSTOMER to set token and run Backend with DB. Sources are official HTTPS links; shops only from Backend. DDGS can be rate-limited or return old snippets. Search failure is valid200 with an explicit limitation and sources:[]. Web proxy/UI and live-DB E2E remain pending. Mutually exclusive provider/disabled scenarios require separate setup. Token-free POST /chat/test runs plain chat/public Search/off-topic without Backend; recommendations remain authenticated /chat only.",
+      "description": "Authenticated FastAPI /chat: message-only global category/description search, 3 new plus2 repeat shops, DDGS public Search. Configure aiBaseUrl/aiModel and CUSTOMER token. Explicit200-shop processing budget; overflow503 asks for narrower categories. No GPS required; legacy valid location ignored. Explore /stores/search retains geographic scope. Live model/browser E2E remains pending; /chat/test is public plain chat/Search only.",
       "item": [
         {
           "name": "Health (200 app liveness)",
@@ -2334,7 +2371,7 @@
                 }
               }
             },
-            "description": "Requires running Ollama and configured model. Sends Thai greeting; output is generated, not a fixed mock. Normal chat returns storeIds:[]. Requires a valid CUSTOMER token and reachable Backend recommendation context before any model call."
+            "description": "Chat searches approved shops globally using message only. Legacy valid location is ignored. Explore remains radius-scoped."
           },
           "event": [
             {
@@ -2911,14 +2948,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\",\n  \"location\": {\n    \"latitude\": {{recommendationLatitude}},\n    \"longitude\": {{recommendationLongitude}},\n    \"radiusKm\": {{recommendationRadiusKm}}\n  }\n}",
+              "raw": "{\n  \"message\": \"คุณช่วยอะไรได้บ้าง แล้วช่วยแนะนำร้านกินข้าวหรือดื่มกาแฟให้หน่อย\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Supply the selected location on every request. AI binds it server-side to discovery scope; the model chooses categories only."
+            "description": "Chat searches approved shops globally using message only. Legacy valid location is ignored. Explore remains radius-scoped."
           },
           "event": [
             {
@@ -3490,7 +3527,7 @@
           ]
         },
         {
-          "name": "Chat requests selected location when missing (200)",
+          "name": "Chat recommends without location (200)",
           "request": {
             "method": "POST",
             "url": "{{aiBaseUrl}}/chat",
@@ -3516,7 +3553,7 @@
                 }
               }
             },
-            "description": "Supply the selected location on every request. AI binds it server-side to discovery scope; the model chooses categories only."
+            "description": "Chat searches approved shops globally using message only. Legacy valid location is ignored. Explore remains radius-scoped."
           },
           "event": [
             {
@@ -3524,8 +3561,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
-                  "pm.test('No shop recommendations without selected location', () => pm.expect(pm.response.json().storeIds).to.eql([]));"
+                  "pm.test('Expected 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Global recommendation IDs contract',()=>{const ids=pm.response.json().storeIds;pm.expect(ids).to.be.an('array');pm.expect(ids.length).to.be.at.most(5);pm.expect(new Set(ids).size).to.eql(ids.length);});"
                 ]
               }
             }
@@ -3592,14 +3629,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"Please recommend pad kra pao (Thai basil stir-fry). Made-to-order and Thai restaurants are also acceptable candidates.\",\n  \"location\": {\n    \"latitude\": {{recommendationLatitude}},\n    \"longitude\": {{recommendationLongitude}},\n    \"radiusKm\": {{recommendationRadiusKm}}\n  }\n}",
+              "raw": "{\n  \"message\": \"Please recommend pad kra pao (Thai basil stir-fry). Made-to-order and Thai restaurants are also acceptable candidates.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Real Ollama and scoped DB required. Chat reads every GET /stores page, judges full descriptions including plausible generic restaurants, validates IDs, then asks backend to enforce Coins/3+2. Does not confirm dish availability. More than200 shops or relevance budget overflow503; no silent truncation or exact-keyword fallback. Semantic quality requires seeded descriptions and manual/fixture evaluation, beyond response-schema assertions."
+            "description": "Chat searches approved shops globally using message only. Legacy valid location is ignored. Explore remains radius-scoped."
           },
           "event": [
             {
@@ -4426,7 +4463,7 @@
     },
     {
       "name": "Customer web chat (HttpOnly session)",
-      "description": "Next BFF integration, distinct from Nest and FastAPI endpoints. Run missing-session/Origin checks then web Login before success/validation cases. Cookie jar enabled after login; AI/provider errors require corresponding service setup and are covered by the local HTTP fixture checks. Do not export cookies or credentials. Tests here have not been run live. Current web UI requests device location on each send/retry at fixed5km, with browser permission; no location picker. Coordinates in these direct BFF examples are explicit test data. Missing location still permits general chat. Web errors no longer suggest a removed radius control.",
+      "description": "Next BFF with session cookie/trusted Origin; message-only global shop recommendations without GPS or radius. Legacy valid location is discarded. Run web Login before success cases. No live model/browser check is claimed; isolated fixture results are recorded in PLAN. Explore remains radius-scoped.",
       "item": [
         {
           "name": "Chat missing session cookie (401)",
@@ -4578,7 +4615,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Chat searches approved shops globally using message only. Legacy valid location is ignored. Explore remains radius-scoped."
           },
           "event": [
             {
@@ -4594,7 +4632,7 @@
           ]
         },
         {
-          "name": "Chat nearby recommendations through web BFF (200)",
+          "name": "Chat global recommendations through web BFF (200)",
           "request": {
             "method": "POST",
             "url": "{{webBaseUrl}}/api/chat",
@@ -4613,14 +4651,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"Please recommend nearby food or coffee shops.\",\n  \"location\": {\n    \"latitude\": {{recommendationLatitude}},\n    \"longitude\": {{recommendationLongitude}},\n    \"radiusKm\": {{recommendationRadiusKm}}\n  }\n}",
+              "raw": "{\n  \"message\": \"Please recommend food or coffee shops.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "AI-service/Ollama and Nest must be running with CUSTOMER session cookie. Location is selected test data. Response contains IDs only; page separately loads /api/stores/batch in the same scope for cards. BFF deadline180s; allow sufficient runner timeout. No browser Bearer needed."
+            "description": "Chat searches approved shops globally using message only. Legacy valid location is ignored. Explore remains radius-scoped."
           },
           "event": [
             {
@@ -5109,8 +5147,15 @@
           "name": "Get government overview dashboard",
           "request": {
             "method": "GET",
-            "auth": { "type": "noauth" },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/government/dashboard?from=2026-01-01&to=2026-12-31",
             "description": "GOVERNMENT-only aggregate overview. token must be a government token. Refunded purchases and reversed Coins are excluded according to the reporting contract."
           },
@@ -5131,8 +5176,15 @@
           "name": "Get government deep reports",
           "request": {
             "method": "GET",
-            "auth": { "type": "noauth" },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/government/reports?from=2026-01-01&to=2026-12-31",
             "description": "GOVERNMENT-only aggregate Budget, Shop, Customer and Coin/Reward analysis. No customer-level rows are returned."
           },
@@ -5153,8 +5205,15 @@
           "name": "Reject invalid government report range (400)",
           "request": {
             "method": "GET",
-            "auth": { "type": "noauth" },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/government/dashboard?from=2026-12-31&to=2026-01-01"
           },
           "event": [
@@ -5173,7 +5232,9 @@
           "name": "Reject non-government report access (403)",
           "request": {
             "method": "GET",
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "header": [
               {
                 "key": "Authorization",
@@ -5198,7 +5259,9 @@
           "name": "Reject unauthenticated dashboard access (401)",
           "request": {
             "method": "GET",
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "url": "{{baseUrl}}/government/dashboard?from=2026-01-01&to=2026-12-31"
           },
           "event": [
@@ -5212,6 +5275,1007 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Seller shop location",
+      "description": "Run SELLER and CUSTOMER login first to save role-specific tokens, then GET own shops. Success PATCH uses the current coordinates captured by GET and omits address so it does not relocate a shop by default; change values only for an owned test shop. nonOwnedShopId defaults to a synthetic nonexistent canonical ID. No approval, ownership or Coins updates are allowed.",
+      "item": [
+        {
+          "name": "Read my shops (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/seller/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Owned location DTO', () => { const result=pm.response.json(); const rows=Array.isArray(result.stores)?result.stores:[result]; rows.forEach(s => { pm.expect(s.id).to.match(/^[1-9][0-9]*$/); pm.expect(s.latitude).to.match(/^-?[0-9]+[.][0-9]{6}$/); pm.expect(s.longitude).to.match(/^-?[0-9]+[.][0-9]{6}$/); pm.expect(s).to.have.property('address'); pm.expect(['PENDING','APPROVED','SUSPENDED','REJECTED']).to.include(s.participationStatus); }); });",
+                  "const first=pm.response.json().stores[0]; if(first){pm.collectionVariables.set('ownedShopId',first.id); pm.collectionVariables.set('ownedShopLatitude',first.latitude); pm.collectionVariables.set('ownedShopLongitude',first.longitude);}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Synthetic owned-shop response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-store"
+                }
+              ],
+              "body": "{\n  \"stores\": [\n    {\n      \"id\": \"1\",\n      \"name\": \"Fixture owned shop\",\n      \"latitude\": \"13.750000\",\n      \"longitude\": \"100.500000\",\n      \"address\": null,\n      \"participationStatus\": \"APPROVED\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Read my shops missing token (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/seller/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read my shops wrong role (403)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/seller/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save own current coordinates (200; edit to move test shop)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{ownedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": \"{{ownedShopLatitude}}\",\n  \"longitude\": \"{{ownedShopLongitude}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Owned location DTO', () => { const result=pm.response.json(); const rows=Array.isArray(result.stores)?result.stores:[result]; rows.forEach(s => { pm.expect(s.id).to.match(/^[1-9][0-9]*$/); pm.expect(s.latitude).to.match(/^-?[0-9]+[.][0-9]{6}$/); pm.expect(s.longitude).to.match(/^-?[0-9]+[.][0-9]{6}$/); pm.expect(s).to.have.property('address'); pm.expect(['PENDING','APPROVED','SUSPENDED','REJECTED']).to.include(s.participationStatus); }); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Synthetic owned-shop response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-store"
+                }
+              ],
+              "body": "{\n  \"id\": \"1\",\n  \"name\": \"Fixture owned shop\",\n  \"latitude\": \"13.750000\",\n  \"longitude\": \"100.500000\",\n  \"address\": null,\n  \"participationStatus\": \"APPROVED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cannot update another or missing shop (404)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{nonOwnedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": \"{{ownedShopLatitude}}\",\n  \"longitude\": \"{{ownedShopLongitude}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location rejects invalid latitude (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{ownedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 91,\n  \"longitude\": \"{{ownedShopLongitude}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location rejects missing longitude (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{ownedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location rejects protected fields (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{ownedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": \"{{ownedShopLatitude}}\",\n  \"longitude\": \"{{ownedShopLongitude}}\",\n  \"participation_status\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location rejects incomplete address (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{ownedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": \"{{ownedShopLatitude}}\",\n  \"longitude\": \"{{ownedShopLongitude}}\",\n  \"address\": {\n    \"line1\": \"Fixture road\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location requires seller role (403)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/seller/stores/{{ownedShopId}}/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": \"{{ownedShopLatitude}}\",\n  \"longitude\": \"{{ownedShopLongitude}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Web owned shops missing session (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{webBaseUrl}}/api/seller/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          }
+        },
+        {
+          "name": "Web location missing session (401)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{webBaseUrl}}/api/seller/stores/1/location",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": \"13.75\",\n  \"longitude\": \"100.5\",\n  \"address\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Global Chat recommendations",
+      "description": "Read-only CUSTOMER global chat flow. Run List shop categories and CUSTOMER/SELLER login first. Catalog saves up to 5 IDs for global hydration. Chat has no GPS/radius; Explore keeps its existing geographic endpoints. Operational AI budget remains 200 shops; overflow is explicit 503, never silent distance filtering. Web tests do not send a real session cookie.",
+      "item": [
+        {
+          "name": "Global catalog (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/catalog?categoryIds={{categoryId}}&page=1&pageSize=50",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "const b=pm.response.json(); pm.test('Global descriptions and pagination',()=>{pm.expect(b.meta.page).to.eql(1);pm.expect(b.meta.pageSize).to.eql(50);pm.expect(b.shops.length).to.be.at.most(50);b.shops.forEach(s=>{pm.expect(s).to.have.all.keys('id','name','description','categories');});}); pm.collectionVariables.set('globalChatShopIds',JSON.stringify(b.shops.slice(0,5).map(s=>s.id)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Catalog missing token (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/catalog?categoryIds={{categoryId}}&page=1&pageSize=50",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Catalog wrong role (403)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/catalog?categoryIds={{categoryId}}&page=1&pageSize=50",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Catalog rejects radius (400)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recommendations/catalog?categoryIds={{categoryId}}&page=1&pageSize=50&radiusKm=5",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Candidates without coordinates (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/candidates",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('3 new plus 2 repeat quotas',()=>{const s=pm.response.json().stores;pm.expect(s.length).to.be.at.most(5);pm.expect(s.filter(x=>!x.visited).length).to.be.at.most(3);pm.expect(s.filter(x=>x.visited).length).to.be.at.most(2);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Global cards without coordinates (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"shopIds\":{{globalChatShopIds}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Real cards without fabricated distance',()=>{const s=pm.response.json().stores;const ids=JSON.parse(pm.collectionVariables.get('globalChatShopIds'));pm.expect(s.length).to.be.at.most(5);s.forEach(x=>{pm.expect(ids).to.include(x.id);pm.expect(x).not.to.have.property('distanceKm');pm.expect(x).to.have.property('coinRate');pm.expect(x).to.have.property('latitude');});});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cards reject more than 5 IDs (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopIds\": [\n    \"1\",\n    \"2\",\n    \"3\",\n    \"4\",\n    \"5\",\n    \"6\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cards reject coordinates (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopIds\": [],\n  \"latitude\": 13.75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cards wrong role (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recommendations/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat message-only recommendations (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{aiBaseUrl}}/chat",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Please recommend a coffee shop\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Chat contract',()=>{const b=pm.response.json();pm.expect(b.reply).to.be.a('string');pm.expect(b.storeIds.length).to.be.at.most(5);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Web cards missing cookie (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/recommendations/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{webBaseUrl}}"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          }
+        },
+        {
+          "name": "Web cards untrusted Origin (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{webBaseUrl}}/api/recommendations/stores",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "https://untrusted.example"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          }
         }
       ]
     }

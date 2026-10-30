@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { NearbyStores } from "@/components/wallet/nearby-stores";
 import { LiveWallet } from "@/components/wallet/live-wallet";
+import { SellerStoreLocation } from "@/components/wallet/seller-store-location";
 import { CustomerMainQuest } from "@/components/wallet/customer-main-quest";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { useAuth } from "@/contexts/auth-context";
@@ -26,7 +27,6 @@ import {
   User,
   Wallet,
   X,
-  Check,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,15 @@ export function WalletApp({
   const seller = role === "store";
   const tab = section;
   const livePage =
-    ["home", "scan", "topup", "receive", "explore", "history"].includes(tab) ||
+    [
+      "home",
+      "scan",
+      "topup",
+      "receive",
+      "explore",
+      "history",
+      "manage",
+    ].includes(tab) ||
     (!seller && tab === "quest");
   const router = useRouter();
   const routes = seller ? sellerRoutes : customerRoutes;
@@ -133,10 +141,7 @@ export function WalletApp({
   }
   const [selected, setSelected] = useState<(typeof shops)[number] | null>(null);
   const [notice, setNotice] = useState("");
-  const [storeName, setStoreName] = useState("ครัวป้าเล็ก");
-  const [storeCategory, setStoreCategory] = useState("อาหาร");
-  const [area, setArea] = useState("ตลาดสามย่าน กรุงเทพมหานคร");
-  const [hours, setHours] = useState("08:00 – 18:00");
+  const [storeName] = useState("ครัวป้าเล็ก");
   const [amount, setAmount] = useState("");
   const [qr, setQr] = useState(false);
   const nav = seller ? sellerTabs : tabs;
@@ -437,61 +442,7 @@ export function WalletApp({
               )}
             </Section>
           )}
-          {tab === "manage" && (
-            <Section
-              title="จัดการร้านของฉัน"
-              subtitle="ข้อมูลนี้จะแสดงให้ลูกค้าเห็นบนหน้าค้นหาร้าน"
-            >
-              <Badge variant="secondary">
-                <Check className="mr-1 size-3" />
-                สถานะตัวอย่าง: อนุมัติแล้ว
-              </Badge>
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setNotice(
-                    "บันทึกข้อมูลร้านในหน้าต้นแบบแล้ว ข้อมูลจะรีเซ็ตเมื่อโหลดหน้าใหม่",
-                  );
-                }}
-              >
-                {[
-                  { label: "ชื่อร้าน", value: storeName, set: setStoreName },
-                  {
-                    label: "หมวดสินค้า",
-                    value: storeCategory,
-                    set: setStoreCategory,
-                  },
-                  { label: "ที่ตั้ง / พื้นที่", value: area, set: setArea },
-                  { label: "เวลาเปิดทำการ", value: hours, set: setHours },
-                ].map((field) => (
-                  <label key={field.label} className="block space-y-2 text-sm">
-                    <span>{field.label}</span>
-                    <Input
-                      required
-                      value={field.value}
-                      onChange={(e) => field.set(e.target.value)}
-                    />
-                  </label>
-                ))}
-                <Button type="submit" className="w-full">
-                  บันทึกข้อมูลร้าน
-                </Button>
-              </form>
-              <Card>
-                <CardContent className="space-y-2 p-5">
-                  <h3 className="font-medium">กติกา Coins ของร้าน</h3>
-                  <p className="text-sm text-muted-foreground">
-                    ร้านใหม่สำหรับลูกค้า: 8–10 Coins ตามเกณฑ์ตัวอย่าง
-                    <br />
-                    ร้านเดิมที่เคยได้รับ Coins: 1 Coin
-                    <br />
-                    ระบบคำนวณและกำหนดตามกติกา ไม่สามารถแก้ไขจากร้านค้า
-                  </p>
-                </CardContent>
-              </Card>
-            </Section>
-          )}
+          {tab === "manage" && <SellerStoreLocation />}
           {tab === "profile" && (
             <Section title="บัญชีของฉัน">
               <Card>

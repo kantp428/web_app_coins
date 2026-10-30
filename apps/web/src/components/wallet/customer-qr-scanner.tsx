@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { Coins, ImageUp, LoaderCircle, QrCode } from "lucide-react";
 import { toast } from "sonner";
@@ -245,25 +246,18 @@ export function CustomerQrScanner() {
                       Main Quest ช่วยจ่าย ฿{payment.rewardAmount}
                     </p>
                   )}
-                  <p className="mt-2 text-sm">
-                    Coins โดยประมาณ:{" "}
-                    <span className="font-mono tabular-nums">
-                      {payment.coins}
-                    </span>
-                  </p>
-                  {payment.coinReason === "NO_RATE" && (
-                    <p className="text-xs text-muted-foreground">
-                      ร้านนี้ยังไม่มีเรต Coins ในรอบปัจจุบัน
-                    </p>
-                  )}
-                  {payment.coinReason === "BELOW_MINIMUM" && (
-                    <p className="text-xs text-muted-foreground">
-                      ยอดซื้อยังไม่ถึงขั้นต่ำรับ Coins
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    คำนวณ Coins อีกครั้งเมื่อยืนยันชำระเงิน
-                  </p>
+                  {payment.status === "PENDING" &&
+                    payment.coinReason === "NO_RATE" && (
+                      <p className="text-xs text-muted-foreground">
+                        ร้านนี้ยังไม่มีเรต Coins ในรอบปัจจุบัน
+                      </p>
+                    )}
+                  {payment.status === "PENDING" &&
+                    payment.coinReason === "BELOW_MINIMUM" && (
+                      <p className="text-xs text-muted-foreground">
+                        ยอดซื้อยังไม่ถึงขั้นต่ำรับ Coins
+                      </p>
+                    )}
                   {payment.targetHelpAmount !== payment.helpAmount && (
                     <p className="mt-1 text-xs text-amber-700">
                       Help ไม่พอ ระบบย้ายส่วนที่เหลือไปหัก Balance แล้ว
@@ -287,13 +281,37 @@ export function CustomerQrScanner() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between rounded-lg border bg-background p-3 text-sm">
-                <span className="flex items-center gap-2">
-                  <Coins className="size-4" />
-                  Coins ที่คาดว่าจะได้รับ
-                </span>
-                <span className="font-semibold">รอเชื่อมระบบ</span>
-              </div>
+              {payment.status === "PENDING" && (
+                <div
+                  className="space-y-2 rounded-lg border bg-background p-3 text-sm"
+                  aria-live="polite"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <Coins
+                        className="size-4 text-amber-600"
+                        aria-hidden="true"
+                      />
+                      Coins ที่คาดว่าจะได้รับ
+                    </span>
+                    <span className="font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                      {payment.coins} Coins
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ระบบตรวจสอบ Coins อีกครั้งเมื่อยืนยันชำระเงิน
+                  </p>
+                </div>
+              )}
+              {payment.status === "PAID" && (
+                <Link
+                  href="/wallet/history"
+                  className="flex items-center justify-between gap-2 rounded-lg border bg-background p-3 text-sm font-medium hover:bg-muted"
+                >
+                  <Coins className="size-4 shrink-0" aria-hidden="true" />
+                  ดู Coins ที่ได้รับในประวัติรายการ
+                </Link>
+              )}
               <Button
                 className="w-full"
                 disabled={

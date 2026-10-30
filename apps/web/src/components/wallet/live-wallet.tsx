@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { CustomerQrScanner } from "@/components/wallet/customer-qr-scanner";
 import { CustomerTopUp } from "@/components/wallet/customer-top-up";
+import { reconcileSellerPaymentQr } from "@/lib/seller-payment-qr";
 
 type Summary = {
   balance: string;
@@ -142,6 +143,10 @@ export function LiveWallet({
   const [pending, setPending] = useState(false);
   const qr = useRef<SVGSVGElement>(null);
   const router = useRouter();
+  const receiveSellerRequests = useCallback((requests: RequestData[]) => {
+    setSellerRequests(requests);
+    setPayment((current) => reconcileSellerPaymentQr(current, requests));
+  }, []);
   const formatMoney = (value: string | null | undefined) =>
     value == null
       ? "—"
@@ -158,7 +163,7 @@ export function LiveWallet({
             .data,
         );
       else if (section === "receive")
-        setSellerRequests(
+        receiveSellerRequests(
           (
             await api.get<RequestData[]>("/wallet", {
               params: { action: "requests" },
@@ -174,7 +179,7 @@ export function LiveWallet({
       setSummaryLoadFailed(true);
       toast.error(getApiError(error));
     }
-  }, [section]);
+  }, [section, receiveSellerRequests]);
   useEffect(() => {
     const controller = new AbortController();
     const request =
@@ -197,7 +202,7 @@ export function LiveWallet({
         if (controller.signal.aborted) return;
         if (section === "history") setHistory(response.data as Entry[]);
         else if (section === "receive")
-          setSellerRequests(response.data as RequestData[]);
+          receiveSellerRequests(response.data as RequestData[]);
         else setSummary(response.data as Summary);
       })
       .catch((error) => {
@@ -207,7 +212,7 @@ export function LiveWallet({
         }
       });
     return () => controller.abort();
-  }, [section]);
+  }, [section, receiveSellerRequests]);
   useEffect(() => {
     if (section !== "receive" && !(role === "SELLER" && section === "home"))
       return;
@@ -366,7 +371,7 @@ export function LiveWallet({
             {pending ? "กำลังสร้าง QR..." : "สร้าง QR ใช้ครั้งเดียว"}
           </Button>
         </form>
-        {payment && (
+        {payment?.status === "PENDING" && (
           <Card>
             <CardContent className="space-y-3 p-6 text-center">
               <div className="mx-auto w-fit rounded-xl border bg-white p-4">

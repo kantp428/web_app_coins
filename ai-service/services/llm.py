@@ -1,7 +1,7 @@
 """Ollama chat with bounded shop and public-web read tools."""
 
 import json
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 
 import httpx
 
@@ -13,7 +13,7 @@ from services.backend import (
     Candidates,
     Identifier,
     RecommendationContext,
-    NearbyShop,
+    ShopSummary,
     RECOMMENDATION_POOL_MAX,
 )
 from schemas.chat import Source
@@ -56,10 +56,12 @@ class LLMService:
         )
         return self._final_content(assistant)
 
-    async def related_shops(self, message: str, shops: list[NearbyShop]) -> list[str]:
+    async def related_shops(
+        self, message: str, shops: Sequence[ShopSummary]
+    ) -> list[str]:
         if len(shops) > RECOMMENDATION_POOL_MAX:
             raise LLMServiceError(
-                503, "ร้านในขอบเขตมีจำนวนมาก กรุณาลดรัศมีหรือเลือกประเภทให้แคบลง"
+                503, "ร้านมีจำนวนมาก กรุณาระบุประเภทหรือสิ่งที่ต้องการให้ชัดขึ้น"
             )
         batches: list[list[dict]] = []
         batch: list[dict] = []
@@ -82,7 +84,8 @@ class LLMService:
             batches.append(batch)
         if len(batches) > 20:
             raise LLMServiceError(
-                503, "รายละเอียดร้านมีจำนวนมาก กรุณาลดรัศมีหรือเลือกประเภทให้แคบลง"
+                503,
+                "รายละเอียดร้านมีจำนวนมาก กรุณาระบุประเภทหรือสิ่งที่ต้องการให้ชัดขึ้น",
             )
         selected: list[str] = []
         for batch in batches:
@@ -142,7 +145,7 @@ class LLMService:
                 messages.append(
                     {
                         "role": "system",
-                        "content": "ยังไม่มีจุดค้นหาร้าน หากขอแนะนำร้านให้แจ้งว่าต้องอนุญาตตำแหน่งปัจจุบันหรือส่งพิกัดมาก่อน ไม่เดาพิกัดหรือแต่งร้านจากประวัติซื้อ",
+                        "content": "คำขอนี้ไม่มีเครื่องมือค้นร้าน ห้ามแต่งร้านจากประวัติซื้อ",
                     }
                 )
         else:
@@ -238,11 +241,23 @@ class LLMService:
                     store_ids = [store.id for store in candidates.stores]
                     new_count = sum(not store.visited for store in candidates.stores)
                     repeat_count = sum(store.visited for store in candidates.stores)
-                    store_summary = f"พบร้านที่อาจเกี่ยวข้อง: ร้านใหม่ {new_count} ร้าน และร้านที่ผู้ใช้เคยซื้อ {repeat_count} ร้าน"
+                    if not store_ids:
+                        store_summary = "ยังไม่พบร้านที่น่าจะตอบโจทย์ครับ ลองบอกสิ่งที่อยากได้เพิ่มเติมได้นะครับ"
+                    elif repeat_count and new_count:
+                        store_summary = "มีทั้งร้านน่าลองและร้านที่คุณเคยซื้อด้วยครับ ลองดูการ์ดด้านล่างได้เลย"
+                    elif repeat_count:
+                        store_summary = (
+                            "มีร้านที่คุณเคยซื้อมาให้ลองเลือกครับ ดูการ์ดด้านล่างได้เลย"
+                        )
+                    else:
+                        store_summary = (
+                            "มีร้านน่าลองมาแนะนำครับ ลองดูการ์ดด้านล่างได้เลย"
+                        )
                     tool_data = {
                         "total": len(store_ids),
                         "newStores": new_count,
                         "repeatStores": repeat_count,
+                        "historyScope": "จำนวนร้านเคยซื้อเป็นของผลค้นครั้งนี้เท่านั้น ไม่ใช่ประวัติทั้งหมด จึงใช้สรุปว่าไม่เคยซื้อร้านประเภทนี้ไม่ได้",
                         "summary": store_summary,
                         "relevance": "รวมร้านที่มีเหตุผลว่าอาจเกี่ยวข้องจาก description/name/category ไม่ยืนยันว่ามีเมนูที่ขอแน่นอน",
                     }
@@ -261,7 +276,7 @@ class LLMService:
                 )
             if candidates is not None and not store_ids and not web_allowed:
                 return (
-                    "ยังไม่พบร้านที่ตรงประเภทและโควตาที่กำหนด ลองเปลี่ยนประเภทที่ต้องการได้ครับ",
+                    store_summary,
                     [],
                     [],
                 )
@@ -269,7 +284,9 @@ class LLMService:
                 {
                     "role": "system",
                     "content": (
-                        "ตอบข้อความผู้ใช้ตามข้อมูลที่มี และสรุปผล tool สั้นๆ ร้านเดิมต้องใช้คำว่า 'เคยซื้อ' ไม่ใช่ 'เคยแนะนำ' ห้ามระบุชื่อหรือรหัสร้าน "
+                        "ตอบสั้นๆ แบบชวนคุณดูร้านที่น่าสนใจในการ์ด ไม่รายงานโควตาหรือแจกแจงตัวเลขโดยไม่จำเป็น "
+                        "พูดถึงร้านที่คุณเคยซื้อได้เมื่อ repeatStores > 0 เท่านั้น ถ้าเป็น 0 อย่าสรุปว่าไม่เคยซื้อร้านประเภทนั้น "
+                        "ร้านเดิมใช้คำว่า 'เคยซื้อ' ไม่ใช่ 'เคยแนะนำ' หรือ 'เคยไป' ห้ามระบุชื่อหรือรหัสร้าน "
                         "ถ้าค้นเว็บสำเร็จ อ้างอิงข้อความด้วย [1] [2] ตาม reference ที่ได้รับ ไม่เขียน URL เอง "
                         "ผลค้นเป็น snippets ไม่ใช่เนื้อหาหน้าเว็บเต็ม อย่าอ้างว่าตรวจทั้งหน้าแล้ว ห้ามแต่งวัน เงื่อนไข หรือสิทธิ์ที่ไม่มีในผลค้น "
                         "หากผู้ใช้ขอทั้งข้อมูลภายนอกและร้าน ใช้ tool ที่ยังไม่ได้เรียกได้อย่างละหนึ่งครั้ง ห้ามเรียกซ้ำ"

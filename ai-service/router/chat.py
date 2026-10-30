@@ -39,14 +39,14 @@ async def chat(
         context = await backend.context(token)
 
         async def search(category_ids: list[str]):
-            shops = await backend.nearby(token, category_ids, request.location)
+            shops = await backend.catalog(token, category_ids)
             shop_ids = await service.related_shops(request.message, shops)
-            return await backend.search(token, category_ids, request.location, shop_ids)
+            return await backend.search(token, category_ids, None, shop_ids)
 
         reply, store_ids, sources = await service.generate_chat(
             request.message,
             context,
-            search if request.location is not None else None,
+            search,
             web_search,
         )
     except (LLMServiceError, BackendServiceError) as error:

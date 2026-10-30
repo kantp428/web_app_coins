@@ -66,7 +66,6 @@ class RecommendationTests(unittest.TestCase):
             json.loads(self.backend_requests[-1].content),
             {
                 "categoryIds": ["1", "2"],
-                **LOCATION,
                 "shopIds": [str(i) for i in range(3, 11)],
             },
         )
@@ -90,7 +89,7 @@ class RecommendationTests(unittest.TestCase):
         ]
         self.assertEqual(self.post().json()["storeIds"], ["3"])
 
-    def test_location_defaults_radius_and_binds_request_scope(self):
+    def test_legacy_location_is_ignored_for_recommendations(self):
         self.model_responses = [assistant(calls=[tool()]), assistant("พบร้านในระยะ")]
         response = self.client.post(
             "/chat",
@@ -104,21 +103,24 @@ class RecommendationTests(unittest.TestCase):
             json.loads(self.backend_requests[-1].content),
             {
                 "categoryIds": ["1"],
-                "latitude": 0,
-                "longitude": 0,
-                "radiusKm": 5,
                 "shopIds": [str(i) for i in range(3, 11)],
             },
         )
 
-    def test_missing_location_disables_shops_but_preserves_chat(self):
-        self.model_responses = [assistant("กรุณาเลือกจุดค้นหาและรัศมี")]
-        response = self.client.post("/chat", json={"message": "แนะนำร้านอาหาร"})
+    def test_recommendations_work_without_location(self):
+        self.candidates = {"stores": [{"id": "3", "visited": False, "coins": 10}]}
+        self.model_responses = [
+            assistant(calls=[tool()]),
+            assistant("Try these shops."),
+        ]
+        response = self.client.post("/chat", json={"message": "recommend food"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["storeIds"], [])
-        self.assertEqual(len(self.backend_requests), 1)
-        self.assertNotIn("tools", self.payloads[0])
-        self.assertIn("ยังไม่มีจุดค้นหาร้าน", str(self.payloads[0]))
+        self.assertEqual(response.json()["storeIds"], ["3"])
+        for request in self.backend_requests:
+            self.assertNotIn("latitude", request.url.params)
+            self.assertNotIn("longitude", request.url.params)
+            self.assertNotIn("radiusKm", request.url.params)
+        self.assertNotIn("latitude", json.loads(self.backend_requests[-1].content))
 
     def test_location_validation_before_backend_or_model(self):
         for location in (

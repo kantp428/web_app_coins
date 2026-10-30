@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storeCoinRateSchema } from "./store-coin-rate";
 
 const identifier = z
   .string()
@@ -25,6 +26,15 @@ export const chatMessageSchema = z.object({
 export const chatRequestSchema = chatMessageSchema
   .extend({
     location: chatLocationSchema.optional(),
+  })
+  .strict()
+  .transform(({ message }) => ({ message }));
+export const chatStoreRequestSchema = z
+  .object({
+    shopIds: z
+      .array(identifier)
+      .max(5)
+      .refine((ids) => new Set(ids).size === ids.length),
   })
   .strict();
 export const chatReplySchema = z
@@ -84,8 +94,8 @@ export const chatStoresSchema = z.object({
               Number.isFinite(Number(value)) &&
               Math.abs(Number(value)) <= 180,
           ),
-        distanceKm: z.number().finite().nonnegative(),
         categories: z.array(z.string()),
+        coinRate: storeCoinRateSchema.nullable().default(null),
       }),
     )
     .max(5),
@@ -93,3 +103,4 @@ export const chatStoresSchema = z.object({
 export type ChatLocation = z.infer<typeof chatLocationSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 export type ChatReply = z.infer<typeof chatReplySchema>;
+export type ChatStore = z.infer<typeof chatStoresSchema>["stores"][number];
