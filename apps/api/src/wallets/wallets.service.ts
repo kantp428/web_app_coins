@@ -279,10 +279,23 @@ export class WalletsService {
             await this.currentDailyHelpRemaining(tx, wallets.base.wallet_id),
           )
         : null;
+      const questReward = wallets.base
+        ? await availableQuestReward(tx, BigInt(user.id), new Date())
+        : null;
+      const questRewardAvailable = wallets.base
+        ? (questReward?.available ?? new Prisma.Decimal(0))
+        : null;
       return {
         role: user.role,
         balance: money(await this.balance(tx, wallets.cash.wallet_id)),
         help: monthlyHelp === null ? null : money(monthlyHelp),
+        questRewardAvailable: questRewardAvailable?.toFixed(2) ?? null,
+        helpMonthlyTotal:
+          monthlyHelp === null
+            ? null
+            : new Prisma.Decimal(money(monthlyHelp))
+                .plus(questRewardAvailable ?? 0)
+                .toFixed(2),
         helpDailyRemaining: dailyHelp === null ? null : money(dailyHelp),
         helpDailyLimit: user.role === 'CUSTOMER' ? '200.00' : null,
         helpMonthlyLimit: user.role === 'CUSTOMER' ? '1000.00' : null,

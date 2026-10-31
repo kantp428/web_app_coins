@@ -353,3 +353,7 @@ User requires no clear button and an empty transcript whenever entering chat aga
 User authorizes one-click sending from starter cards and asks for wording choices. Route each starter click through the existing send function rather than filling/focusing the composer; retain its synchronous busy guard, pending state, current-location permission and manual retry/cancellation. Disable cards while pending. Food starter asks generally for nearby food instead of silently choosing basil stir-fry, and coffee no longer references a removed selectable radius. Propose three sets of labels for user selection; keep existing labels pending their choice. No model/tool/API/Coins policy changes.
 
 User subsequently selects the direct set: แนะนำร้านอาหาร / หาร้านกาแฟ / ลองร้านใหม่ / รู้จัก THAI Please. Apply these visible labels and retain the matching existing one-click prompts.
+
+## 2026-10-30 — Include Main Quest in monthly assistance display
+
+User requests the Main Quest100THB to appear in the monthly assistance remaining card. Return server-calculated helpMonthlyTotal (remaining BASE + unexpired available REWARD) and questRewardAvailable in wallet summary; preserve help/daily limits and existing BASE/REWARD ledger and settlement rules. Customer card displays the combined amount with a reward breakdown; this is an aggregate display, not another grant or a transfer into BASE. SELLER fields are null. Expired/spent reward contributes zero. Existing monthly base limit remains1000THB and is labeled as the base entitlement rather than a cap on the combined amount.

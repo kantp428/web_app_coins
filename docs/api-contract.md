@@ -209,3 +209,7 @@ GET `/government/coin-rules` periods add `stageShopCounts` (five integer counts 
 Periods also expose `stageSalesRanges`: five `{minimum: decimal-string, maximum: decimal-string|null}` ranges aligned with Stage 1–5, minimum inclusive / maximum exclusive. Empty rounds return []. Threshold comes from the frozen round rule; table shows these sales bounds under shop counts.
 
 Web reverse-proxy configuration: WEB_PUBLIC_ORIGIN optionally adds one exact external HTTP(S) origin to the existing request-origin check for guarded mutation handlers. Missing/null/untrusted origins remain forbidden; forwarded headers do not grant trust. DEV_ALLOWED_HOSTS configures development assets/HMR separately and does not authorize mutations.
+
+### 2026-10-30 — Monthly assistance includes available Main Quest
+
+GET /wallets/me additionally returns helpMonthlyTotal and questRewardAvailable, decimal THB strings for CUSTOMER and null for SELLER. helpMonthlyTotal is the server-calculated sum of help (remaining current-month BASE) and unexpired available Main Quest REWARD ledger balance. No grant or transfer is performed by this read. Missing/expired/spent reward contributes zero. Existing help, helpMonthlyLimit, daily allowance and payment allocation remain unchanged. The customer monthly assistance card displays helpMonthlyTotal with a Main Quest breakdown; the1000THB label refers to the base monthly entitlement, not a cap on the combined total.

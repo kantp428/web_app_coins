@@ -25,6 +25,8 @@ import { reconcileSellerPaymentQr } from "@/lib/seller-payment-qr";
 type Summary = {
   balance: string;
   help: string | null;
+  helpMonthlyTotal: string | null;
+  questRewardAvailable: string | null;
   helpDailyRemaining: string | null;
   helpDailyLimit: string | null;
   helpMonthlyLimit: string | null;
@@ -497,12 +499,16 @@ export function LiveWallet({
               </p>
               <p className="mt-1 font-medium">
                 {role === "CUSTOMER"
-                  ? `฿${formatMoney(summary?.help)}`
+                  ? `฿${formatMoney(summary?.helpMonthlyTotal)}`
                   : "ยอดขายสุทธิ"}
               </p>
               {role === "CUSTOMER" && (
                 <p className="mt-1 text-xs opacity-60">
-                  จาก ฿{formatMoney(summary?.helpMonthlyLimit)} ต่อเดือน
+                  สิทธิพื้นฐาน ฿{formatMoney(summary?.helpMonthlyLimit)}{" "}
+                  ต่อเดือน
+                  <br />
+                  รวม Main Quest คงเหลือ ฿
+                  {formatMoney(summary?.questRewardAvailable)}
                 </p>
               )}
             </div>

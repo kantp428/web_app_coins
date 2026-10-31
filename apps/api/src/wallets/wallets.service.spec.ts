@@ -8,7 +8,60 @@ import {
   ensureBangkokMonthlyPeriod,
   paymentBreakdown,
   paymentWithReward,
+  WalletsService,
 } from './wallets.service.js';
+import type { PrismaService } from '../prisma/prisma.service.js';
+import type { AuthService } from '../auth/auth.service.js';
+
+describe('monthly assistance summary', () => {
+  it.each([
+    ['100.00', '850.00'],
+    ['0.00', '750.00'],
+    [null, '750.00'],
+  ])(
+    'combines remaining base with available reward %s without crediting funds',
+    async (reward, expectedTotal) => {
+      const tx = {
+        wallets: { upsert: vi.fn().mockResolvedValue({ wallet_id: 1n }) },
+        money_entries: {
+          upsert: vi.fn(),
+          aggregate: vi.fn().mockResolvedValue({
+            _sum: { signed_amount: new Prisma.Decimal(reward ?? 0) },
+          }),
+        },
+        reward_grants: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(reward === null ? null : { grant_id: 2n }),
+        },
+        coin_entries: {
+          aggregate: vi.fn().mockResolvedValue({ _sum: { coins: 100 } }),
+        },
+        $queryRaw: vi
+          .fn()
+          .mockResolvedValueOnce([{ cents: 75000n }])
+          .mockResolvedValueOnce([{ cents: 5000n }])
+          .mockResolvedValueOnce([{ cents: 20000n }]),
+      };
+      const service = new WalletsService(
+        {
+          $transaction: (fn: (value: typeof tx) => unknown) => fn(tx),
+        } as unknown as PrismaService,
+        {
+          me: vi.fn().mockResolvedValue({ id: '1', role: 'CUSTOMER' }),
+        } as unknown as AuthService,
+      );
+      const summary = await service.summary();
+      expect(summary).toMatchObject({
+        help: '750.00',
+        helpMonthlyTotal: expectedTotal,
+        questRewardAvailable: reward ?? '0.00',
+        helpDailyRemaining: '150.00',
+        balance: '200.00',
+      });
+    },
+  );
+});
 
 describe('wallet money rules', () => {
   it('parses positive decimal THB amounts as integer satang', () => {

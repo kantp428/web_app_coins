@@ -694,3 +694,46 @@
 - Resolved PLAN/PLAN.md, docs/decisions.md and main Postman conflicts by retaining both Government reporting/default-budget work and global Chat, seller-location, Coins/QR work. Kept F11/F12 reporting progress alongside current F07/F09 global-chat status; combined seller QR/report Daily progress and preserved both handoff histories. No Feature/Daily marked DONE and no source/business rule changed.
 - Structurally three-way merged Postman by named folders/items/variables rather than selecting one whole side. Retained Government dashboard/reports, seller-location and Global Chat folders, role tokens and existing validation scenarios. Updated ignored Summary-api to include both Government report routes:35 active+1 paused. Existing API contract already contains both report budgets and global Chat; no conflicting rule remains.
 - Newly verified: merged collection JSON parses,172 requests/168 event scripts compile; both branches' independent additions retained. Owning API-package Prettier write/check merged Markdown/JSON and Summary-api PASS; conflict-marker scan and git diff --check PASS. No app build, database, live Postman requests or API suites rerun for this document-only merge; earlier test results above remain historical. Next: review the resolved staged merge and run configured Postman scenarios against the intended local services before integration acceptance.
+
+### 2026-10-30 11:30 Asia/Bangkok — Maintenance / F06/F08: explain Coins allocation flow
+
+- Source/contract investigation for diagram: versioned government rules → automatic 06:00/18:00 Bangkok frozen shop rates based on historical sales → payment minimum and prior coin-award check → atomic purchase/coin ledger → monthly Main Quest check. Evidence: coin-rules.service.ts, coin-rates.service.ts, coin-scale.ts, wallets/purchase-coins.ts, wallets.service.ts and docs/api-contract.md
+- No runtime/API/business rule/flag changes or provider calls. Identified linear ceiling formula rather than five discrete tiers; prior award checks all history, not monthly reset. Read-only checks only; Prettier write/check PLAN and git diff --check PASS; no app tests/build because explanation-only
+- No new blocker/decision. Next: use the two-stage diagram to distinguish frozen shop award rates from actual customer awards and Main Quest budget allocation
+
+### 2026-10-30 11:51 Asia/Bangkok — Maintenance / F06: editable draw.io rate flow
+
+- สร้าง [coin-rate-flow.drawio](../docs/assets/coin-rate-flow.drawio) เป็น uncompressed mxfile XML; กล่อง/ลูกศรแก้ไขได้. Flow: Gov versioned rules → รอบ06:00/18:00 Bangkok → effective rule → approved shops → historical sales → calculate/store frozen rates →12-hour use → next round. ระบุไม่ปรับกลางรอบและเก็บประวัติเดิม
+- ตรวจ XML parse และ graph cells ผ่าน; ไม่ได้เปิด UI draw.io. ไม่มี runtime/API/contract/business-rule/flag change. Prettier write/check PLAN และ git diff --check ผ่าน; .drawio เป็น XML ไม่รองรับ installed Prettier parser จึงตรวจ XML โดยตรง ไม่รัน app tests/build เพราะ artifact/docs-only
+- ไม่มี blocker; ขั้นต่อไปเปิดไฟล์ด้วย draw.io File → Open From → Device หรือ import ลง diagram เดิม
+
+### 2026-10-30 — Maintenance / F08: user-requested Coins mock fixture (Asia/Bangkok)
+
+- User requested current-month balance99 for the specified test customer. Inspected schema and live configured DB: starting total9; coin_entries check permits1–10 per entry and unique purchase FK. Preserved constraint, existing ledger and rule versions
+- Committed Serializable transaction with customer row lock:9 explicitly mock-prefixed purchases (1THB each) and9 coin entries of10; verified total99 before commit. Mock records add9THB to purchase-based history/sales/report calculations; no money_entries or wallet cash mutation, so these are fixture records, not reconciled real payments. No API/schema change or acceptance/flag completion
+- Checks: live SQL reads, constraints enforced during inserts, final SUM99 and COMMIT confirmed. No app build/tests because data-only fixture; Prettier write/check PLAN and git diff --check PASS. No new business rule. Next: refresh wallet/quest UI and use a real subsequent test payment when exercising100-Coin threshold; retain mock prefix for later fixture cleanup
+
+### 2026-10-30 14:43 Asia/Bangkok — F08 maintenance: activate automatic Main Quest allocation
+
+- User requests automatic100THB reward on reaching100Coins. Source already invokes ensureQuestGrant during successful QR settlement; guard requires OPEN current month and sufficient existing budget. Live inspection found specified test customer already at100Coins, no grant, and current month DRAFT with100000THB budget
+- Opened current month using its existing budget/settings; this enables qualifying settlements for all customers in that month. Used freshly built existing ensureQuestGrant in Serializable transaction with customer/month locks to allocate current eligible test customer; called helper twice and verified exactly one grant. COMMIT:100Coins, AVAILABLE, amount/available100THB, expiry end of October Bangkok. No CASH credit; REWARD allocation ledger only. No schema/API/source/contract changes or new business rules
+- Verification: API Nest build PASS; targeted main-quest/purchase-coins/wallets suites14tests PASS; actual DB helper/ledger allocation and duplicate prevention verified. No browser QR E2E run. Prettier write/check PLAN and git diff --check PASS. Feature/Daily gates unchanged
+- Next: refresh wallet/quest UI; future successful payments reaching threshold allocate automatically while the month is OPEN and budget remains. Future monthly periods still require Government activation; manual SQL Coins changes do not invoke settlement automation
+
+### 2026-10-30 14:47 Asia/Bangkok — F08/F09 PARTIAL: combined monthly assistance card
+
+- User requests Main Quest credit in monthly assistance remaining. Recorded decision before implementation; wallet summary adds server Decimal helpMonthlyTotal (remaining BASE + unexpired available REWARD) and questRewardAvailable; both null for SELLER. Existing help/daily/monthly limits and settlement/expiry ledger rules unchanged; no second credit or BASE transfer. LiveWallet card consumes total and shows reward breakdown. Updated docs/api-contract.md and shared Postman assertions; Feature/Daily acceptance status remains PARTIAL
+- Files: apps/api/src/wallets/wallets.service.ts and spec; apps/web/src/components/wallet/live-wallet.tsx; docs/decisions.md, docs/api-contract.md, apps/api/postman/THAI-Please.postman_collection.json. Tests cover available100, spent0 and no reward while preserving cash/daily/base. Live built service summary with test auth adapter and real DB: BASE600 + REWARD100 = total700; daily remaining0 unchanged. This is service/DB verification, not authenticated browser E2E
+- Checks: pnpm --filter api test PASS125/skip19 opt-in; api lint/build PASS; web lint/build PASS (43 pages); package Prettier write/check all edited TS/TSX/JSON/Markdown PASS; Postman JSON/168script blocks syntax PASS; git diff --check PASS. No live Postman runner/browser responsive QA. No new blocker; next restart non-watch API/web processes as needed, refresh wallet and verify end-to-end reward spending/expiry in UI before final acceptance
+
+### 2026-10-30 — F08 maintenance: return mock Coins to99 (Asia/Bangkok)
+
+- User requested only mock Coins reset to99. Read current month total100; Serializable transaction/customer lock adjusted one explicitly mock-prefixed entry10→9, leaving all non-mock purchases/entries untouched; verified SUM99 and COMMIT. Existing100THB Main Quest grant/REWARD ledger retained as communicated; no grant reset or new allocation
+- Live read/update/verification PASS; no schema/runtime/API changes or acceptance-status updates. Initial plan read used package-relative wrong path; reread root PLAN before mutation. Prettier write/check PLAN and git diff --check PASS; no app tests/build for data-only fixture
+- Next: refresh wallet. This resets Coins only; existing monthly reward uniqueness still prevents a second100THB grant if Coins cross100 again
+
+### 2026-10-30 14:53 Asia/Bangkok — F08 maintenance: reset unused demo Main Quest entitlement
+
+- User explicitly requests taking back the previously allocated demo entitlement to demonstrate99→100Coins. Live inspection verified current-month Coins99, exactly one100THB grant and exactly one positive REWARD_ALLOCATION with no purchase/payment linkage; no reward spending. In Serializable transaction locked customer/month/grant/ledger, rechecked invariants, removed only that unused demo allocation and grant to release user/month uniqueness and budget reservation. Kept REWARD wallet, BASE/CASH balances, Coins, purchase records, period OPEN and configured budget unchanged
+- Verified grant count0, Coins99 and COMMIT;100THB entitlement removed. This is an explicitly authorized demo-fixture reset, not a production refund policy. No runtime/schema/API/Feature-status changes. Prettier write/check PLAN and git diff --check PASS; no app tests/build for data-only reset
+- Next: refresh wallet then complete an eligible real test QR payment earning at least1Coin; existing settlement automation will issue one new100THB Main Quest entitlement. Editing Coins directly with SQL does not run the automatic grant helper
